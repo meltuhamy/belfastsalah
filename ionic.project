@@ -1,0 +1,12 @@
+{
+  "name": "belfastsalah",
+  "app_id": "2b8fecd0",
+  "gulpStartupTasks": [
+    "sass",
+    "watch"
+  ],
+  "watchPatterns": [
+    "www/**/*",
+    "!www/lib/**/*"
+  ]
+}
