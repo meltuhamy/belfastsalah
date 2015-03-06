@@ -5,8 +5,13 @@
 // the 2nd parameter is an array of 'requires'
 // 'starter.services' is found in services.js
 // 'starter.controllers' is found in controllers.js
-angular.module('belfastsalah', ['ionic', 'belfastsalah.controllers', 'belfastsalah.services'])
+var belfastsalah = {
+  constants: angular.module('belfastsalah.constants', []),
+  controllers: angular.module('belfastsalah.controllers', []),
+  services: angular.module('belfastsalah.services', ['belfastsalah.constants'])
+};
 
+belfastsalah.app = angular.module('belfastsalah', ['ionic', 'belfastsalah.controllers', 'belfastsalah.services', 'belfastsalah.constants'])
 .run(function($ionicPlatform) {
   $ionicPlatform.ready(function() {
     // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
@@ -57,34 +62,6 @@ angular.module('belfastsalah', ['ionic', 'belfastsalah.controllers', 'belfastsal
         }
       }
     })
-    .state('tab.chat-detail', {
-      url: '/chats/:chatId',
-      views: {
-        'tab-chats': {
-          templateUrl: 'templates/chat-detail.html',
-          controller: 'ChatDetailCtrl'
-        }
-      }
-    })
-
-  // .state('tab.friends', {
-  //     url: '/friends',
-  //     views: {
-  //       'tab-friends': {
-  //         templateUrl: 'templates/tab-friends.html',
-  //         controller: 'FriendsCtrl'
-  //       }
-  //     }
-  //   })
-  //   .state('tab.friend-detail', {
-  //     url: '/friend/:friendId',
-  //     views: {
-  //       'tab-friends': {
-  //         templateUrl: 'templates/friend-detail.html',
-  //         controller: 'FriendDetailCtrl'
-  //       }
-  //     }
-  //   })
 
   .state('tab.settings', {
     url: '/settings',
