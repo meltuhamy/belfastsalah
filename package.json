@@ -1,7 +1,7 @@
 {
   "name": "belfastsalah",
   "version": "1.0.0",
-  "description": "Prayer times for the Northern Ireland community",
+  "description": "Prayer times for the Northern Ireland Muslim community",
   "dependencies": {
     "gulp": "^3.5.6",
     "gulp-sass": "^0.7.1",

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<widget id="com.ionicframework.belfastsalah217003" version="0.0.1" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="com.meltuhamy.belfastsalah" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
   <name>belfastsalah</name>
   <description>
-        An Ionic Framework and Cordova project.
+        A prayer times application for iOS and Android for Belfast.
     </description>
-  <author email="hi@ionicframework" href="http://ionicframework.com/">
-      Ionic Framework Team
+  <author email="tuhamy@gmail.com" href="http://meltuhamy.com/">
+      Mohamed Eltuhamy
     </author>
   <content src="index.html"/>
   <access origin="*"/>
