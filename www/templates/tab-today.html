@@ -1,33 +1,66 @@
-<ion-view view-title="Today">
+<ion-view view-title="{{tickerDate | amDateFormat:'dddd, Do of MMMM YYYY'}}">
   <ion-content class="padding">
-    <div class="list card">
-      <div class="item item-divider">Prayer Times</div>
+  <div class="list card">
+      <div class="item item-divider">Next Prayer: {{nextPrayer.next.name}}</div>
       <div class="item item-body">
-      <div class="row">
-        <div class="col">Fajr</div>
-        <div class="col">Shuruq</div>
-        <div class="col">Duhr</div>
-        <div class="col">Asr</div>
-        <div class="col">Maghrib</div>
-        <div class="col">Isha</div>
-      </div>
-      </div>
+      {{nextPrayer.next.name}} is {{nextPrayer.next.fromNow}} ({{nextPrayer.next.date | amDateFormat:'h:mm a'}})</div>
+
+      <div class="item item-body">{{nextPrayer.prev.name}} was {{nextPrayer.prev.fromNow}} ({{nextPrayer.prev.date | amDateFormat:'h:mm a'}})</div>
+
     </div>
     <div class="list card">
-      <div class="item item-divider">Hijri Date</div>
+      <div class="item item-divider">Today's Prayer Times</div>
       <div class="item item-body">
-        <div>
-          Today is the 4th of Muharram.
+        <div class="row">
+          <div class="col">
+            Fajr
+          </div>
+          <div class="col">
+            {{tickerPrayerTimes | prayer:'fajr'}}
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            Shuruq
+          </div>
+          <div class="col">
+            {{tickerPrayerTimes | prayer:'shuruq'}}
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            Duhr
+          </div>
+          <div class="col">
+            {{tickerPrayerTimes | prayer:'duhr'}}
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            Asr
+          </div>
+          <div class="col">
+            {{tickerPrayerTimes | prayer:'asr'}}
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            Maghrib
+          </div>
+          <div class="col">
+            {{tickerPrayerTimes | prayer:'maghrib'}}
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            Isha
+          </div>
+          <div class="col">
+            {{tickerPrayerTimes | prayer:'isha'}}
+          </div>
         </div>
       </div>
     </div>
-    <div class="list card">
-      <div class="item item-divider">On this day...</div>
-      <div class="item item-body">
-        <div>
-          You have <b>29</b> meetings on your calendar tomorrow.
-        </div>
-      </div>
-    </div>
+
   </ion-content>
 </ion-view>

@@ -7,12 +7,13 @@
 // 'starter.controllers' is found in controllers.js
 var belfastsalah = {
   constants: angular.module('belfastsalah.constants', []),
-  controllers: angular.module('belfastsalah.controllers', []),
-  services: angular.module('belfastsalah.services', ['belfastsalah.constants'])
+  controllers: angular.module('belfastsalah.controllers', ['belfastsalah.constants']),
+  services: angular.module('belfastsalah.services', ['belfastsalah.constants', 'angularMoment']),
+  filters: angular.module('belfastsalah.filters', [])
 };
 
-belfastsalah.app = angular.module('belfastsalah', ['ionic', 'belfastsalah.controllers', 'belfastsalah.services', 'belfastsalah.constants'])
-.run(function($ionicPlatform) {
+belfastsalah.app = angular.module('belfastsalah', ['ionic', 'belfastsalah.controllers', 'belfastsalah.services', 'belfastsalah.constants', 'belfastsalah.filters', 'angularMoment'])
+.run(function($ionicPlatform, Ticker) {
   $ionicPlatform.ready(function() {
     // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
     // for form inputs)
@@ -23,6 +24,10 @@ belfastsalah.app = angular.module('belfastsalah', ['ionic', 'belfastsalah.contro
       // org.apache.cordova.statusbar required
       StatusBar.styleDefault();
     }
+
+    // start the time ticker
+    Ticker.start();
+    
   });
 })
 
