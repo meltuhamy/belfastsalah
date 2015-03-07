@@ -34,6 +34,25 @@ belfastsalah.services.factory('PrayerTimes', function(PRAYER_DATA){
     }
   }
 
+  function getByMonth(monthNumber){
+    var inMonth = ''+monthNumber;
+    return _.map(_.filter(PRAYER_DATA, function(v){
+      // filter out rows with the correct month
+      return v[p.month] === inMonth;
+    }), function(v){
+      // map it to an object
+      return {
+        day: v[p.day],
+        fajr: v[p.fajr],
+        shuruq: v[p.shuruq],
+        duhr: v[p.duhr],
+        asr: v[p.asr],
+        maghrib: v[p.maghrib],
+        isha: v[p.isha]
+      };
+    });
+  }
+
   function timeToDate(baseDate,timeString){
     var split = timeString.split(':');
     var hours = +split[0];
@@ -147,6 +166,7 @@ belfastsalah.services.factory('PrayerTimes', function(PRAYER_DATA){
 
   return {
     getByDate: getByDate,
+    getByMonth: getByMonth,
     getNextPrayer: getNextPrayer,
     KEYS: p
   };

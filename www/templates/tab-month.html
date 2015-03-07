@@ -1,15 +1,27 @@
 <ion-view view-title="{{selectedDate | date:'MMMM'}}'s Prayer Times">
   <ion-content>
-    <ion-list>
-      <ion-item class="item-remove-animate item-avatar item-icon-right" ng-repeat="chat in chats" type="item-text-wrap" href="#/tab/chats/{{chat.id}}">
-        <img ng-src="{{chat.face}}">
-        <h2>{{chat.name}}</h2>
-        <p>{{chat.lastText}}</p>
-        <i class="icon ion-chevron-right icon-accessory"></i>
+  
+    <div class="row">
+      <div class="col">Day</div>
+      <div class="col">Fajr</div>
+      <!-- <div class="col">Shuruq</div> -->
+      <div class="col">Duhr</div>
+      <div class="col">Asr</div>
+      <div class="col" style="text-overflow: ellipsis; word-wrap: normal; overflow:auto;">Maghrib</div>
+      <div class="col">Isha</div>
+    </div>
 
-        <ion-option-button class="button-assertive" ng-click="remove(chat)">
-          Delete
-        </ion-option-button>
+    <ion-list>
+      <ion-item ng-repeat="row in rows" type="item-text-wrap">
+        <div ng-class="{row:true, today: row.day == todayDay}">
+          <div class="col">{{row.day}}</div>
+          <div class="col">{{row.fajr}}</div>
+          <!-- <div class="col">{{row.shuruq}}</div> -->
+          <div class="col">{{row.duhr}}</div>
+          <div class="col">{{row.asr}}</div>
+          <div class="col">{{row.maghrib}}</div>
+          <div class="col">{{row.isha}}</div>
+        </div>
       </ion-item>
     </ion-list>
   </ion-content>
