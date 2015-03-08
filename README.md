@@ -2,7 +2,7 @@
 
 A very simple application that shows today's prayer times (including a countdown to the next prayer) as well as monthly prayer times. 
 
-![Screenshot](http://i.imgur.com/xPFvPhU.png)
+<img src="http://i.imgur.com/xPFvPhU.png" alt="Screenshot" style="max-width:300px">
 
 Uses [Belfast Islamic Centre's prayer time table](http://www.belfastislamiccentre.org.uk/bic/prayer_timetable).
 
