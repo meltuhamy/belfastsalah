@@ -7017,3 +7017,7 @@ a.button {
 
 .today {
   font-weight: bold; }
+
+#today-tab {
+  padding-top: 0;
+  margin-top: -5px; }

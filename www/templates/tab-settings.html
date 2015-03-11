@@ -4,12 +4,15 @@
       <ion-item class="item-toggle">
         Notifications (Coming Soon)
         <label class="toggle">
-          <input type="checkbox" ng-model="settings.enableFriends">
+          <input type="checkbox" ng-model="settings.enableNotifications">
           <div class="track">
             <div class="handle"></div>
           </div>
         </label>
       </ion-item>
+        <ion-item ng-click="openModal()">
+            About
+        </ion-item>
     </ion-list>
   </ion-content>
 </ion-view>
