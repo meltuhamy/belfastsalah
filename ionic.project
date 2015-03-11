@@ -1,5 +1,5 @@
 {
-  "name": "belfastsalah",
+  "name": "Prayer Times",
   "app_id": "2b8fecd0",
   "gulpStartupTasks": [
     "sass",
