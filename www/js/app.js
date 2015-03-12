@@ -58,8 +58,16 @@ belfastsalah.app = angular.module('belfastsalah', ['ionic', 'belfastsalah.contro
     }
   })
 
-  .state('tab.month', {
+  .state('tab.selectMonth', {
       url: '/month',
+      views: {
+        'tab-month': {
+          templateUrl: 'templates/tab-select-month.html'
+        }
+      }
+    })
+  .state('tab.month', {
+      url: '/month/:month',
       views: {
         'tab-month': {
           templateUrl: 'templates/tab-month.html',
@@ -67,7 +75,6 @@ belfastsalah.app = angular.module('belfastsalah', ['ionic', 'belfastsalah.contro
         }
       }
     })
-
   .state('tab.settings', {
     url: '/settings',
     views: {

@@ -1,0 +1,9 @@
+<ion-view view-title="Select Month">
+  <ion-content>
+    <ion-list>
+      <ion-item ng-repeat="month in ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']" type="item-text-wrap" href="#/tab/month/{{$index+1}}">
+        {{month}}
+      </ion-item>
+    </ion-list>
+  </ion-content>
+</ion-view>
