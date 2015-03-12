@@ -35,3 +35,6 @@ We can take this as far as we want :) Here are some ideas and implemented featur
   - [ ] Iqamah reminders
   - [ ] Iqamah reminders based on distance from mosque and transport method :)
 - [ ] Generalise for other masjids/time tables
+- [ ] Distribute on web (so you don't need to download the app)
+  - [ ] Offline access
+  - [ ] Chrome web app
