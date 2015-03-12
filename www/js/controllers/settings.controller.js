@@ -19,4 +19,8 @@ belfastsalah.controllers.controller('SettingsCtrl', function($scope, $ionicModal
     $scope.modal.remove();
   });
 
+  $scope.openFork = function(){
+    window.open('https://github.com/meltuhamy/belfastsalah', '_system');
+  }
+
 });
