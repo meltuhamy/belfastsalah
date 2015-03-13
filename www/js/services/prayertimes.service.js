@@ -54,6 +54,7 @@ belfastsalah.services.factory('PrayerTimes', function(PRAYER_DATA){
   }
 
   function timeToDate(baseDate,timeString){
+    // if(!timeString || timeString.indexOf(':') === -1 ) return;
     var split = timeString.split(':');
     var hours = +split[0];
     var minutes = +split[1];
@@ -168,6 +169,7 @@ belfastsalah.services.factory('PrayerTimes', function(PRAYER_DATA){
     getByDate: getByDate,
     getByMonth: getByMonth,
     getNextPrayer: getNextPrayer,
+    timeToDate: timeToDate,
     KEYS: p
   };
 });

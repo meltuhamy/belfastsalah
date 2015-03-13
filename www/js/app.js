@@ -12,8 +12,8 @@ var belfastsalah = {
   filters: angular.module('belfastsalah.filters', [])
 };
 
-belfastsalah.app = angular.module('belfastsalah', ['ionic', 'belfastsalah.controllers', 'belfastsalah.services', 'belfastsalah.constants', 'belfastsalah.filters', 'angularMoment'])
-.run(function($ionicPlatform, Ticker) {
+belfastsalah.app = angular.module('belfastsalah', ['ionic', 'belfastsalah.controllers', 'belfastsalah.services', 'belfastsalah.constants', 'belfastsalah.filters', 'angularMoment', 'ngCordova'])
+.run(function($ionicPlatform, Ticker, Notify) {
   $ionicPlatform.ready(function() {
     // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
     // for form inputs)
@@ -27,6 +27,8 @@ belfastsalah.app = angular.module('belfastsalah', ['ionic', 'belfastsalah.contro
 
     // start the time ticker
     Ticker.start();
+    Notify.cancelAll();
+    Notify.scheduleDay();
     
   });
 })
