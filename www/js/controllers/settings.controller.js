@@ -1,4 +1,6 @@
-belfastsalah.controllers.controller('SettingsCtrl', function($scope, $ionicModal, Settings) {
+belfastsalah.controllers.controller('SettingsCtrl', function($scope, $ionicModal, Settings, Notify) {
+  $scope.settings = Settings.getAll();
+
   $ionicModal.fromTemplateUrl('templates/modal-about.html', {
     scope: $scope,
     animation: 'slide-in-up'
@@ -23,18 +25,19 @@ belfastsalah.controllers.controller('SettingsCtrl', function($scope, $ionicModal
     window.open('https://github.com/meltuhamy/belfastsalah', '_system');
   }
 
-  $scope.settings = Settings.getAll();
+  $scope.saveNotifyMinutes = function(){
+    Settings.setAndSave('notifyMinutes', $scope.settings.notifyMinutes);
+    Notify.scheduleDay();
+  };
 
-  function watchAndSave(setting){
-    $scope.$watch('settings.'+setting, function(newVal, oldVal){
-      if(newVal !== oldVal){
-        Settings.setAndSave(setting, newVal);
+  $scope.$watch('settings.notifications', function(newVal, oldVal){
+    if(newVal !== oldVal){
+      if(newVal){
+        Notify.scheduleDay()
+      } else {
+        Notify.cancelAll();
       }
-    })
-  }
-
-  _.forEach($scope.settings, function(value, setting){
-    watchAndSave(setting);
+    }
   });
 
 

@@ -4,12 +4,12 @@
       Use the slider to change the notification time.
     </div>
     <div class="range">
-      <input type="range" name="volume" max="20" min="0" ng-model="settings.notifyMinutes" ng-model-options="{ debounce: 100 }">
+      <input type="range" name="volume" max="20" min="0" ng-model="settings.notifyMinutes">
     </div>
     <div style="text-align:center">
       Notify me {{settings.notifyMinutes}} minutes before the prayer time.
     </div>
-    <a class="button button-block button-positive" href="#/tab/settings">
+    <a class="button button-block button-positive" href="#/tab/settings" ng-click="saveNotifyMinutes()">
       Done
     </a>
   </ion-content>

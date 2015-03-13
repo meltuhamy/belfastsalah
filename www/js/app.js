@@ -22,7 +22,6 @@ belfastsalah.app = angular.module('belfastsalah', ['ionic', 'belfastsalah.contro
 
     // start the time ticker
     Ticker.start();
-    Notify.cancelAll();
     Notify.scheduleDay();
     
   });
