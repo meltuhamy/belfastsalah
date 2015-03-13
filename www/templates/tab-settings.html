@@ -1,16 +1,25 @@
 <ion-view view-title="Settings">
   <ion-content>
     <ion-list>
-      <ion-item class="item-toggle">
-        Notifications (Coming Soon)
+      <ion-item class="item-toggle item-icon-left">
+        <i class="icon ion-speakerphone"></i>
+        Notifications
         <label class="toggle">
-          <input type="checkbox" ng-model="settings.enableNotifications">
+          <input type="checkbox" ng-model="settings.notifications">
           <div class="track">
             <div class="handle"></div>
           </div>
         </label>
       </ion-item>
-        <ion-item ng-click="openModal()">
+      <ion-item class="item-icon-left" ng-if="settings.notifications" href="#/tab/settings/notify">
+        <i class="icon ion-ios7-timer"></i>
+        Notify before prayer
+        <label class="item-note">
+          {{settings.notifyMinutes}} minutes before
+        </label>
+      </ion-item>
+        <ion-item ng-click="openModal()" class="item-icon-left">
+            <i class="icon ion-information-circled"></i>
             About
         </ion-item>
     </ion-list>

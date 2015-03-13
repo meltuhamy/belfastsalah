@@ -50,7 +50,7 @@ belfastsalah.services.factory('Notify', function(PrayerTimes, $cordovaLocalNotif
   }
 
   function cancelAll(){
-    $cordovaLocalNotification.cancelAll().then(function () {
+    window.cordova && $cordovaLocalNotification.cancelAll().then(function () {
       console.log('Cancelled all notifications');
     });
   }

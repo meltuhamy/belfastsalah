@@ -1,4 +1,4 @@
-belfastsalah.controllers.controller('SettingsCtrl', function($scope, $ionicModal) {
+belfastsalah.controllers.controller('SettingsCtrl', function($scope, $ionicModal, Settings) {
   $ionicModal.fromTemplateUrl('templates/modal-about.html', {
     scope: $scope,
     animation: 'slide-in-up'
@@ -22,5 +22,20 @@ belfastsalah.controllers.controller('SettingsCtrl', function($scope, $ionicModal
   $scope.openFork = function(){
     window.open('https://github.com/meltuhamy/belfastsalah', '_system');
   }
+
+  $scope.settings = Settings.getAll();
+
+  function watchAndSave(setting){
+    $scope.$watch('settings.'+setting, function(newVal, oldVal){
+      if(newVal !== oldVal){
+        Settings.setAndSave(setting, newVal);
+      }
+    })
+  }
+
+  _.forEach($scope.settings, function(value, setting){
+    watchAndSave(setting);
+  });
+
 
 });
