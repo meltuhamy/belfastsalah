@@ -28,7 +28,7 @@ We can take this as far as we want :) Here are some ideas and implemented featur
 - [x] Show any month's prayer times (let user select month to view)
 - [ ] Unit testing
 - [ ] Better dist builds (concatenation and optimization)
-- [ ] Android/iOS Notifications when prayer is approaching
+- [x] Android/iOS Notifications when prayer is approaching
 - [ ] Iqamah times
   - [ ] Allow user to set iqamah times manually (based on user input formula e.g. '5 minutes after adhan')
   - [ ] Display today's iqamah times
