@@ -1,5 +1,6 @@
-belfastsalah.services.factory('Notify', function(PrayerTimes, $cordovaLocalNotification, Settings){
+belfastsalah.services.factory('Notify', function(PrayerTimes, $cordovaLocalNotification, Settings, $q){
   var notifications = {};
+  var activeNotifications = [];
 
 
   /**
@@ -15,11 +16,8 @@ belfastsalah.services.factory('Notify', function(PrayerTimes, $cordovaLocalNotif
     var times = PrayerTimes.getByDate(date);
     var oneDayLaterTimes = PrayerTimes.getByDate(oneDayLaterDate);
 
-    // times = ["3", "13", "05:04", "06:42", "12:35", "14:19", null, "16:44", "19:58"];
-    // oneDayLaterTimes = ["3", "14", "05:02", "06:39", "12:34", "15:39", null, "18:28", "20:00"];
-
-    console.info('times ', times);
-    console.info('oneDayLaterTimes ', oneDayLaterTimes);
+    // times = ["3", "14", "05:04", "06:42", "09:22", "14:19", null, "16:44", "19:58"];
+    // oneDayLaterTimes = ["3", "15", "05:02", "06:39", "12:34", "15:39", null, "18:28", "20:00"];
 
     var scheduledNotifications = [];
     
@@ -32,7 +30,7 @@ belfastsalah.services.factory('Notify', function(PrayerTimes, $cordovaLocalNotif
       if(notifyMinutes == 0){
         displayText = prayerName + ' now!';
       } else if (notifyMinutes === 1){
-        displayText = prayerName + ' in 1 minutes!';
+        displayText = prayerName + ' in 1 minute!';
       } else {
         displayText = prayerName + ' in ' + notifyMinutes + ' minutes!';
       }
@@ -56,20 +54,26 @@ belfastsalah.services.factory('Notify', function(PrayerTimes, $cordovaLocalNotif
     _.forEach(times, function(v,i){addToSequence(v, i, date)});
     _.forEach(oneDayLaterTimes, function(v,i){addToSequence(v, i, oneDayLaterDate)});
 
-    console.log('Scheduling: ', scheduledNotifications);
-    window.cordova && $cordovaLocalNotification.cancelAll().then(function(){
-      console.log('Cancelled notifications');
+    cancelAll().then(function(){
       $cordovaLocalNotification.add(scheduledNotifications).then(function(){
-        console.log('Added notifications', scheduledNotifications);
+        activeNotifications = angular.copy(scheduledNotifications);
       });
     });
 
   }
 
   function cancelAll(){
-    window.cordova && $cordovaLocalNotification.cancelAll().then(function () {
-      console.log('Cancelled all notifications');
+    if(!window.cordova){
+      var deferred = $q.defer();
+      deferred.resolve();
+      return deferred.promise;
+    }
+
+    var promises = [];
+    _.forEach(activeNotifications, function(notification){
+      promises.push($cordovaLocalNotification.cancel(notification.id));
     });
+    return $q.all(promises).then(function(){ activeNotifications.length = 0; });
   }
 
   return {
