@@ -1,7 +1,4 @@
 belfastsalah.services.factory('Notify', function(PrayerTimes, $cordovaLocalNotification, Settings, $q){
-  var notifications = {};
-  var activeNotifications = [];
-
 
   /**
    * Schedules 24 hours worth of prayer notification, starting on given date
@@ -36,7 +33,7 @@ belfastsalah.services.factory('Notify', function(PrayerTimes, $cordovaLocalNotif
       }
 
       return {
-        id: date.getTime(),
+        id: index,
         text: displayText,
         at: date
       };
@@ -55,9 +52,7 @@ belfastsalah.services.factory('Notify', function(PrayerTimes, $cordovaLocalNotif
     _.forEach(oneDayLaterTimes, function(v,i){addToSequence(v, i, oneDayLaterDate)});
 
     cancelAll().then(function(){
-      $cordovaLocalNotification.add(scheduledNotifications).then(function(){
-        activeNotifications = angular.copy(scheduledNotifications);
-      });
+      $cordovaLocalNotification.add(scheduledNotifications);
     });
 
   }
@@ -69,11 +64,7 @@ belfastsalah.services.factory('Notify', function(PrayerTimes, $cordovaLocalNotif
       return deferred.promise;
     }
 
-    var promises = [];
-    _.forEach(activeNotifications, function(notification){
-      promises.push($cordovaLocalNotification.cancel(notification.id));
-    });
-    return $q.all(promises).then(function(){ activeNotifications.length = 0; });
+    return $cordovaLocalNotification.cancelAll();
   }
 
   return {
