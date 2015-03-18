@@ -2,7 +2,7 @@
   "name": "Prayer Times",
   "app_id": "2b8fecd0",
   "gulpStartupTasks": [
-    "sass",
+    "default",
     "watch"
   ],
   "watchPatterns": [

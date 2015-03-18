@@ -52,7 +52,7 @@ belfastsalah.services.factory('Notify', function(PrayerTimes, $cordovaLocalNotif
     _.forEach(oneDayLaterTimes, function(v,i){addToSequence(v, i, oneDayLaterDate)});
 
     cancelAll().then(function(){
-      $cordovaLocalNotification.add(scheduledNotifications);
+      window.cordova && $cordovaLocalNotification.add(scheduledNotifications);
     });
 
   }
