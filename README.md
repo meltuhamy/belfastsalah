@@ -19,6 +19,7 @@ Built using [Ionic Framework](http://ionicframework.com/) in a day. [Read the bl
 2. Run ```ionic platform add [ios|android]```.
 3. Run ```ionic serve``` to run in the browser for development mode.
 4. Run ```ionic build``` and ```ionic emulate [ios][android]``` to run in an emulator.
+5. Run ```npm test``` to run unit tests
 
 ## Roadmap
 We can take this as far as we want :) Here are some ideas and implemented features: 
