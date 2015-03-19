@@ -1,4 +1,4 @@
-belfastsalah.controllers.controller('SettingsCtrl', function($scope, $ionicModal, Settings, Notify) {
+belfastsalah.controllers.controller('SettingsCtrl', function($scope, $ionicModal, Settings, Notify, $window) {
   $scope.settings = Settings.getAll();
 
   $ionicModal.fromTemplateUrl('templates/modal-about.html', {
@@ -22,7 +22,7 @@ belfastsalah.controllers.controller('SettingsCtrl', function($scope, $ionicModal
   });
 
   $scope.openFork = function(){
-    window.open('https://github.com/meltuhamy/belfastsalah', '_system');
+    $window.open('https://github.com/meltuhamy/belfastsalah', '_system');
   }
 
   $scope.saveNotifyMinutes = function(){
@@ -37,6 +37,7 @@ belfastsalah.controllers.controller('SettingsCtrl', function($scope, $ionicModal
       } else {
         Notify.cancelAll();
       }
+      Settings.setAndSave('notifications', newVal);
     }
   });
 
