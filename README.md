@@ -26,7 +26,7 @@ We can take this as far as we want :) Here are some ideas and implemented featur
 - [x] Show today's prayer times with count down for next prayer
 - [x] Show this month's prayer times
 - [x] Show any month's prayer times (let user select month to view)
-- [ ] Unit testing
+- [x] Unit testing and continues builds with travis
 - [x] Better dist builds (concatenation and optimization)
 - [x] Android/iOS Notifications when prayer is approaching
 - [ ] Iqamah times
