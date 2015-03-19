@@ -2,6 +2,9 @@
   "name": "belfastsalah",
   "version": "1.1.2",
   "description": "Prayer times for the Northern Ireland Muslim community",
+  "scripts": {
+     "test": "./node_modules/karma/bin/karma start --single-run --browsers PhantomJS"
+  },
   "dependencies": {
     "gulp": "^3.5.6",
     "gulp-sass": "^0.7.1",
