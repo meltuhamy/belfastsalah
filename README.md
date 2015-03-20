@@ -1,4 +1,4 @@
-# Belfast Salah App
+# Belfast Prayer Times App [![Build Status](https://travis-ci.org/meltuhamy/belfastsalah.svg?branch=master)](https://travis-ci.org/meltuhamy/belfastsalah)
 
 A very simple application that shows today's prayer times (including a countdown to the next prayer) as well as monthly prayer times. 
 
