@@ -6,7 +6,8 @@ var belfastsalah = {
 };
 
 belfastsalah.app = angular.module('belfastsalah', ['ionic', 'belfastsalah.controllers', 'belfastsalah.services', 'belfastsalah.constants', 'belfastsalah.filters', 'angularMoment', 'ngCordova'])
-.run(function($ionicPlatform, Ticker, Notify, Settings) {
+.run(function($ionicPlatform, Ticker, Notify, Settings, $rootScope) {
+  $rootScope.VERSION = window.VERSION;
   $ionicPlatform.ready(function() {
     // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
     // for form inputs)

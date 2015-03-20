@@ -10,12 +10,26 @@ var ngAnnotate = require('gulp-ng-annotate');
 var uglify = require('gulp-uglify');
 var sourcemaps = require('gulp-sourcemaps');
 var templateCache = require('gulp-angular-templatecache');
+var header = require('gulp-header');
+
+var pkg = require('./package.json');
+var banner = ['/**',
+  ' * <%= pkg.name %> - <%= pkg.description %>',
+  ' * @version v<%= pkg.version %>',
+  ' * @link <%= pkg.repository.url %>',
+  ' * @license <%= pkg.license %>',
+  ' */',
+  'window.VERSION = "<%= pkg.version %>";',
+  ''].join('\n');
 
 var paths = {
   sass: ['src/scss/**/*.scss'],
   js: ['src/js/**/*.js'],
   templates: ['src/templates/**/*.html']
 };
+
+gulp.task('bump', require('gulp-cordova-bump'));
+
 
 gulp.task('default', ['sass', 'templates', 'build']);
 
@@ -39,6 +53,7 @@ gulp.task('build', function () {
           }))
           .pipe(concat('app.js'))
           .pipe(uglify())
+          .pipe(header(banner, { pkg : pkg } ))
           .pipe(sourcemaps.write())
         .pipe(gulp.dest('www/dist'));
 });
