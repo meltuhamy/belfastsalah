@@ -11,11 +11,11 @@ belfastsalah.services.factory('PrayerTimes', function(PRAYER_DATA){
     isha: 8
   };
 
-  function getByDate (date) {
+  function getByDateNoDST (date) {
     var inMonth = '' + (date.getMonth()+1);
     var inDay = '' + date.getDate();
     
-    var cache = (getByDate.cache = getByDate.cache || Object.create(null));
+    var cache = (getByDateNoDST.cache = getByDateNoDST.cache || Object.create(null));
     indexFromCache = cache[inMonth+':'+inDay];
 
     if(angular.isDefined(indexFromCache)){
@@ -34,13 +34,30 @@ belfastsalah.services.factory('PrayerTimes', function(PRAYER_DATA){
     }
   }
 
-  function getByMonth(monthNumber){
+  function offsetDST(date, time){
+    if(typeof time == 'string' && time.indexOf(':') >= 0){
+      var timeMoment = moment(timeToDate(date, time));
+      if(timeMoment.isDST()){
+        return timeMoment.add(1, 'hours').format('HH:mm');
+      } else {
+        return time;
+      }
+    } else {
+      return time;
+    }
+  }
+
+  function getByDate(date){
+    return _.map(getByDateNoDST(date), function(time){
+      return offsetDST(date, time);
+    });
+  }
+
+  function getByMonthNoDST(monthNumber){
     var inMonth = ''+monthNumber;
     return _.map(_.filter(PRAYER_DATA, function(v){
-      // filter out rows with the correct month
       return v[p.month] === inMonth;
     }), function(v){
-      // map it to an object
       return {
         day: v[p.day],
         fajr: v[p.fajr],
@@ -50,6 +67,23 @@ belfastsalah.services.factory('PrayerTimes', function(PRAYER_DATA){
         maghrib: v[p.maghrib],
         isha: v[p.isha]
       };
+    });
+  }
+
+  function getByMonth(monthNumber){
+    var noOffset = getByMonthNoDST(monthNumber);
+    return _.map(noOffset, function(times){
+      var monthDay = moment().month(monthNumber-1).date(times.day).toDate(); //today's year, different month/day
+      return {
+        day: times.day,
+        fajr: offsetDST(monthDay, times.fajr),
+        shuruq: offsetDST(monthDay, times.shuruq),
+        duhr: offsetDST(monthDay, times.duhr),
+        asr: offsetDST(monthDay, times.asr),
+        maghrib: offsetDST(monthDay, times.maghrib),
+        isha: offsetDST(monthDay, times.isha)
+      };
+
     });
   }
 

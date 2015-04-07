@@ -13,15 +13,6 @@ var templateCache = require('gulp-angular-templatecache');
 var header = require('gulp-header');
 
 var pkg = require('./package.json');
-var banner = ['/**',
-  ' * <%= pkg.name %> - <%= pkg.description %>',
-  ' * @version v<%= pkg.version %>',
-  ' * @link <%= pkg.repository.url %>',
-  ' * @license <%= pkg.license %>',
-  ' */',
-  'window.VERSION = "<%= pkg.version %>";',
-  ''].join('\n');
-
 var paths = {
   sass: ['src/scss/**/*.scss'],
   js: ['src/js/**/*.js'],
@@ -53,8 +44,8 @@ gulp.task('build', function () {
           }))
           .pipe(concat('app.js'))
           .pipe(uglify())
-          .pipe(header(banner, { pkg : pkg } ))
           .pipe(sourcemaps.write())
+          .pipe(header('window.VERSION = "<%= pkg.version %>";', { pkg : pkg } ))
         .pipe(gulp.dest('www/dist'));
 });
 
