@@ -8,5 +8,5 @@
     "moment": "~2.9.0",
     "ngCordova": "~0.1.12-alpha"
   },
-  "version": "1.2.4"
+  "version": "1.2.5"
 }
