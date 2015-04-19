@@ -1,11 +1,11 @@
-belfastsalah.filters.filter('prayer', function(PrayerTimes){
+belfastsalah.filters.filter('prayer', function(PrayerTimes, Settings){
   return function(input, format){
     if(angular.isUndefined(format)){
+      var hanafiAsr = Settings.get('hanafiAsr');
       return 'Fajr: '+input[PrayerTimes.KEYS.fajr]
            +' Shuruq: '+input[PrayerTimes.KEYS.shuruq]
            +' Duhr: '+input[PrayerTimes.KEYS.duhr]
-           +' Asr: '+input[PrayerTimes.KEYS.asr]
-           +(input[PrayerTimes.KEYS.asr2] ? (' Hanafi Asr: ' + input[PrayerTimes.KEYS.asr2]) : '')
+           +' Asr: '+ (hanafiAsr ? input[PrayerTimes.KEYS.asr2] : input[PrayerTimes.KEYS.asr])
            +' Maghrib: '+input[PrayerTimes.KEYS.maghrib]
            +' Isha: '+input[PrayerTimes.KEYS.isha];
     }
@@ -20,7 +20,6 @@ belfastsalah.filters.filter('prayer', function(PrayerTimes){
       }
       return obj;
     }
-
-    return input[PrayerTimes.KEYS[format]];
+    return (format == 'asr' && Settings.get('hanafiAsr')) ?  input[PrayerTimes.KEYS.asr2] : input[PrayerTimes.KEYS[format]];
   };
 });

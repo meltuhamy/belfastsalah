@@ -8,6 +8,8 @@ var belfastsalah = {
 belfastsalah.app = angular.module('belfastsalah', ['ionic', 'belfastsalah.controllers', 'belfastsalah.services', 'belfastsalah.constants', 'belfastsalah.filters', 'angularMoment', 'ngCordova'])
 .run(function($ionicPlatform, Ticker, Notify, Settings, $rootScope) {
   $rootScope.VERSION = window.VERSION;
+  Settings.loadAll();
+  
   $ionicPlatform.ready(function() {
     // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
     // for form inputs)
@@ -19,8 +21,6 @@ belfastsalah.app = angular.module('belfastsalah', ['ionic', 'belfastsalah.contro
       StatusBar.styleDefault();
     }
 
-    Settings.loadAll();
-
     // start the time ticker
     Ticker.start();
     Notify.scheduleDay();
@@ -29,7 +29,6 @@ belfastsalah.app = angular.module('belfastsalah', ['ionic', 'belfastsalah.contro
 })
 
 .config(function($stateProvider, $urlRouterProvider) {
-
   $stateProvider
 
   // setup an abstract state for the tabs directive

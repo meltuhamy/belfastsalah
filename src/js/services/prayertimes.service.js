@@ -1,4 +1,4 @@
-belfastsalah.services.factory('PrayerTimes', function(PRAYER_DATA){
+belfastsalah.services.factory('PrayerTimes', function(PRAYER_DATA, Settings){
   var p = {
     month: 0, 
     day: 1, 
@@ -63,7 +63,7 @@ belfastsalah.services.factory('PrayerTimes', function(PRAYER_DATA){
         fajr: v[p.fajr],
         shuruq: v[p.shuruq],
         duhr: v[p.duhr],
-        asr: v[p.asr],
+        asr: Settings.get('hanafiAsr') ? v[p.asr2] : v[p.asr],
         maghrib: v[p.maghrib],
         isha: v[p.isha]
       };
@@ -96,6 +96,7 @@ belfastsalah.services.factory('PrayerTimes', function(PRAYER_DATA){
   }
 
   function getNextPrayer(date){
+    var hanafiAsr = Settings.get('hanafiAsr');
     var tomorrowMoment = moment(date).hours(0).minutes(0).seconds(0).add(1, 'days');
     var tomorrow = tomorrowMoment.toDate();
     var yesterdayMoment = moment(date).hours(0).minutes(0).seconds(0).subtract(1, 'days');
@@ -111,7 +112,7 @@ belfastsalah.services.factory('PrayerTimes', function(PRAYER_DATA){
     var todayFajrDate = timeToDate(date, todaysTimes[p.fajr]);
     var todayShuruqDate = timeToDate(date, todaysTimes[p.shuruq]);
     var todayDuhrDate = timeToDate(date, todaysTimes[p.duhr]);
-    var todayAsrDate = timeToDate(date, todaysTimes[p.asr]);
+    var todayAsrDate = timeToDate(date, todaysTimes[hanafiAsr ? p.asr2 : p.asr]);
     var todayMaghribDate = timeToDate(date, todaysTimes[p.maghrib]);
     var todayIshaDate = timeToDate(date, todaysTimes[p.isha]);
     var tomorrowFajrDate = timeToDate(tomorrow, tomorrowTimes[p.fajr]);
@@ -198,12 +199,16 @@ belfastsalah.services.factory('PrayerTimes', function(PRAYER_DATA){
     }
   }
 
+  function hasHanafiAsr(){
+    return !!PRAYER_DATA[0][6];
+  }
 
   return {
     getByDate: getByDate,
     getByMonth: getByMonth,
     getNextPrayer: getNextPrayer,
     timeToDate: timeToDate,
-    KEYS: p
+    KEYS: p,
+    hasHanafiAsr: hasHanafiAsr
   };
 });

@@ -19,7 +19,6 @@ belfastsalah.services.factory('Settings', function(Storage, DEFAULT_SETTINGS){
   function set(setting, value){
     if(angular.isDefined(DEFAULT_SETTINGS[setting])){
       settings[setting] = value;
-      console.info('Settings: set:', setting, value);
       return true;
     }
 
@@ -32,7 +31,6 @@ belfastsalah.services.factory('Settings', function(Storage, DEFAULT_SETTINGS){
 
   function save(setting, value){
     if(angular.isDefined(DEFAULT_SETTINGS[setting])){
-      console.info('Settings: save:', setting, value);
       Storage.set(setting_prefix + setting, value);
       return true;
     }

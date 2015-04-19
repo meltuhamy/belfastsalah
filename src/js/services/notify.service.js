@@ -19,7 +19,7 @@ belfastsalah.services.factory('Notify', function(PrayerTimes, $cordovaLocalNotif
     var scheduledNotifications = [];
     
     var formatNotification = function(date, index){
-      var names = ['', '', 'Fajr', 'Shuruq', 'Duhr', 'Asr', 'Hanafy Asr', 'Maghrib', 'Isha'];
+      var names = ['', '', 'Fajr', 'Shuruq', 'Duhr', 'Asr', 'Asr', 'Maghrib', 'Isha'];
       var notifyMinutes = Settings.get('notifyMinutes');
       var prayerName = names[index];
 
@@ -41,6 +41,10 @@ belfastsalah.services.factory('Notify', function(PrayerTimes, $cordovaLocalNotif
 
     var addToSequence = function(timeString, index, baseDate){
       if(timeString && timeString.indexOf(':') !== -1){
+        var hanafiAsr = Settings.get('hanafiAsr');
+        if((index === PrayerTimes.KEYS.asr && hanafiAsr) || (index === PrayerTimes.KEYS.asr2 && !hanafiAsr)){
+          return;
+        }
         var prayerDate = moment(PrayerTimes.timeToDate(baseDate, timeString)).subtract(Settings.get('notifyMinutes'),'minutes').toDate();
         if(prayerDate > todayDate && prayerDate <= oneDayLaterDate){
           scheduledNotifications.push(formatNotification(prayerDate, index));

@@ -1,6 +1,16 @@
 <ion-view view-title="Settings">
   <ion-content>
     <ion-list>
+      <ion-item class="item-toggle item-icon-left" ng-if="hasHanafiAsr">
+        <i class="icon ion-android-sunny"></i>
+        Use Hanafi Asr Timing
+        <label class="toggle">
+          <input type="checkbox" ng-model="settings.hanafiAsr">
+          <div class="track">
+            <div class="handle"></div>
+          </div>
+        </label>
+      </ion-item>
       <ion-item class="item-toggle item-icon-left">
         <i class="icon ion-speakerphone"></i>
         Notifications
@@ -18,10 +28,10 @@
           {{settings.notifyMinutes}} minutes before
         </label>
       </ion-item>
-        <ion-item ng-click="openModal()" class="item-icon-left">
-            <i class="icon ion-information-circled"></i>
-            About
-        </ion-item>
+      <ion-item ng-click="openModal()" class="item-icon-left">
+          <i class="icon ion-information-circled"></i>
+          About
+      </ion-item>
     </ion-list>
   </ion-content>
 </ion-view>
