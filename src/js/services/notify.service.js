@@ -18,24 +18,14 @@ belfastsalah.services.factory('Notify', function(PrayerTimes, $cordovaLocalNotif
 
     var scheduledNotifications = [];
     
-    var formatNotification = function(date, index){
+    var formatNotification = function(notifyDate, prayerDate, index){
       var names = ['', '', 'Fajr', 'Shuruq', 'Duhr', 'Asr', 'Asr', 'Maghrib', 'Isha'];
-      var notifyMinutes = Settings.get('notifyMinutes');
-      var prayerName = names[index];
-
-      var displayText;
-      if(notifyMinutes == 0){
-        displayText = prayerName + ' now!';
-      } else if (notifyMinutes === 1){
-        displayText = prayerName + ' in 1 minute!';
-      } else {
-        displayText = prayerName + ' in ' + notifyMinutes + ' minutes!';
-      }
+      var displayText = names[index] + ' is at ' + moment(prayerDate).format('h:mm a');
 
       return {
         id: index,
         text: displayText,
-        at: date
+        at: notifyDate
       };
     };
 
@@ -45,9 +35,10 @@ belfastsalah.services.factory('Notify', function(PrayerTimes, $cordovaLocalNotif
         if((index === PrayerTimes.KEYS.asr && hanafiAsr) || (index === PrayerTimes.KEYS.asr2 && !hanafiAsr)){
           return;
         }
-        var prayerDate = moment(PrayerTimes.timeToDate(baseDate, timeString)).subtract(Settings.get('notifyMinutes'),'minutes').toDate();
-        if(prayerDate > todayDate && prayerDate <= oneDayLaterDate){
-          scheduledNotifications.push(formatNotification(prayerDate, index));
+        var prayerDate = PrayerTimes.timeToDate(baseDate, timeString);
+        var notifyDate = moment(prayerDate).subtract(Settings.get('notifyMinutes'),'minutes').toDate();
+        if(notifyDate > todayDate && notifyDate <= oneDayLaterDate){
+          scheduledNotifications.push(formatNotification(notifyDate, prayerDate, index));
         }
       }
     };
