@@ -20,13 +20,20 @@ belfastsalah.services.factory('Notify', function(PrayerTimes, $cordovaLocalNotif
     
     var formatNotification = function(notifyDate, prayerDate, index){
       var names = ['', '', 'Fajr', 'Shuruq', 'Duhr', 'Asr', 'Asr', 'Maghrib', 'Isha'];
-      var displayText = names[index] + ' is at ' + moment(prayerDate).format('h:mm a');
+      var displayTitle = names[index] + ' is at ' + moment(prayerDate).format('h:mm a');
 
-      return {
+      var formattedNotification = {
         id: index,
-        text: displayText,
+        title: displayTitle,
         at: notifyDate
       };
+
+      var numMinutes = Settings.get('notifyMinutes');
+      if(numMinutes > 0){
+        formattedNotification.text = '' + numMinutes + ' minute reminder';
+      }
+
+      return formattedNotification;
     };
 
     var addToSequence = function(timeString, index, baseDate){
