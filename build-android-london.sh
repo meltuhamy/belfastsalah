@@ -2,5 +2,5 @@
 gulp
 npm test
 cordova build --release android
-jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore my-release-key.keystore ./platforms/android/ant-build/MainActivity-release-unsigned.apk alias_name
+jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore london.keystore ./platforms/android/ant-build/MainActivity-release-unsigned.apk alias_name
 rm -f Release.apk && zipalign -v 4 ./platforms/android/ant-build/MainActivity-release-unsigned.apk Release.apk
