@@ -6,7 +6,7 @@ var belfastsalah = {
 };
 
 belfastsalah.app = angular.module('belfastsalah', ['ionic', 'belfastsalah.controllers', 'belfastsalah.services', 'belfastsalah.constants', 'belfastsalah.filters', 'angularMoment', 'ngCordova'])
-.run(function($ionicPlatform, Ticker, Notify, Settings, $rootScope) {
+.run(function($ionicPlatform, Ticker, Notify, Settings, $rootScope, $ionicModal) {
   $rootScope.VERSION = window.VERSION;
   Settings.loadAll();
   
@@ -24,6 +24,17 @@ belfastsalah.app = angular.module('belfastsalah', ['ionic', 'belfastsalah.contro
     // start the time ticker
     Ticker.start();
     Notify.scheduleDay();
+
+    if(Settings.get('showDisclaimer')){
+      $ionicModal.fromTemplateUrl('templates/modal-time-disclaimer.html', {
+        animation: 'slide-in-up'
+      }).then(function(modal) {
+        modal.show();
+        $rootScope.$on('modal.hidden', function() {
+          Settings.setAndSave('showDisclaimer', false);
+        });
+      });
+    }
     
   });
 })

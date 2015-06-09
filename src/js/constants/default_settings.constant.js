@@ -1,5 +1,6 @@
 belfastsalah.constants.constant('DEFAULT_SETTINGS', {
   notifications: true,
   notifyMinutes: 5,
-  hanafiAsr: false
+  hanafiAsr: false,
+  showDisclaimer: true
 });
