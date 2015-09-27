@@ -37,6 +37,10 @@
   },
   "cordovaPlugins": [
     "org.apache.cordova.inappbrowser",
-    "de.appplant.cordova.plugin.local-notification"
-  ]
+    {
+      "locator": "https://github.com/katzer/cordova-plugin-local-notifications#master",
+      "id": "de.appplant.cordova.plugin.local-notification"
+    }
+  ],
+  "cordovaPlatforms": []
 }
