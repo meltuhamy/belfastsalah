@@ -5,7 +5,7 @@ var belfastsalah = {
   filters: angular.module('belfastsalah.filters', [])
 };
 
-belfastsalah.app = angular.module('belfastsalah', ['ionic', 'belfastsalah.controllers', 'belfastsalah.services', 'belfastsalah.constants', 'belfastsalah.filters', 'angularMoment', 'ngCordova'])
+belfastsalah.app = angular.module('belfastsalah', ['ngIOS9UIWebViewPatch', 'ionic', 'belfastsalah.controllers', 'belfastsalah.services', 'belfastsalah.constants', 'belfastsalah.filters', 'angularMoment', 'ngCordova'])
 .run(function($ionicPlatform, Ticker, Notify, Settings, $rootScope, $ionicModal) {
   $rootScope.VERSION = window.VERSION;
   Settings.loadAll();
