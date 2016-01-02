@@ -35,6 +35,8 @@ belfastsalah.app = angular.module('belfastsalah', ['ngIOS9UIWebViewPatch', 'ioni
         });
       });
     }
+
+    $rootScope.nightMode = Settings.get('nightMode');
     
   });
 })

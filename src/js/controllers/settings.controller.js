@@ -1,4 +1,4 @@
-belfastsalah.controllers.controller('SettingsCtrl', function($scope, $ionicModal, Settings, Notify, $window, PrayerTimes) {
+belfastsalah.controllers.controller('SettingsCtrl', function($rootScope, $scope, $ionicModal, Settings, Notify, $window, PrayerTimes) {
   $scope.settings = Settings.getAll();
   $scope.hasHanafiAsr = PrayerTimes.hasHanafiAsr();
 
@@ -46,6 +46,13 @@ belfastsalah.controllers.controller('SettingsCtrl', function($scope, $ionicModal
     if(newVal !== oldVal){
       Settings.setAndSave('hanafiAsr', newVal);
       Notify.scheduleDay();
+    }
+  });
+
+  $scope.$watch('settings.nightMode', function(newVal, oldVal){
+    if(newVal !== oldVal){
+      Settings.setAndSave('nightMode', newVal);
+      $rootScope.nightMode = newVal;
     }
   });
 

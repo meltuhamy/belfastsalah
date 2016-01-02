@@ -18,7 +18,7 @@ describe('PrayerTimes Service', function(){
 
   it('should get dst-offsetted prayer times for a given date', function(){
     // a date that isn't DST: 28 March.
-    var date = new Date(2015, 2, 28);
+    var date = new Date(2016, 2, 27);
     var times = PrayerTimes.getByDate(date);
 
     // a date that is dst: 29 march
