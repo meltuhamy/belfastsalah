@@ -1,0 +1,20 @@
+{
+  "belfast": {
+    "id": "com.meltuhamy.belfastsalah",
+    "name": "Belfast Prayer Times",
+    "description": "A prayer times application for iOS and Android for Belfast",
+    "resource_dir": "belfast_resources",
+    "data": "./data/belfast.json",
+    "about_links": []
+  },
+
+  "london": {
+    "id": "com.meltuhamy.londonsalah",
+    "name": "London Prayer Times",
+    "description": "A prayer times application for iOS and Android for London using the Unified London Prayer Timetable",
+    "resource_dir": "london_resources",
+    "data": "./data/london.json",
+    "about_links": []
+  }
+
+}

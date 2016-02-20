@@ -2,14 +2,11 @@
   "name": "belfastsalah",
   "private": "true",
   "devDependencies": {
-    "ionic": "driftyco/ionic-bower#1.0.0-beta.14",
-    "lodash": "~3.4.0",
-    "angular-moment": "~0.9.0",
-    "moment": "~2.9.0",
-    "ngCordova": "~0.1.12-alpha"
+    "ionic": "driftyco/ionic-bower#1.2.4"
   },
-  "version": "1.5.1",
   "dependencies": {
-    "863acd413e3925bf282c": "https://gist.github.com/863acd413e3925bf282c.git"
+    "ngCordova": "^0.1.24-alpha",
+    "angular-moment": "^0.10.3",
+    "lodash": "^4.5.0"
   }
 }

@@ -1,0 +1,31 @@
+.today {
+  font-weight: bold;
+}
+
+#today-tab{
+  padding-top: 0;
+  margin-top: -5px;
+}
+
+ion-tabs{
+  transition: -webkit-filter 0.3s;
+}
+
+
+
+
+.night {
+  ion-tabs {
+    -webkit-filter: invert(.8);
+    filter: invert(.8);
+  }
+
+  ion-header-bar {
+    background: #292929 !important;
+  }
+
+  .bar.bar-stable .title, button.button.back-button.buttons.button-clear.header-item {
+    color: #B8B8B8;
+  }
+
+}

@@ -1,12 +1,5 @@
 {
   "name": "Prayer Times",
   "app_id": "2b8fecd0",
-  "gulpStartupTasks": [
-    "default",
-    "watch"
-  ],
-  "watchPatterns": [
-    "www/**/*",
-    "!www/lib/**/*"
-  ]
+  "gulpStartupTasks": [ "default", "watch" ]
 }

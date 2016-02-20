@@ -21,6 +21,9 @@ Built using [Ionic Framework](http://ionicframework.com/) in a day. [Read the bl
 4. Run ```ionic build``` and ```ionic emulate [ios][android]``` to run in an emulator.
 5. Run ```npm test``` to run unit tests
 
+## Releasing
+Make sure everything's committed and run `gulp release`.
+
 ## Roadmap
 We can take this as far as we want :) Here are some ideas and implemented features: 
 
