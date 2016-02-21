@@ -40,6 +40,7 @@
         <splash density="port-xxxhdpi" src="<%= resource_dir %>/android/splash/drawable-port-xxxhdpi-screen.png" />
     </platform>
     <platform name="ios">
+        <preference name="Orientation" value="all" />
         <icon height="57" src="<%= resource_dir %>/ios/icon/icon.png" width="57" />
         <icon height="114" src="<%= resource_dir %>/ios/icon/icon@2x.png" width="114" />
         <icon height="40" src="<%= resource_dir %>/ios/icon/icon-40.png" width="40" />
