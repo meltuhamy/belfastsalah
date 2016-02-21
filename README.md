@@ -1,10 +1,10 @@
-# Belfast Prayer Times App [![Build Status](https://travis-ci.org/meltuhamy/belfastsalah.svg?branch=master)](https://travis-ci.org/meltuhamy/belfastsalah)
+# Belfast and London Prayer Times App [![Build Status](https://travis-ci.org/meltuhamy/belfastsalah.svg?branch=master)](https://travis-ci.org/meltuhamy/belfastsalah)
 
 A very simple application that shows today's prayer times (including a countdown to the next prayer) as well as monthly prayer times. 
 
 <img src="http://i.imgur.com/xPFvPhU.png" alt="Screenshot" style="max-width:300px">
 
-Uses [Belfast Islamic Centre's prayer time table](http://www.belfastislamiccentre.org.uk/bic/prayer_timetable).
+Uses [Belfast Islamic Centre's prayer time table](http://www.belfastislamiccentre.org.uk/bic/prayer_timetable) and the [London Unified Islamic Prayer Timetable](http://archive.eastlondonmosque.org.uk/unified)
 
 Built using [Ionic Framework](http://ionicframework.com/) in a day. [Read the blog post](http://meltuhamy.com/tech/dev/ionic-speed-writing-a-prayer-times-smartphone-app-in-a-day) for more information.
 
