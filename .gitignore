@@ -17,3 +17,4 @@ www/css
 .idea
 .DS_Store
 *.keystore
+*.apk

@@ -106,11 +106,6 @@ gulp.task('release', ['sass'], function(){
     sh.exit(1);
   }
 
-  if (sh.exec('git pull -r').code !== 0) {
-    console.log('Error running git pull -r');
-    sh.exit(1);
-  }
-
   console.log('Building '+app);
   buildData(app);
 
@@ -120,31 +115,45 @@ gulp.task('release', ['sass'], function(){
     sh.exit(1);
   }
 
+  function tag(){
+    if (sh.exec('git tag -a release-'+packageJSON.version+'-'+app+'-'+platform+' -m "Release: '+packageJSON.version+'-'+app+'-'+platform+'"').code !== 0) {
+      console.log('git tag -a release-'+packageJSON.version+'-'+app+'-'+platform+' -m "Release: '+packageJSON.version+'-'+app+'-'+platform+'"');
+      sh.exit(1);
+    }
+  }
+
   if(platform == 'android'){
     console.log('Running jarsigner');
-    if (sh.exec('jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore '+app+'.keystore ./platforms/android/ant-build/MainActivity-release-unsigned.apk alias_name').code !== 0) {
-      console.log('Error running jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore '+app+'.keystore ./platforms/android/ant-build/MainActivity-release-unsigned.apk alias_name');
-      sh.exit(1);
-    }
+    var jarSignerProcess = sh.exec('jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore '+app+'.keystore ./platforms/android/build/outputs/apk/android-release-unsigned.apk alias_name', {async: true});
+    jarSignerProcess.stdin.setEncoding('utf-8');
+    var read = require('read');
+    read({ prompt: 'Password: ', silent: true }, function(er, password) {
+      jarSignerProcess.stdin.write(password+'\n');
+    });
 
-    console.log('Removing ' + app + '.apk');
-    sh.rm('-f', app+'.apk');
+    jarSignerProcess.on('exit', function(code){
+      if(code != 0){
+        console.log('Error running jarsigner');
+        sh.exit(1);
+      }
 
-    console.log('Running zipalign');
-    if (sh.exec('zipalign -v 4 ./platforms/android/ant-build/MainActivity-release-unsigned.apk '+app+'.apk').code !== 0) {
-      console.log('Error running zipalign -v 4 ./platforms/android/ant-build/MainActivity-release-unsigned.apk '+app+'.apk');
-      sh.exit(1);
-    }
 
-    console.log('Android build complete');
+      var timestamp = new Date().getTime();
+      var apkName = app+'.'+packageJSON.version+'.'+timestamp+'.apk';
+
+      console.log('Running zipalign');
+      if (sh.exec('zipalign -v 4 ./platforms/android/build/outputs/apk/android-release-unsigned.apk '+apkName).code !== 0) {
+        console.log('Error running zipalign -v 4 ./platforms/android/build/outputs/apk/android-release-unsigned.apk '+apkName);
+        sh.exit(1);
+      }
+
+      console.log('Android build complete');
+      tag();
+
+    });
+
   } else {
     console.log('iOS build complete. Open project in xcode and build archive');
+    tag();
   }
-
-  //git tag -a release-1.4-belfast-android -m "v1.4"
-  if (sh.exec('git tag -a release-'+packageJSON.version+'-'+app+'-'+platform+' -m "Release: '+packageJSON.version+'-'+app+'-'+platform+'"').code !== 0) {
-    console.log('git tag -a release-'+packageJSON.version+'-'+app+'-'+platform+' -m "Release: '+packageJSON.version+'-'+app+'-'+platform+'"');
-    sh.exit(1);
-  }
-
 });
