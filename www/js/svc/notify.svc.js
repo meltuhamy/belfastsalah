@@ -54,7 +54,8 @@ belfastsalah.svc.factory('Notify', function(PrayerTimes, $cordovaLocalNotificati
     _.forEach(oneDayLaterTimes, function(v,i){addToSequence(v, i, oneDayLaterDate)});
 
     cancelAll().then(function(){
-      window.cordova && $cordovaLocalNotification.add(scheduledNotifications);
+      window.cordova && $cordovaLocalNotification.schedule(scheduledNotifications);
+      mixpanel.track('Schedule');
     });
 
   }

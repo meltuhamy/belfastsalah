@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'">
     <title></title>
 
     <link href="lib/ionic/css/ionic.css" rel="stylesheet">
@@ -11,6 +12,12 @@
 
     <!-- data that is compiled in, depending on the actual app (e.g. belfast vs london) -->
     <script src="data.js"></script>
+
+    <!-- mixpanel -->
+    <script type="text/javascript">
+      window.MIXPANEL_CUSTOM_LIB_URL = "lib/mixpanel/mixpanel.min.js";
+    </script>
+    <script type="text/javascript" src="lib/mixpanel/mixpanel-jslib-snippet.min.js"></script>
 
     <!-- lodash -->
     <script src="lib/lodash/lodash.js"></script>
@@ -43,6 +50,10 @@
     <script src="js/svc/settings.svc.js"></script>
     <script src="js/svc/storage.svc.js"></script>
     <script src="js/svc/ticker.svc.js"></script>
+
+    <script type="text/javascript">
+      mixpanel.init("3f6dfebf2558c9e31c205a753e893b72");
+    </script>
   </head>
   <body ng-app="belfastsalah" ng-class="{ night: nightMode }">
     <ion-nav-bar class="bar-stable">

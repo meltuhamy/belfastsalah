@@ -7,6 +7,7 @@
   "dependencies": {
     "ngCordova": "^0.1.24-alpha",
     "angular-moment": "^0.10.3",
-    "lodash": "^4.5.0"
+    "lodash": "^4.5.0",
+    "mixpanel": "^2.7.3"
   }
 }

@@ -12,6 +12,18 @@ belfastsalah.app = angular.module('belfastsalah', ['ionic', 'ngCordova', 'angula
   $rootScope.nightMode = Settings.get('nightMode');
 
   $ionicPlatform.ready(function() {
+    var deviceStats = _.merge({
+      appId: APP_DATA.id,
+      platformId: window.cordova ? window.cordova.platformId : 'web'
+    }, _.clone(window.device));
+
+    mixpanel.identify(window.device ? ((window.device.serial || '') + window.device.uuid) : 0);
+
+    mixpanel.register(deviceStats);
+    mixpanel.people.set(deviceStats);
+
+    mixpanel.track('Ready');
+    mixpanel.people.set(_.clone(Settings.getAll()));
     if (window.cordova && window.cordova.plugins && window.cordova.plugins.Keyboard) {
       cordova.plugins.Keyboard.hideKeyboardAccessoryBar(true);
       cordova.plugins.Keyboard.disableScroll(true);
@@ -33,6 +45,7 @@ belfastsalah.app = angular.module('belfastsalah', ['ionic', 'ngCordova', 'angula
         modal.show();
         $rootScope.$on('modal.hidden', function() {
           Settings.setAndSave('showDisclaimer', false);
+          mixpanel.track('Activated');
         });
       });
     }

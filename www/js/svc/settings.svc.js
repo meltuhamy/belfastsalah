@@ -19,6 +19,10 @@ belfastsalah.svc.factory('Settings', function(Storage, DEFAULT_SETTINGS){
   function set(setting, value){
     if(angular.isDefined(DEFAULT_SETTINGS[setting])){
       settings[setting] = value;
+      var mp = {};
+      mp[setting] = value;
+      mixpanel.people.set(mp);
+
       return true;
     }
 
@@ -32,6 +36,10 @@ belfastsalah.svc.factory('Settings', function(Storage, DEFAULT_SETTINGS){
   function save(setting, value){
     if(angular.isDefined(DEFAULT_SETTINGS[setting])){
       Storage.set(setting_prefix + setting, value);
+      var mp = {};
+      mp[setting] = value;
+      mixpanel.people.set(mp);
+
       return true;
     }
 
