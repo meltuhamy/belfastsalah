@@ -3,5 +3,6 @@ belfastsalah.constant.constant('DEFAULT_SETTINGS', {
   notifyMinutes: 5,
   hanafiAsr: false,
   showDisclaimer: true,
-  nightMode: false
+  nightMode: false,
+  showTrackingDisclaimer: true
 });

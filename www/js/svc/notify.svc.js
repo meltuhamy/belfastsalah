@@ -1,4 +1,4 @@
-belfastsalah.svc.factory('Notify', function(PrayerTimes, $cordovaLocalNotification, Settings, $q){
+belfastsalah.svc.factory('Notify', function(PrayerTimes, $cordovaLocalNotification, $rootScope, Settings, $q, mixpanel){
 
   /**
    * Schedules 24 hours worth of prayer notification, starting on given date
@@ -25,7 +25,8 @@ belfastsalah.svc.factory('Notify', function(PrayerTimes, $cordovaLocalNotificati
       var formattedNotification = {
         id: index,
         title: displayTitle,
-        at: notifyDate
+        at: notifyDate,
+        data: { prayerName: names[index] }
       };
 
       var numMinutes = Settings.get('notifyMinutes');
@@ -70,8 +71,52 @@ belfastsalah.svc.factory('Notify', function(PrayerTimes, $cordovaLocalNotificati
     return $cordovaLocalNotification.cancelAll();
   }
 
+  var trackingSarted = false;
+  function startTracking(){
+    if(trackingSarted || !window.cordova) return;
+
+    function flattenNotification(notification){
+      var notificationData;
+      try {
+        notificationData = JSON.parse(notification.data);
+      } catch (e){
+        notificationData = {not_json: true};
+      }
+      for(var k in notificationData){
+        if(notificationData.hasOwnProperty(k)){
+          notification['data_'+k] = notificationData[k];
+        }
+      }
+      return notification;
+    }
+
+    //A local notification was triggered.
+    $rootScope.$on('$cordovaLocalNotification:trigger', function (e, notification, state) {
+      mixpanel.track('Notification: trigger', _.merge({appState: state}, flattenNotification(notification)));
+    });
+
+    //A local notification was cleared from the notification center.
+    $rootScope.$on('$cordovaLocalNotification:clear', function (e, notification, state) {
+      mixpanel.track('Notification: clear', _.merge({appState: state}, flattenNotification(notification)));
+    });
+
+    //All local notifications were cleared from the notification center.
+    $rootScope.$on('$cordovaLocalNotification:clearall', function (e, state) {
+      mixpanel.track('Notification: clearall', {appState: state});
+    });
+
+    //A local notification was clicked.
+    $rootScope.$on('$cordovaLocalNotification:click', function (e, notification, state) {
+      mixpanel.track('Notification: click', _.merge({appState: state}, flattenNotification(notification)));
+    });
+
+
+    trackingSarted = true;
+  }
+
   return {
     scheduleDay: scheduleDay,
-    cancelAll: cancelAll
+    cancelAll: cancelAll,
+    startTracking: startTracking
   };
 });

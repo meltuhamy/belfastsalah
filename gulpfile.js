@@ -42,7 +42,7 @@ function buildData(appName){
   var dataFile = './www/data.js';
   var appConfig = configValues[appName];
   appConfig.data = JSON.parse(fs.readFileSync(appConfig.data));
-  appConfig.version = packageJSON.version;
+  appConfig.appVersion = packageJSON.version;
   fs.writeFileSync(dataFile, 'window.APP_DATA = ' + JSON.stringify(appConfig) + ';');
 
   // now generate config.xml

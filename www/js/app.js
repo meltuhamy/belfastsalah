@@ -6,24 +6,28 @@ var belfastsalah = {
 };
 
 belfastsalah.app = angular.module('belfastsalah', ['ionic', 'ngCordova', 'angularMoment', 'belfastsalah.constant', 'belfastsalah.ctrl', 'belfastsalah.svc', 'belfastsalah.filter'])
-.run(function($ionicPlatform, Ticker, Notify, Settings, $rootScope, $ionicModal) {
+.run(function($ionicPlatform, Ticker, Notify, Settings, $rootScope, $ionicModal, mixpanel) {
   $rootScope.APP_DATA = window.APP_DATA;
   Settings.loadAll();
   $rootScope.nightMode = Settings.get('nightMode');
 
   $ionicPlatform.ready(function() {
-    var deviceStats = _.merge({
+    var deviceStats = _.merge({},{
       appId: APP_DATA.id,
+      appVersion: APP_DATA.appVersion,
       platformId: window.cordova ? window.cordova.platformId : 'web'
     }, _.clone(window.device));
 
     mixpanel.identify(window.device ? ((window.device.serial || '') + window.device.uuid) : 0);
 
     mixpanel.register(deviceStats);
-    mixpanel.people.set(deviceStats);
+    mixpanel.peopleSet(deviceStats);
 
     mixpanel.track('Ready');
-    mixpanel.people.set(_.clone(Settings.getAll()));
+
+    Notify.startTracking();
+
+    mixpanel.peopleSet(_.clone(Settings.getAll()));
     if (window.cordova && window.cordova.plugins && window.cordova.plugins.Keyboard) {
       cordova.plugins.Keyboard.hideKeyboardAccessoryBar(true);
       cordova.plugins.Keyboard.disableScroll(true);
@@ -38,13 +42,14 @@ belfastsalah.app = angular.module('belfastsalah', ['ionic', 'ngCordova', 'angula
     Ticker.start();
     Notify.scheduleDay();
 
-    if(Settings.get('showDisclaimer')){
+    if(Settings.get('showDisclaimer') || Settings.get('showTrackingDisclaimer')){
       $ionicModal.fromTemplateUrl('templates/modal-time-disclaimer.html', {
         animation: 'slide-in-up'
       }).then(function(modal) {
         modal.show();
         $rootScope.$on('modal.hidden', function() {
           Settings.setAndSave('showDisclaimer', false);
+          Settings.setAndSave('showTrackingDisclaimer', false);
           mixpanel.track('Activated');
         });
       });

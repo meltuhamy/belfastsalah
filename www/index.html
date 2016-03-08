@@ -13,6 +13,12 @@
     <!-- data that is compiled in, depending on the actual app (e.g. belfast vs london) -->
     <script src="data.js"></script>
 
+    <!-- base64 -->
+    <script src="lib/js-base64/base64.js"></script>
+
+    <!-- js string compressor -->
+    <script src="lib/lz-string/libs/lz-string.js"></script>
+
     <!-- mixpanel -->
     <script type="text/javascript">
       window.MIXPANEL_CUSTOM_LIB_URL = "lib/mixpanel/mixpanel.min.js";
@@ -50,9 +56,10 @@
     <script src="js/svc/settings.svc.js"></script>
     <script src="js/svc/storage.svc.js"></script>
     <script src="js/svc/ticker.svc.js"></script>
+    <script src="js/svc/mixpanel.js"></script>
 
     <script type="text/javascript">
-      mixpanel.init("3f6dfebf2558c9e31c205a753e893b72");
+      mixpanel.init('3f6dfebf2558c9e31c205a753e893b72', {persistence: 'localStorage'});
     </script>
   </head>
   <body ng-app="belfastsalah" ng-class="{ night: nightMode }">
