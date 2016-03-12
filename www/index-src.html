@@ -7,9 +7,11 @@
     <title></title>
 
     <link href="lib/ionic/css/ionic.css" rel="stylesheet">
-
     <link href="css/ionic.app.css" rel="stylesheet">
 
+
+    <script src="cordova.js"></script>
+    <!-- build:inlinejs -->
     <!-- data that is compiled in, depending on the actual app (e.g. belfast vs london) -->
     <script src="data.js"></script>
 
@@ -18,12 +20,6 @@
 
     <!-- js string compressor -->
     <script src="lib/lz-string/libs/lz-string.js"></script>
-
-    <!-- mixpanel -->
-    <script type="text/javascript">
-      window.MIXPANEL_CUSTOM_LIB_URL = "lib/mixpanel/mixpanel.min.js";
-    </script>
-    <script type="text/javascript" src="lib/mixpanel/mixpanel-jslib-snippet.min.js"></script>
 
     <!-- lodash -->
     <script src="lib/lodash/lodash.js"></script>
@@ -37,11 +33,11 @@
 
 
     <!-- cordova script (this will be a 404 during development) -->
-    <script src="cordova.js"></script>
     <script src="lib/ngCordova/dist/ng-cordova.js"></script>
 
     <!-- your app's js -->
     <script src="js/app.js"></script>
+    <script src="lib/templates.js"></script>
     <script src="js/ctrl/month.ctrl.js"></script>
     <script src="js/ctrl/settings.ctrl.js"></script>
     <script src="js/ctrl/today.ctrl.js"></script>
@@ -58,9 +54,8 @@
     <script src="js/svc/ticker.svc.js"></script>
     <script src="js/svc/mixpanel.js"></script>
 
-    <script type="text/javascript">
-      mixpanel.init('3f6dfebf2558c9e31c205a753e893b72', {persistence: 'localStorage'});
-    </script>
+    <!-- endbuild -->
+
   </head>
   <body ng-app="belfastsalah" ng-class="{ night: nightMode }">
     <ion-nav-bar class="bar-stable">

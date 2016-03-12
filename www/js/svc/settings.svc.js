@@ -1,4 +1,4 @@
-belfastsalah.svc.factory('Settings', function(Storage, DEFAULT_SETTINGS){
+belfastsalah.svc.factory('Settings', function(Storage, mixpanel, DEFAULT_SETTINGS){
   var setting_prefix = 'belfastsalah_setting::';
   var settings = angular.copy(DEFAULT_SETTINGS);
 
@@ -21,8 +21,6 @@ belfastsalah.svc.factory('Settings', function(Storage, DEFAULT_SETTINGS){
       settings[setting] = value;
       var mp = {};
       mp[setting] = value;
-      mixpanel.people.set(mp);
-
       return true;
     }
 
@@ -38,7 +36,7 @@ belfastsalah.svc.factory('Settings', function(Storage, DEFAULT_SETTINGS){
       Storage.set(setting_prefix + setting, value);
       var mp = {};
       mp[setting] = value;
-      mixpanel.people.set(mp);
+      mixpanel.peopleSet(mp);
 
       return true;
     }

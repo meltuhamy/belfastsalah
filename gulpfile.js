@@ -10,6 +10,14 @@ var sh = require('shelljs');
 var fs = require('fs');
 var configValues = JSON.parse(fs.readFileSync('./config-values.json'));
 var packageJSON = JSON.parse(fs.readFileSync('./package.json'));
+var processhtml = require('gulp-processhtml');
+var htmlmin = require('gulp-htmlmin');
+var usemin = require('gulp-usemin');
+var uglify = require('gulp-uglify');
+var rev = require('gulp-rev');
+var templateCache = require('gulp-angular-templatecache');
+var ngAnnotate = require('gulp-ng-annotate');
+
 
 var bump = require('gulp-bump');
 
@@ -39,6 +47,12 @@ gulp.task('bump', function(){
 
 
 function buildData(appName){
+  appName = argv.app || appName;
+
+  if(appName !== 'belfast' && appName !== 'london'){
+    throw "appName must be belfast or london";
+  }
+
   var dataFile = './www/data.js';
   var appConfig = configValues[appName];
   appConfig.data = JSON.parse(fs.readFileSync(appConfig.data));
@@ -54,10 +68,10 @@ function buildData(appName){
 }
 
 var paths = {
-  sass: ['./scss/**/*.scss']
+  sass: ['./scss/**/*.scss', './www/index.html']
 };
 
-gulp.task('default', ['london']);
+gulp.task('default', ['html-dev','london']);
 
 gulp.task('sass', function(done) {
   gulp.src('./scss/ionic.app.scss')
@@ -73,7 +87,7 @@ gulp.task('sass', function(done) {
 });
 
 gulp.task('watch', function() {
-  gulp.watch(paths.sass, ['sass']);
+  gulp.watch(paths.sass, ['sass', 'html-dev']);
 });
 
 gulp.task('install', [], function() {
@@ -91,8 +105,39 @@ gulp.task('london', ['sass'], function(){
   buildData('london');
 });
 
+gulp.task('buildData', ['sass'], function(){
+  buildData();
+});
 
-gulp.task('release', ['sass'], function(){
+gulp.task('templates', function () {
+  return gulp.src('./www/templates/**/*.html')
+    .pipe(templateCache({ module: 'belfastsalah', 'root': 'templates' }))
+    .pipe(gulp.dest('www/lib'));
+});
+
+gulp.task('html-dev', ['templates'], function () {
+  return gulp.src('./www/index-src.html')
+    .pipe(rename('index.html'))
+    .pipe(gulp.dest('www'));
+});
+
+
+gulp.task('html-release', ['templates', 'buildData'], function () {
+  return gulp.src('./www/index-src.html')
+    .pipe(processhtml({}))
+    .pipe(usemin({
+      css: [  ],
+      html: [ htmlmin({ empty: true }) ],
+      js: [ ngAnnotate(), uglify() ],
+      inlinejs: [ ngAnnotate(), uglify() ],
+      inlinecss: [ minifyCss(), 'concat' ]
+    }))
+    .pipe(rename('index.html'))
+    .pipe(gulp.dest('www'));
+});
+
+
+gulp.task('release', ['sass', 'html-release'], function(){
   var argv = require('yargs')
     .usage('Usage: gulp release --app [belfast|london] --platform [android|ios]')
     .demand(['app','platform'])
@@ -105,9 +150,6 @@ gulp.task('release', ['sass'], function(){
     console.log('Usage: gulp release --app [belfast|london] --platform [android|ios]');
     sh.exit(1);
   }
-
-  console.log('Building '+app);
-  buildData(app);
 
   console.log('Running cordova build --release '+platform);
   if (sh.exec('cordova build --release ' + platform).code !== 0) {

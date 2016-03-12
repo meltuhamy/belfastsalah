@@ -7,6 +7,23 @@ belfastsalah.svc.factory('mixpanel', function($http){
 
   var pushTimeout, idCounter, registrationProperties = {token : MP_TOKEN, distinct_id: _.uniqueId('lodash')};
 
+  var queueBuffer = [];
+
+  window.document.addEventListener('pause', function(){
+    persist(QUEUE, queueBuffer);
+    queueBuffer.length = 0;
+  }, false);
+
+  window.document.addEventListener('resume', function(){
+    var queue = restore(QUEUE);
+    if(!queue){
+      queue = [];
+      persist(QUEUE, queue);
+    }
+    queueBuffer = queue;
+    schedulePush();
+  }, false);
+
   function persist(key, value){
     var valueCompressed = LZString.compress(JSON.stringify(value));
     window.localStorage.setItem(key, valueCompressed);
@@ -22,11 +39,7 @@ belfastsalah.svc.factory('mixpanel', function($http){
   }
 
   function getQueue(batchSize, endpoint){
-    var queue = restore(QUEUE);
-    if(!queue){
-      queue = [];
-      persist(QUEUE, queue);
-    }
+    var queue = queueBuffer;
 
     if(endpoint){
       queue = _.filter(queue, ['endpoint', endpoint]);
@@ -35,32 +48,23 @@ belfastsalah.svc.factory('mixpanel', function($http){
     return _.take(queue, batchSize || queue.length);
   }
 
-  function saveQueue(queue){
-    persist(QUEUE, queue);
-  }
-
   var base64 = window.Base64;
 
   function pushToQueue(val){
-    var queue = getQueue();
-    var newLength = queue.push(val);
-    saveQueue(queue);
-
-    return newLength;
+    val.id = queueBuffer.push(val) + (new Date().getTime());
+    return val.id;
   }
-
 
   function track(event, properties){
     var nowTime = new Date().getTime();
-    var newLength = pushToQueue({
+    pushToQueue({
       event: event,
       properties: _.merge({time: nowTime}, registrationProperties, properties || {}),
       timeTracked: nowTime,
-      id: idCounter++,
       endpoint: 'track'
     });
 
-    if(newLength > 4){
+    if(queueBuffer.length > 4){
       push();
     } else {
       schedulePush();
@@ -69,7 +73,7 @@ belfastsalah.svc.factory('mixpanel', function($http){
 
   function peopleSet(properties){
     var nowTime = new Date().getTime();
-    var newLength = pushToQueue({
+    pushToQueue({
       properties: {
         $time: nowTime,
         $distinct_id: registrationProperties.distinct_id,
@@ -77,11 +81,10 @@ belfastsalah.svc.factory('mixpanel', function($http){
         $set: properties
       },
       timeTracked: nowTime,
-      id: idCounter++,
       endpoint: 'engage'
     });
 
-    if(newLength > 4){
+    if(queueBuffer.length > 4){
       push();
     } else {
       schedulePush();
@@ -116,9 +119,9 @@ belfastsalah.svc.factory('mixpanel', function($http){
   }
 
   function removeQueueItems(removeThese){
-    var queue = getQueue();
+    var queue = queueBuffer;
     _.pullAllBy(queue, removeThese, 'id');
-    saveQueue(queue);
+    queueBuffer = queue;
   }
 
   function push(){
@@ -169,8 +172,6 @@ belfastsalah.svc.factory('mixpanel', function($http){
 
   function identify(id){
     registrationProperties.distinct_id = id;
-    window.mixpanel.identify(id);
-
   }
 
   return _.defaults({
@@ -179,5 +180,5 @@ belfastsalah.svc.factory('mixpanel', function($http){
     register: register,
     identify: identify,
     peopleSet: peopleSet
-  }, window.mixpanel);
+  });
 });
