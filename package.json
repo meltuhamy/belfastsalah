@@ -1,7 +1,7 @@
 {
-  "name": "ionic-project",
+  "name": "belfastsalah",
   "version": "1.7.5",
-  "description": "An Ionic project",
+  "description": "A prayer times app",
   "dependencies": {
     "gulp": "^3.5.6",
     "gulp-bump": "^1.0.0",
