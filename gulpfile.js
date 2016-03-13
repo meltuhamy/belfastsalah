@@ -151,6 +151,13 @@ gulp.task('release', ['sass', 'html-release'], function(){
     sh.exit(1);
   }
 
+  console.log('Re-installing splashscreen');
+  if (sh.exec('cordova plugin rm cordova-plugin-splashscreen && cordova plugin add cordova-plugin-splashscreen@3.2.0').code !== 0) {
+    console.log('cordova plugin rm cordova-plugin-splashscreen && cordova plugin add cordova-plugin-splashscreen@3.2.0');
+    sh.exit(1);
+  }
+
+
   console.log('Running cordova build --release '+platform);
   if (sh.exec('cordova build --release ' + platform).code !== 0) {
     console.log('Error running '+ 'cordova build --release ' + platform);
