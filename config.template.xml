@@ -14,8 +14,6 @@
     <preference name="DisallowOverscroll" value="true" />
     <preference name="android-minSdkVersion" value="16" />
     <preference name="BackupWebStorage" value="none" />
-    <preference name="SplashScreen" value="screen" />
-    <preference name="SplashScreenDelay" value="3000" />
     <feature name="StatusBar">
         <param name="ios-package" onload="true" value="CDVStatusBar" />
     </feature>
@@ -26,21 +24,8 @@
         <icon density="xhdpi" src="<%= resource_dir %>/android/icon/drawable-xhdpi-icon.png" />
         <icon density="xxhdpi" src="<%= resource_dir %>/android/icon/drawable-xxhdpi-icon.png" />
         <icon density="xxxhdpi" src="<%= resource_dir %>/android/icon/drawable-xxxhdpi-icon.png" />
-        <splash density="land-ldpi" src="<%= resource_dir %>/android/splash/drawable-land-ldpi-screen.png" />
-        <splash density="land-mdpi" src="<%= resource_dir %>/android/splash/drawable-land-mdpi-screen.png" />
-        <splash density="land-hdpi" src="<%= resource_dir %>/android/splash/drawable-land-hdpi-screen.png" />
-        <splash density="land-xhdpi" src="<%= resource_dir %>/android/splash/drawable-land-xhdpi-screen.png" />
-        <splash density="land-xxhdpi" src="<%= resource_dir %>/android/splash/drawable-land-xxhdpi-screen.png" />
-        <splash density="land-xxxhdpi" src="<%= resource_dir %>/android/splash/drawable-land-xxxhdpi-screen.png" />
-        <splash density="port-ldpi" src="<%= resource_dir %>/android/splash/drawable-port-ldpi-screen.png" />
-        <splash density="port-mdpi" src="<%= resource_dir %>/android/splash/drawable-port-mdpi-screen.png" />
-        <splash density="port-hdpi" src="<%= resource_dir %>/android/splash/drawable-port-hdpi-screen.png" />
-        <splash density="port-xhdpi" src="<%= resource_dir %>/android/splash/drawable-port-xhdpi-screen.png" />
-        <splash density="port-xxhdpi" src="<%= resource_dir %>/android/splash/drawable-port-xxhdpi-screen.png" />
-        <splash density="port-xxxhdpi" src="<%= resource_dir %>/android/splash/drawable-port-xxxhdpi-screen.png" />
     </platform>
     <platform name="ios">
-        <preference name="Orientation" value="all" />
         <icon height="57" src="<%= resource_dir %>/ios/icon/icon.png" width="57" />
         <icon height="114" src="<%= resource_dir %>/ios/icon/icon@2x.png" width="114" />
         <icon height="40" src="<%= resource_dir %>/ios/icon/icon-40.png" width="40" />
@@ -57,15 +42,5 @@
         <icon height="29" src="<%= resource_dir %>/ios/icon/icon-small.png" width="29" />
         <icon height="58" src="<%= resource_dir %>/ios/icon/icon-small@2x.png" width="58" />
         <icon height="87" src="<%= resource_dir %>/ios/icon/icon-small@3x.png" width="87" />
-        <splash height="1136" src="<%= resource_dir %>/ios/splash/Default-568h@2x~iphone.png" width="640" />
-        <splash height="1334" src="<%= resource_dir %>/ios/splash/Default-667h.png" width="750" />
-        <splash height="2208" src="<%= resource_dir %>/ios/splash/Default-736h.png" width="1242" />
-        <splash height="1242" src="<%= resource_dir %>/ios/splash/Default-Landscape-736h.png" width="2208" />
-        <splash height="1536" src="<%= resource_dir %>/ios/splash/Default-Landscape@2x~ipad.png" width="2048" />
-        <splash height="768" src="<%= resource_dir %>/ios/splash/Default-Landscape~ipad.png" width="1024" />
-        <splash height="2048" src="<%= resource_dir %>/ios/splash/Default-Portrait@2x~ipad.png" width="1536" />
-        <splash height="1024" src="<%= resource_dir %>/ios/splash/Default-Portrait~ipad.png" width="768" />
-        <splash height="960" src="<%= resource_dir %>/ios/splash/Default@2x~iphone.png" width="640" />
-        <splash height="480" src="<%= resource_dir %>/ios/splash/Default~iphone.png" width="320" />
     </platform>
 </widget>
