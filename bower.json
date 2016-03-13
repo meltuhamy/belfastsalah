@@ -9,6 +9,7 @@
     "angular-moment": "^0.10.3",
     "lodash": "^4.5.0",
     "js-base64": "^2.1.9",
-    "lz-string": "^1.4.4"
+    "lz-string": "^1.4.4",
+    "ionic": "^1.2.4"
   }
 }
