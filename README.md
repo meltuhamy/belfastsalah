@@ -15,8 +15,8 @@ Built using [Ionic Framework](http://ionicframework.com/) in a day. [Read the bl
 
 ## Building and running
 
-1. Run ```npm install && bower install```.
-2. Run ```ionic platform add [ios|android]```.
+1. Run ```npm install && bower install && gulp```.
+2. Run ```ionic state restore```.
 3. Run ```ionic serve``` to run in the browser for development mode.
 4. Run ```ionic build``` and ```ionic emulate [ios][android]``` to run in an emulator.
 5. Run ```npm test``` to run unit tests
