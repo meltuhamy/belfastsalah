@@ -1,6 +1,6 @@
 {
   "name": "ionic-project",
-  "version": "1.7.4",
+  "version": "1.7.5",
   "description": "An Ionic project",
   "dependencies": {
     "gulp": "^3.5.6",
