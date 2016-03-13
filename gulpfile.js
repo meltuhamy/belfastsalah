@@ -151,9 +151,14 @@ gulp.task('release', ['sass', 'html-release'], function(){
     sh.exit(1);
   }
 
-  console.log('Re-installing splashscreen');
-  if (sh.exec('cordova plugin rm cordova-plugin-splashscreen && cordova plugin add cordova-plugin-splashscreen@3.2.0').code !== 0) {
-    console.log('cordova plugin rm cordova-plugin-splashscreen && cordova plugin add cordova-plugin-splashscreen@3.2.0');
+  console.log('Setting up platform');
+  if(sh.exec('rm -rf platforms/'+platform).code !== 0){
+    console.log('Failed running rm -rf platforms/'+platform);
+    sh.exit(1);
+  }
+
+  if(sh.exec('cordova platform add ' + platform ).code !== 0){
+    console.log('Failed running cordova platform add ' + platform);
     sh.exit(1);
   }
 
@@ -202,7 +207,14 @@ gulp.task('release', ['sass', 'html-release'], function(){
     });
 
   } else {
+    // patch info.plist
+    console.log('Patching plist');
+    var plistFileName = './platforms/ios/Prayer Times/Prayer Times-Info.plist';
+    var plist = fs.readFileSync(plistFileName);
+    var patched = (''+plist).replace(/\n.*<key>CFBundleIconFile<\/key>.*\n.*<string>icon\.png<\/string>.*/gm, '');
+    fs.writeFileSync(plistFileName, patched);
     console.log('iOS build complete. Open project in xcode and build archive');
+    sh.exec('open platforms/ios/Prayer\\ Times.xcodeproj');
     tag();
   }
 });
