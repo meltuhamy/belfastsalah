@@ -1,6 +1,6 @@
 {
   "name": "belfastsalah",
-  "version": "1.7.5",
+  "version": "1.7.6",
   "description": "A prayer times app",
   "dependencies": {
     "gulp": "^3.5.6",
