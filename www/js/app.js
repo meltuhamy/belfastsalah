@@ -10,6 +10,7 @@ belfastsalah.app = angular.module('belfastsalah', ['ionic', 'ngCordova', 'angula
   $rootScope.APP_DATA = window.APP_DATA;
   Settings.loadAll();
   $rootScope.nightMode = Settings.get('nightMode');
+  $rootScope.currentMonth = new Date().getMonth() + 1;
 
   $ionicPlatform.ready(function() {
     var deviceStats = _.merge({},{

@@ -1,20 +1,14 @@
 belfastsalah.svc.factory('Notify', function(PrayerTimes, $cordovaLocalNotification, $rootScope, Settings, $q, mixpanel){
 
   /**
-   * Schedules 24 hours worth of prayer notification, starting on given date
+   * Schedules numDays [= 5 by default] days worth of prayer notification, starting on given date
    */
-  function scheduleDay(date){
+  function scheduleDay(date, numDays){
     if(!Settings.get('notifications')) return cancelAll();
+    numDays = numDays || 5;
 
-    date = date || new Date();
     var todayDate = new Date();
-    var oneDayLaterDate = moment(date).add(1, 'days').toDate();
-
-    var times = PrayerTimes.getByDate(date);
-    var oneDayLaterTimes = PrayerTimes.getByDate(oneDayLaterDate);
-
-    // times = ["3", "14", "05:04", "06:42", "09:22", "14:19", null, "16:44", "19:58"];
-    // oneDayLaterTimes = ["3", "15", "05:02", "06:39", "12:34", "15:39", null, "18:28", "20:00"];
+    date = date || todayDate;
 
     var scheduledNotifications = [];
 
@@ -45,14 +39,20 @@ belfastsalah.svc.factory('Notify', function(PrayerTimes, $cordovaLocalNotificati
         }
         var prayerDate = PrayerTimes.timeToDate(baseDate, timeString);
         var notifyDate = moment(prayerDate).subtract(Settings.get('notifyMinutes'),'minutes').toDate();
+        var oneDayLaterDate = moment(baseDate).add(1, 'days').toDate();
         if(notifyDate > todayDate && notifyDate <= oneDayLaterDate){
           scheduledNotifications.push(formatNotification(notifyDate, prayerDate, index));
         }
       }
     };
 
-    _.forEach(times, function(v,i){addToSequence(v, i, date)});
-    _.forEach(oneDayLaterTimes, function(v,i){addToSequence(v, i, oneDayLaterDate)});
+    // schedule numDays days worth of notifications
+    _.forEach(_.times(numDays), function (dayNum) {
+      var laterDate = moment(date).add(dayNum, 'days').toDate();
+      var times = PrayerTimes.getByDate(laterDate);
+      _.forEach(times, function(v,i){addToSequence(v, i, laterDate)});
+    });
+
 
     cancelAll().then(function(){
       window.cordova && $cordovaLocalNotification.schedule(scheduledNotifications);

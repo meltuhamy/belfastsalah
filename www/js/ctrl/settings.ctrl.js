@@ -1,4 +1,4 @@
-belfastsalah.ctrl.controller('SettingsCtrl', function($rootScope, $scope, $ionicModal, Settings, Notify, $window, PrayerTimes) {
+belfastsalah.ctrl.controller('SettingsCtrl', function($rootScope, $scope, $ionicModal, $cordovaLocalNotification, Settings, Notify, $window, PrayerTimes) {
   $scope.settings = Settings.getAll();
   $scope.hasHanafiAsr = PrayerTimes.hasHanafiAsr();
 
@@ -29,6 +29,15 @@ belfastsalah.ctrl.controller('SettingsCtrl', function($rootScope, $scope, $ionic
   $scope.saveNotifyMinutes = function(){
     Settings.setAndSave('notifyMinutes', $scope.settings.notifyMinutes);
     Notify.scheduleDay();
+  };
+
+  $scope.testNotify = function () {
+    window.cordova && $cordovaLocalNotification.schedule({
+      id: 1,
+      title: 'Prayer times notification test',
+      text: 'Notifications are working',
+      at: moment().add(10, 'seconds').toDate()
+    });
   };
 
   $scope.$watch('settings.notifications', function(newVal, oldVal){
