@@ -1,6 +1,6 @@
 {
   "name": "belfastsalah",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "A prayer times app",
   "license": "GPL-3.0",
   "dependencies": {
