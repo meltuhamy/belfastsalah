@@ -157,7 +157,7 @@ gulp.task('release', ['sass', 'html-release'], function(){
     sh.exit(1);
   }
 
-  if(sh.exec('cordova platform add ' + platform ).code !== 0){
+  if(sh.exec('cordova platform add ' + platform + (platform === 'android' ? '@6.1.0' : '') ).code !== 0){
     console.log('Failed running cordova platform add ' + platform);
     sh.exit(1);
   }
