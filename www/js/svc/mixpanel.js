@@ -128,14 +128,8 @@ belfastsalah.svc.factory('mixpanel', function($http){
     if(pushTimeout){
       clearTimeout(pushTimeout);
     }
-    // check if connection
-    if(navigator.connection && navigator.connection.type !== navigator.connection.NONE){
-      // connection seems ok, let's try sending
-      doPost('track', getQueue(BATCH_SIZE, 'track'));
-      doPost('engage', getQueue(BATCH_SIZE, 'engage'));
-    } else {
-      schedulePush();
-    }
+    doPost('track', getQueue(BATCH_SIZE, 'track'));
+    doPost('engage', getQueue(BATCH_SIZE, 'engage'));
   }
 
   function doPost(endpoint, subQueue){
