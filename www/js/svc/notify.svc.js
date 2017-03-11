@@ -1,9 +1,12 @@
 belfastsalah.svc.factory('Notify', function(PrayerTimes, $cordovaLocalNotification, $rootScope, Settings, $q, mixpanel){
 
+  var notificationId = 1;
+
   /**
    * Schedules numDays [= 5 by default] days worth of prayer notification, starting on given date
    */
-  function scheduleDay(date, numDays){
+  function scheduleDay(date, numDays, getByDate){
+    getByDate = getByDate || PrayerTimes.getByDate;
     if(!Settings.get('notifications')) return cancelAll();
     numDays = numDays || 5;
 
@@ -17,7 +20,7 @@ belfastsalah.svc.factory('Notify', function(PrayerTimes, $cordovaLocalNotificati
       var displayTitle = names[index] + ' is at ' + moment(prayerDate).format('h:mm a');
 
       var formattedNotification = {
-        id: index,
+        id: notificationId++,
         title: displayTitle,
         at: notifyDate,
         data: { prayerName: names[index] }
@@ -49,10 +52,12 @@ belfastsalah.svc.factory('Notify', function(PrayerTimes, $cordovaLocalNotificati
     // schedule numDays days worth of notifications
     _.forEach(_.times(numDays), function (dayNum) {
       var laterDate = moment(date).add(dayNum, 'days').toDate();
-      var times = PrayerTimes.getByDate(laterDate);
+      var times = getByDate(laterDate);
+      console.log('getByDate('+laterDate+') => ', times);
       _.forEach(times, function(v,i){addToSequence(v, i, laterDate)});
     });
 
+    console.log(scheduledNotifications.map(function(n){ return ({id: n.id, title: n.title, date: new Date(n.at)})}));
 
     cancelAll().then(function(){
       window.cordova && $cordovaLocalNotification.schedule(scheduledNotifications);
@@ -62,13 +67,20 @@ belfastsalah.svc.factory('Notify', function(PrayerTimes, $cordovaLocalNotificati
   }
 
   function cancelAll(){
+    var deferred = $q.defer();
+
     if(!window.cordova){
-      var deferred = $q.defer();
       deferred.resolve();
-      return deferred.promise;
     }
 
-    return $cordovaLocalNotification.cancelAll();
+    $cordovaLocalNotification.cancelAll().then(function () {
+      setTimeout(function () {
+        notificationId = 0;
+        deferred.resolve();
+      }, 500); // 1 second later
+    });
+
+    return deferred.promise;
   }
 
   var trackingSarted = false;
@@ -113,6 +125,27 @@ belfastsalah.svc.factory('Notify', function(PrayerTimes, $cordovaLocalNotificati
 
     trackingSarted = true;
   }
+
+  belfastsalah.testScheduling = function () {
+    var now = new Date();
+    var delay = Settings.get('notifyMinutes');
+
+    scheduleDay(now, 5, function (date) {
+      // given a day, provide an array e.g.
+      // ["3", "11", "04:43", "06:20", "12:15", "15:16", "16:04", "18:01", "19:23"]
+      var mo = moment(now);
+      var n1 = mo.add(delay, 'minutes').format('HH:mm');
+      var n2 = mo.add(delay, 'minutes').format('HH:mm');
+      var n3 = mo.add(delay, 'minutes').format('HH:mm');
+      var n4 = mo.add(delay, 'minutes').format('HH:mm');
+      var n5 = mo.add(delay, 'minutes').format('HH:mm');
+      var n6 = mo.add(delay, 'minutes').format('HH:mm');
+      var n7 = mo.add(delay, 'minutes').format('HH:mm');
+      var result = ["" + (now.getMonth() + 1), "" + now.getDate(), n1, n2, n3, n4, n5, n6, n7];
+      now = moment(now).add(8*delay, 'minutes').toDate();
+      return result;
+    });
+  };
 
   return {
     scheduleDay: scheduleDay,

@@ -16,7 +16,7 @@ belfastsalah.svc.factory('PrayerTimes', function(PRAYER_DATA, Settings){
     var inDay = '' + date.getDate();
 
     var cache = (getByDateNoDST.cache = getByDateNoDST.cache || Object.create(null));
-    indexFromCache = cache[inMonth+':'+inDay];
+    var indexFromCache = cache[inMonth+':'+inDay];
 
     if(angular.isDefined(indexFromCache)){
       return PRAYER_DATA[indexFromCache]; // cache hit
