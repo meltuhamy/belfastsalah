@@ -16,17 +16,25 @@ export class Settings {
     this._defaults = defaults;
   }
 
-  load() {
-    return this.storage.get(this.SETTINGS_KEY).then((value) => {
-      if(value) {
-        this.settings = value;
-        this._mergeDefaults(this._defaults);
-      } else {
-        return this.setAll(this._defaults).then((val) => {
-          this.settings = val;
-        })
-      }
-    });
+  load({useCache = false} = {}) : Promise<any>{
+    if(this.settings){
+      // already loaded!
+      return Promise.resolve(this.settings);
+    } else {
+      return this.storage.get(this.SETTINGS_KEY).then((value) => {
+        if(value) {
+          this.settings = value;
+          this._mergeDefaults(this._defaults);
+          return this.settings;
+        } else {
+          return this.setAll(this._defaults).then((val) => {
+            this.settings = val;
+            return this.settings;
+          })
+        }
+      });
+    }
+
   }
 
   _mergeDefaults(defaults: any) {

@@ -170,7 +170,7 @@ export class PrayerTimesTable{
 
 @Injectable()
 export class PrayerTimes{
-  cachedPrayerTimesTable : PrayerTimesTable;
+  cachedPrayerTimesTableJson : any;
 
   constructor(public http: Http, public settings: Settings, public storage: Storage, public alertCtrl : AlertController) {
   }
@@ -216,24 +216,28 @@ export class PrayerTimes{
         }
       })
       .then(timeTableJson => this.setTimeTableJson(timeTableJson))
-      .then(savedTimeTableJson => new PrayerTimesTable(savedTimeTableJson));
+      .then(savedTimeTableJson => new PrayerTimesTable(savedTimeTableJson, this.settings.allSettings));
   }
 
   setTimeTableJson(timeTableJson : any) : Promise<any> {
+    this.cachedPrayerTimesTableJson = timeTableJson;
     return this.storage.set(STORAGE_KEY, timeTableJson);
   }
 
   getTimeTable() : Promise<PrayerTimesTable> {
-    if(this.cachedPrayerTimesTable){
-      return Promise.resolve(this.cachedPrayerTimesTable);
-    } else {
-      return this.storage.get(STORAGE_KEY).then(prayerTimesJson => {
-        if(prayerTimesJson){
-          return new PrayerTimesTable(prayerTimesJson);
-        } else {
-          return this.getPreferredTimeTableFromAssetAndSave();
-        }
-      });
-    }
+    return this.settings.load().then(() => {
+      if(this.cachedPrayerTimesTableJson){
+        return Promise.resolve(new PrayerTimesTable(this.cachedPrayerTimesTableJson, this.settings.allSettings));
+      } else {
+        return this.storage.get(STORAGE_KEY).then(prayerTimesJson => {
+          if(prayerTimesJson){
+            this.cachedPrayerTimesTableJson = prayerTimesJson;
+            return new PrayerTimesTable(prayerTimesJson, this.settings.allSettings);
+          } else {
+            return this.getPreferredTimeTableFromAssetAndSave();
+          }
+        });
+      }
+    });
   }
 }
