@@ -17,13 +17,18 @@ export class TodayPage {
   prayerTimesTable: PrayerTimesTable;
 
   constructor(public navCtrl: NavController, public prayerTimesService : PrayerTimes) {
-    prayerTimesService.getTimeTable().then(prayerTime => {
-      this.prayerTimesTable = prayerTime;
-      this.update(new Date());
+    this.loadTimeTable().then(() => {
       tick.subscribe(date => {
         console.info('Tick', date);
         this.update(date);
       });
+    });
+  }
+
+  loadTimeTable(){
+    return this.prayerTimesService.getTimeTable().then(prayerTime => {
+      this.prayerTimesTable = prayerTime;
+      this.update(new Date());
     });
   }
 
@@ -34,6 +39,10 @@ export class TodayPage {
     this.nextPrayer = times.next;
     this.prevPrayer = times.prev;
     this.currentDate = date;
+  }
+
+  ionViewWillEnter() {
+    this.loadTimeTable();
   }
 
 

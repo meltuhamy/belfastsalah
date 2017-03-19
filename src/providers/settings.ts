@@ -16,8 +16,8 @@ export class Settings {
     this._defaults = defaults;
   }
 
-  load({useCache = false} = {}) : Promise<any>{
-    if(this.settings){
+  load({useCache = true} = {}) : Promise<any>{
+    if(this.settings && useCache){
       // already loaded!
       return Promise.resolve(this.settings);
     } else {
