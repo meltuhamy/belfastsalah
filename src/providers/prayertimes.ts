@@ -6,6 +6,13 @@ import distanceInWordsToNow from 'date-fns/distance_in_words_to_now';
 import format from 'date-fns/format';
 import 'rxjs/add/operator/toPromise';
 import {Observable} from "rxjs";
+import {Settings} from "./settings";
+import { Storage } from '@ionic/storage';
+import { AlertController } from 'ionic-angular';
+
+
+const STORAGE_KEY = '_prayer';
+
 
 export const tick = Observable.interval(1000).map(() => new Date());
 
@@ -163,14 +170,70 @@ export class PrayerTimesTable{
 
 @Injectable()
 export class PrayerTimes{
+  cachedPrayerTimesTable : PrayerTimesTable;
 
-  constructor(public http: Http) {
+  constructor(public http: Http, public settings: Settings, public storage: Storage, public alertCtrl : AlertController) {
   }
 
-  getFromAsset(resourceName: string) : Promise<PrayerTimesTable>{
-    return this.http.get(`./assets/prayertimes/${resourceName}.json`)
-      .toPromise()
-      .then(response => response.json())
-      .then(responseJSON => new PrayerTimesTable(responseJSON));
+  getJsonFromAsset(resourceName: string) : Promise<any>{
+    return this.http.get(`./assets/prayertimes/${resourceName}.json`).toPromise().then(response => response.json());
+  }
+
+  getPreferredTimeTableFromAssetAndSave(): Promise<PrayerTimesTable>{
+    return this.settings.load()
+      .then(() => this.settings.getValue('location'))
+      .then(location => {
+        if(location){
+          return this.getJsonFromAsset(location);
+        } else {
+          return new Promise(resolve => {
+            let alert = this.alertCtrl.create();
+            alert.setTitle('Choose location');
+
+            alert.addInput({
+              type: 'radio',
+              label: 'London',
+              value: 'london',
+              checked: true
+            });
+
+            alert.addInput({
+              type: 'radio',
+              label: 'Belfast',
+              value: 'belfast',
+              checked: false
+            });
+
+            alert.addButton({
+              text: 'OK',
+              handler: selectedLocation => {
+                resolve(this.settings.setValue('location', selectedLocation).then(() => this.getJsonFromAsset(selectedLocation)));
+              }
+            });
+            alert.present();
+          });
+
+        }
+      })
+      .then(timeTableJson => this.setTimeTableJson(timeTableJson))
+      .then(savedTimeTableJson => new PrayerTimesTable(savedTimeTableJson));
+  }
+
+  setTimeTableJson(timeTableJson : any) : Promise<any> {
+    return this.storage.set(STORAGE_KEY, timeTableJson);
+  }
+
+  getTimeTable() : Promise<PrayerTimesTable> {
+    if(this.cachedPrayerTimesTable){
+      return Promise.resolve(this.cachedPrayerTimesTable);
+    } else {
+      return this.storage.get(STORAGE_KEY).then(prayerTimesJson => {
+        if(prayerTimesJson){
+          return new PrayerTimesTable(prayerTimesJson);
+        } else {
+          return this.getPreferredTimeTableFromAssetAndSave();
+        }
+      });
+    }
   }
 }

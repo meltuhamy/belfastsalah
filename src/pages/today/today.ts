@@ -14,24 +14,23 @@ export class TodayPage {
   nextPrayer: PrayerTimeTime;
   prevPrayer: PrayerTimeTime;
   currentDate: Date;
-  prayerTime: PrayerTimesTable;
+  prayerTimesTable: PrayerTimesTable;
 
   constructor(public navCtrl: NavController, public prayerTimesService : PrayerTimes) {
-    prayerTimesService.getFromAsset('london').then(prayerTime => {
-      this.prayerTime = prayerTime;
+    prayerTimesService.getTimeTable().then(prayerTime => {
+      this.prayerTimesTable = prayerTime;
       this.update(new Date());
       tick.subscribe(date => {
         console.info('Tick', date);
         this.update(date);
       });
-
     });
   }
 
   update(date : Date){
-    this.prayerTimesNow = this.prayerTime.getByDate(date);
-    this.prayerTimesTomorrow = this.prayerTime.getByDate(addDays(date, 1));
-    let times = this.prayerTime.getNextAndPrevPrayer(date);
+    this.prayerTimesNow = this.prayerTimesTable.getByDate(date);
+    this.prayerTimesTomorrow = this.prayerTimesTable.getByDate(addDays(date, 1));
+    let times = this.prayerTimesTable.getNextAndPrevPrayer(date);
     this.nextPrayer = times.next;
     this.prevPrayer = times.prev;
     this.currentDate = date;

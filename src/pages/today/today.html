@@ -6,34 +6,37 @@
   </ion-navbar>
 </ion-header>
 
-<ion-content >
-  <ion-card class="next-prayer-card" *ngIf="nextPrayer">
-    <ion-card-header text-center class="next-prayer-card__title">Next Prayer: {{nextPrayer.name}}</ion-card-header>
-    <ion-card-content text-center>
-      <p class="next-prayer-card__title">{{nextPrayer.name}} is {{nextPrayer.timeAgo()}} ({{nextPrayer.formattedDate()}}).</p>
-      <p class="next-prayer-card__title">{{prevPrayer.name}} was {{prevPrayer.timeAgo()}} ({{prevPrayer.formattedDate()}}).</p>
-    </ion-card-content>
-  </ion-card>
+<ion-content>
+  <div *ngIf="nextPrayer">
+    <ion-card class="next-prayer-card" >
+      <ion-card-header text-center class="next-prayer-card__title">Next Prayer: {{nextPrayer.name}}</ion-card-header>
+      <ion-card-content text-center>
+        <p class="next-prayer-card__title">{{nextPrayer.name}} is {{nextPrayer.timeAgo()}} ({{nextPrayer.formattedDate()}}).</p>
+        <p class="next-prayer-card__title">{{prevPrayer.name}} was {{prevPrayer.timeAgo()}} ({{prevPrayer.formattedDate()}}).</p>
+      </ion-card-content>
+    </ion-card>
 
-  <ion-grid>
-    <ion-row>
-      <ion-col>
-        <ion-card class="col-card">
-          <ion-card-header text-center>
-            Today
-          </ion-card-header>
-          <prayer-grid *ngIf="prayerTimesNow" [prayerTimeDay]="prayerTimesNow"></prayer-grid>
+    <ion-grid>
+      <ion-row>
+        <ion-col>
+          <ion-card class="col-card">
+            <ion-card-header text-center>
+              Today
+            </ion-card-header>
+            <prayer-grid *ngIf="prayerTimesNow" [prayerTimeDay]="prayerTimesNow"></prayer-grid>
 
-        </ion-card>
-      </ion-col>
-      <ion-col>
-        <ion-card class="col-card">
-          <ion-card-header text-center>
-            Tomorrow
-          </ion-card-header>
-          <prayer-grid *ngIf="prayerTimesTomorrow" [prayerTimeDay]="prayerTimesTomorrow"></prayer-grid>
-        </ion-card>
-      </ion-col>
-    </ion-row>
-  </ion-grid>
+          </ion-card>
+        </ion-col>
+        <ion-col>
+          <ion-card class="col-card">
+            <ion-card-header text-center>
+              Tomorrow
+            </ion-card-header>
+            <prayer-grid *ngIf="prayerTimesTomorrow" [prayerTimeDay]="prayerTimesTomorrow"></prayer-grid>
+          </ion-card>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </div>
+
 </ion-content>
