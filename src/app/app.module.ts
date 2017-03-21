@@ -12,6 +12,14 @@ import { PrayerGridComponent } from './prayer-grid.component';
 import { Settings } from '../providers/settings';
 import { defaultSettings } from './defaultSettings';
 
+import { CloudSettings, CloudModule } from '@ionic/cloud-angular';
+
+const cloudSettings: CloudSettings = {
+  'core': {
+    'app_id': '7dd0e0f7'
+  }
+};
+
 export function provideSettings(storage: Storage) {
   return new Settings(storage, defaultSettings);
 }
@@ -28,7 +36,8 @@ export function provideSettings(storage: Storage) {
   ],
   imports: [
     IonicModule.forRoot(PrayerTimesApp),
-    IonicStorageModule.forRoot()
+    IonicStorageModule.forRoot(),
+    CloudModule.forRoot(cloudSettings)
   ],
   bootstrap: [IonicApp],
   entryComponents: [
