@@ -12,7 +12,7 @@ import { Deploy } from '@ionic/cloud-angular';
 export class PrayerTimesApp {
   rootPage = TabsPage;
 
-  constructor(platform: Platform, settings: Settings, public deploy: Deploy) {
+  constructor(public platform: Platform, settings: Settings, public deploy: Deploy) {
     settings.load()
       .then(() => platform.ready())
       .then(() => {
@@ -23,12 +23,14 @@ export class PrayerTimesApp {
   }
 
   checkForLatestAppVersion(){
-    this.deploy.check().then((snapshotAvailable: boolean) => {
-      if (snapshotAvailable) {
-        this.deploy.download().then(() => {
-          return this.deploy.extract().then(() => this.deploy.load());
-        });
-      }
-    });
+    if(this.platform.is('cordova')){
+      this.deploy.check().then((snapshotAvailable: boolean) => {
+        if (snapshotAvailable) {
+          this.deploy.download().then(() => {
+            return this.deploy.extract().then(() => this.deploy.load());
+          });
+        }
+      });
+    }
   }
 }
