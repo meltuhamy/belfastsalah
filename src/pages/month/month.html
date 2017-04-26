@@ -1,11 +1,37 @@
 <ion-header>
   <ion-navbar>
     <ion-title>
-      About
+      Month
     </ion-title>
   </ion-navbar>
 </ion-header>
 
 <ion-content padding>
+<div *ngIf="currentMonth">
+  <table>
 
+    <tr>
+      <td>Day</td>
+      <td>Fajr</td>
+      <td>Shuruq</td>
+      <td>Duhr</td>
+      <td>Asr</td>
+      <td>Maghrib</td>
+      <td>Isha</td>
+    </tr>
+
+    <tr *ngFor="let day of currentMonth">
+      <td>{{day.day}}</td>
+      <td>{{day.fajr.formattedDate()}}</td>
+      <td>{{day.shuruq.formattedDate()}}</td>
+      <td>{{day.duhr.formattedDate()}}</td>
+      <td>{{day.asr.formattedDate()}}</td> <!--todo :fix this -->
+      <td>{{day.maghrib.formattedDate()}}</td>
+      <td>{{day.isha.formattedDate()}}</td>
+    </tr>
+  </table>
+</div>
+  <div *ngIf="!currentMonth">
+    Loading month data...
+  </div>
 </ion-content>
