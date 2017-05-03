@@ -1,3 +1,49 @@
 page-month {
+  .month {
+    &__day-col {
+      min-width: 1em;
+      display: inline-block;
+      text-align: center;
+    }
+
+    &__row {
+      text-align: center;
+
+      &:nth-child(even){
+        background: color($colors, light);
+      }
+
+      &--header{
+        position: sticky;
+        top: 0;
+        font-weight: bold;
+        box-shadow: 0 0 3px rgba(0,0,0,.16);
+        z-index: 1;
+        //border-bottom: 1px solid $list-border-color !important;
+      }
+      @media (max-width: 404px) {
+        font-size: 1.6rem;
+      }
+      @media(max-width: 386px){
+        font-size: 1.5rem;
+      }
+      @media(max-width: 368px){
+        font-size: 1.4rem;
+      }
+      @media(max-width: 352px){
+        font-size: 1.3rem;
+      }
+      @media(max-width: 334px){
+        font-size: 1.2rem;
+      }
+      @media(max-width: 316px){
+        font-size: 1.1rem;
+      }
+    }
+
+    &__col {
+    }
+
+  }
 
 }

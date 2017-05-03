@@ -6,31 +6,36 @@
   </ion-navbar>
 </ion-header>
 
-<ion-content padding>
-<div *ngIf="currentMonth">
-  <table>
+<ion-content>
+  <div *ngIf="currentMonth">
 
-    <tr>
-      <td>Day</td>
-      <td>Fajr</td>
-      <td>Shuruq</td>
-      <td>Duhr</td>
-      <td>Asr</td>
-      <td>Maghrib</td>
-      <td>Isha</td>
-    </tr>
+    <ion-list no-lines>
+      <ion-item class="month__row month__row--header">
+        <ion-row>
+          <ion-col col-1>&nbsp;</ion-col>
+          <ion-col class="month__col">Fajr</ion-col>
+          <ion-col class="month__col">Shuruq</ion-col>
+          <ion-col class="month__col">Duhr</ion-col>
+          <ion-col class="month__col">Asr</ion-col>
+          <ion-col class="month__col">Maghrib</ion-col>
+          <ion-col class="month__col">Isha</ion-col>
+        </ion-row>
 
-    <tr *ngFor="let day of currentMonth">
-      <td>{{day.day}}</td>
-      <td>{{day.fajr.formattedDate()}}</td>
-      <td>{{day.shuruq.formattedDate()}}</td>
-      <td>{{day.duhr.formattedDate()}}</td>
-      <td>{{day.asr.formattedDate()}}</td> <!--todo :fix this -->
-      <td>{{day.maghrib.formattedDate()}}</td>
-      <td>{{day.isha.formattedDate()}}</td>
-    </tr>
-  </table>
-</div>
+      </ion-item>
+      <ion-item class="month__row" *ngFor="let row of currentMonth">
+        <ion-row>
+          <ion-col col-1><span class="month__day-col">{{row.day}}</span></ion-col>
+          <ion-col>{{row.fajr.formattedDate()}}</ion-col>
+          <ion-col>{{row.shuruq.formattedDate()}}</ion-col>
+          <ion-col>{{row.duhr.formattedDate()}}</ion-col>
+          <ion-col>{{row.asr.formattedDate()}}</ion-col>
+          <ion-col>{{row.maghrib.formattedDate()}}</ion-col>
+          <ion-col>{{row.isha.formattedDate()}}</ion-col>
+        </ion-row>
+
+      </ion-item>
+    </ion-list>
+  </div>
   <div *ngIf="!currentMonth">
     Loading month data...
   </div>
