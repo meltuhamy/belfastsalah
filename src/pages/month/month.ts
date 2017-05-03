@@ -11,7 +11,7 @@ import setMonth from 'date-fns/set_month';
   template: `
     <ion-list radio-group [(ngModel)]="selectedMonthIndex" (ionChange)="changeMonth()" class="popover-page">
       <ion-item *ngFor="let month of months">
-        <ion-label>{{month.name}}</ion-label>
+        <ion-label>{{month.name}}<ion-icon style="padding-left: 8px;" *ngIf="month.index === todayMonthIndex" name="calendar"></ion-icon></ion-label>
         <ion-radio (click)="close()" [value]="month.index"></ion-radio>
       </ion-item>
     </ion-list>
@@ -20,10 +20,12 @@ import setMonth from 'date-fns/set_month';
 export class MonthSelector {
   months: { name: string, index: number }[];
   selectedMonthIndex: number;
+  todayMonthIndex: number;
 
 
   constructor(public navParams: NavParams, public viewCtrl: ViewController) {
     this.selectedMonthIndex = navParams.data.initialMonth;
+    this.todayMonthIndex = new Date().getMonth();
     this.months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((name, index) => ({
       name,
       index
