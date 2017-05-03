@@ -37,4 +37,5 @@
     <plugin name="cordova-sqlite-storage" spec="~2.0.0" />
     <allow-navigation href="http://192.168.1.2:8100" />
     <plugin name="ionic-plugin-deploy" spec="~0.6.6" />
+    <plugin name="de.appplant.cordova.plugin.local-notification" spec="https://github.com/Telerik-Verified-Plugins/LocalNotification" />
 </widget>

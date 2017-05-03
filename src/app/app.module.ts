@@ -18,6 +18,8 @@ import { BrowserModule } from '@angular/platform-browser';
 
 import { HttpModule } from '@angular/http';
 
+import {LocalNotifications} from '@ionic-native/local-notifications';
+
 const cloudSettings: CloudSettings = {
   'core': {
     'app_id': '27a31d02'
@@ -55,6 +57,6 @@ export function provideSettings(storage: Storage) {
     TabsPage,
     MonthSelector
   ],
-  providers: [{provide: ErrorHandler, useClass: IonicErrorHandler}, { provide: Settings, useFactory: provideSettings, deps: [ Storage ] }, PrayerTimes]
+  providers: [{provide: ErrorHandler, useClass: IonicErrorHandler}, { provide: Settings, useFactory: provideSettings, deps: [ Storage ] }, PrayerTimes, LocalNotifications]
 })
 export class AppModule {}
