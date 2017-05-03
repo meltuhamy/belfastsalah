@@ -20,7 +20,7 @@ export class PrayerTimesApp {
         StatusBar.styleDefault();
         Splashscreen.hide();
         this.checkForLatestAppVersion();
-        this.testNotifications();
+        this.scheduleNotifications();
       });
   }
 
@@ -36,10 +36,9 @@ export class PrayerTimesApp {
     }
   }
 
-  testNotifications(){
+  scheduleNotifications(){
     if(this.platform.is('cordova')){
-      this.notifications.test();
-
+      return this.notifications.schedule({showToast: true});
     }
   }
 }
