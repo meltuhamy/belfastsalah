@@ -21,6 +21,12 @@ page-month {
         z-index: 1;
         //border-bottom: 1px solid $list-border-color !important;
       }
+
+      &--today {
+        border-radius: 55px;
+        background-color: color($colors, primary) !important;
+        color: color($colors, light);
+      }
       @media (max-width: 404px) {
         font-size: 1.6rem;
       }

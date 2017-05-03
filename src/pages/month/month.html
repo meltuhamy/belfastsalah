@@ -27,7 +27,7 @@
         </ion-row>
 
       </ion-item>
-      <ion-item class="month__row" *ngFor="let row of currentMonth">
+      <ion-item class="month__row" *ngFor="let row of currentMonth" [ngClass]="{'month__row--today': row.month === now.getMonth() && row.day === now.getDate()}">
         <ion-row>
           <ion-col col-1><span class="month__day-col">{{row.day}}</span></ion-col>
           <ion-col>{{row.fajr.formattedDate()}}</ion-col>

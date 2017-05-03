@@ -55,6 +55,8 @@ export class MonthPage {
 
   todayMonthName: string;
 
+  now: Date;
+
   constructor(public navCtrl: NavController, public prayerTimesService: PrayerTimes, private popoverCtrl: PopoverController) {
     this.initialise(new Date());
   }
@@ -62,6 +64,7 @@ export class MonthPage {
   initialise(date: Date) {
     this.today = date;
     this.todayMonthName = format(this.today, 'MMMM');
+    this.now = new Date();
     this.loadTimeTable().then(() => {
       this.currentMonth = this.prayerTimesTable.getByMonth(this.today.getMonth()).filter(i => !!i);
     });
