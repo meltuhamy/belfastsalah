@@ -65,11 +65,12 @@ export class PrayerTimeDay {
   duhr: PrayerTimeTime;
   asr: PrayerTimeTime;
   asr2: PrayerTimeTime;
+  preferredAsr: PrayerTimeTime;
   maghrib: PrayerTimeTime;
   isha: PrayerTimeTime;
 
 
-  constructor(data: string[]){
+  constructor(data: string[], options){
     this.month = +data[0] - 1; // to mach js date
     this.day = +data[1];
     this.fajr = new PrayerTimeTime(data[2], 'fajr', this.day, this.month);
@@ -82,6 +83,7 @@ export class PrayerTimeDay {
     // hanafi asr
     if(data[6]){
       this.asr2 = new PrayerTimeTime(data[6], 'asr2', this.day, this.month);
+      this.preferredAsr = options.hanafiAsr ? this.asr2 : this.asr;
     }
   }
 
@@ -96,7 +98,7 @@ export class PrayerTimesTable{
   constructor(data: string[][], options: {} = {}){
     this.months = [];
     data.forEach((dayData) => {
-      let prayerTimeDay = new PrayerTimeDay(dayData);
+      let prayerTimeDay = new PrayerTimeDay(dayData, options);
       if(!this.months[prayerTimeDay.month]){
         this.months[prayerTimeDay.month] = [];
       }
@@ -131,14 +133,13 @@ export class PrayerTimesTable{
     let dayTimes = this.getByDate(date);
     let dayAfterTimes = this.getDayAfter(date);
     let dayBeforeTimes = this.getDayBefore(date);
-    let usingHanafiAsr = this.getOption('hanafiAsr');
 
     let possibilities = [
       dayBeforeTimes.isha,
       dayTimes.fajr,
       dayTimes.shuruq,
       dayTimes.duhr,
-      usingHanafiAsr ? dayTimes.asr2 : dayTimes.asr,
+      dayTimes.preferredAsr,
       dayTimes.maghrib,
       dayTimes.isha,
       dayAfterTimes.fajr
