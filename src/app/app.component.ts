@@ -5,6 +5,7 @@ import { StatusBar, Splashscreen } from 'ionic-native';
 import { TabsPage } from '../pages/tabs/tabs';
 import { Settings } from '../providers/settings';
 import { Deploy } from '@ionic/cloud-angular';
+import {Notifications} from "../providers/notifications";
 
 @Component({
   templateUrl: 'app.html'
@@ -12,13 +13,14 @@ import { Deploy } from '@ionic/cloud-angular';
 export class PrayerTimesApp {
   rootPage = TabsPage;
 
-  constructor(public platform: Platform, settings: Settings, public deploy: Deploy) {
+  constructor(public platform: Platform, settings: Settings, public deploy: Deploy, public notifications : Notifications) {
     settings.load()
       .then(() => platform.ready())
       .then(() => {
         StatusBar.styleDefault();
         Splashscreen.hide();
         this.checkForLatestAppVersion();
+        this.testNotifications();
       });
   }
 
@@ -31,6 +33,13 @@ export class PrayerTimesApp {
           });
         }
       });
+    }
+  }
+
+  testNotifications(){
+    if(this.platform.is('cordova')){
+      this.notifications.test();
+
     }
   }
 }
