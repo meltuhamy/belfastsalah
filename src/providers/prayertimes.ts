@@ -84,6 +84,8 @@ export class PrayerTimeDay {
     if(data[6]){
       this.asr2 = new PrayerTimeTime(data[6], 'asr2', this.day, this.month);
       this.preferredAsr = options.hanafiAsr ? this.asr2 : this.asr;
+    } else {
+      this.preferredAsr = this.asr;
     }
   }
 
