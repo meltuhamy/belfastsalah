@@ -1,6 +1,6 @@
 import {Component} from '@angular/core';
 
-import {NavController, NavParams, PopoverController} from 'ionic-angular';
+import {NavController, NavParams, PopoverController, ViewController} from 'ionic-angular';
 import {PrayerTimeDay, PrayerTimes, PrayerTimesTable} from "../../providers/prayertimes";
 
 import format from 'date-fns/format';
@@ -12,7 +12,7 @@ import setMonth from 'date-fns/set_month';
     <ion-list radio-group [(ngModel)]="selectedMonthIndex" (ionChange)="changeMonth()" class="popover-page">
       <ion-item *ngFor="let month of months">
         <ion-label>{{month.name}}</ion-label>
-        <ion-radio [value]="month.index"></ion-radio>
+        <ion-radio (click)="close()" [value]="month.index"></ion-radio>
       </ion-item>
     </ion-list>
   `
@@ -22,7 +22,7 @@ export class MonthSelector {
   selectedMonthIndex: number;
 
 
-  constructor(public navParams: NavParams) {
+  constructor(public navParams: NavParams, public viewCtrl: ViewController) {
     this.selectedMonthIndex = navParams.data.initialMonth;
     this.months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((name, index) => ({
       name,
@@ -32,6 +32,10 @@ export class MonthSelector {
 
   changeMonth() {
     this.navParams.data.onChange(this.selectedMonthIndex)
+  }
+
+  close(){
+    this.viewCtrl.dismiss();
   }
 }
 
