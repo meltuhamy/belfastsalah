@@ -7,10 +7,43 @@
 </ion-header>
 
 <ion-content>
-  <ion-list >
-    <button ion-item><ion-icon name="megaphone" item-left></ion-icon> Notifications</button>
-    <ion-item><ion-icon name="sunny" item-left></ion-icon><ion-toggle checked="false"></ion-toggle><ion-label>Hanafy Asr Timing</ion-label></ion-item>
-    <button ion-item><ion-icon name="map" item-left></ion-icon> Location</button>
-    <button ion-item><ion-icon name="information" item-left></ion-icon>About</button>
+  <ion-list no-border="">
+    <ion-list-header>Notifications</ion-list-header>
+    <ion-item>
+      <ion-toggle checked="false"></ion-toggle>
+      <ion-label>Notify before prayer</ion-label>
+      <ion-icon name="alarm" item-left></ion-icon>
+    </ion-item>
+    <ion-item>
+      <ion-icon name='timer' item-left></ion-icon>
+      Minutes before prayer
+      <ion-note item-right>
+        5
+      </ion-note>
+    </ion-item>
+    <ion-list-header>Prayer time settings</ion-list-header>
+    <ion-item>
+      <ion-toggle checked="false"></ion-toggle>
+      <ion-label>Use hanafi asr</ion-label>
+      <ion-icon name="sunny" item-left></ion-icon>
+    </ion-item>
+    <ion-item>
+      <ion-icon name='map' item-left></ion-icon>
+      Location
+      <ion-note item-right>
+        London
+      </ion-note>
+    </ion-item>
+    <ion-list-header>Night mode</ion-list-header>
+    <ion-item>
+      <ion-toggle checked="false"></ion-toggle>
+      <ion-label>Use night mode</ion-label>
+      <ion-icon name="bulb" item-left></ion-icon>
+    </ion-item>
+    <ion-item>
+      <ion-toggle checked="false"></ion-toggle>
+      <ion-label>Enable at Maghrib</ion-label>
+      <ion-icon name="moon" item-left></ion-icon>
+    </ion-item>
   </ion-list>
 </ion-content>
