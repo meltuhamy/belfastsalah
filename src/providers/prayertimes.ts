@@ -231,9 +231,9 @@ export class PrayerTimes{
     }
   }
 
-  getTimeTable() : Promise<PrayerTimesTable> {
+  getTimeTable({useCache = true} = {}) : Promise<PrayerTimesTable> {
     return this.settings.load().then(() => {
-      if(this.cachedPrayerTimesTableJson){
+      if(this.cachedPrayerTimesTableJson && useCache){
         return Promise.resolve(new PrayerTimesTable(this.cachedPrayerTimesTableJson, this.settings.allSettings));
       } else {
         return this.getPreferredTimeTableFromAssetAndSave();

@@ -1,8 +1,9 @@
 import { Component } from '@angular/core';
 
-import { NavController } from 'ionic-angular';
+import {NavController, ToastController} from 'ionic-angular';
 import {FormBuilder, FormGroup} from "@angular/forms";
 import {Settings} from "../../providers/settings";
+import {PrayerTimes} from "../../providers/prayertimes";
 
 @Component({
   selector: 'page-settings',
@@ -17,7 +18,16 @@ export class SettingsPage {
   form: FormGroup;
 
 
-  constructor(public navCtrl: NavController, public settings: Settings, public formBuilder: FormBuilder) {
+  constructor(public navCtrl: NavController, public settings: Settings, public formBuilder: FormBuilder, public prayerTimes: PrayerTimes, public toastCtrl : ToastController) {
+  }
+
+  clickLocation(){
+    this.settings.setValue('location', '').then(() => {
+      this.prayerTimes.getTimeTable({useCache: false}).then(() => {
+        this.toastCtrl.create({message: 'Location changed', duration: 1600}).present();
+      });
+    });
+
   }
 
   _buildForm(){
