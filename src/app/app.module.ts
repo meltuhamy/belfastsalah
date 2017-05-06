@@ -22,6 +22,8 @@ import {LocalNotifications} from '@ionic-native/local-notifications';
 
 import {Notifications} from '../providers/notifications';
 
+import { TitleCasePipe } from './pipes';
+
 const cloudSettings: CloudSettings = {
   'core': {
     'app_id': '27a31d02'
@@ -41,7 +43,8 @@ export function provideSettings(storage: Storage) {
     TodayPage,
     TabsPage,
     PrayerItemComponent,
-    PrayerGridComponent
+    PrayerGridComponent,
+    TitleCasePipe
   ],
   imports: [
     BrowserModule,

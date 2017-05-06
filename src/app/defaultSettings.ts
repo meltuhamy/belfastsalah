@@ -29,6 +29,7 @@ export const defaultSettings = {
   hanafiAsr: getLegacySetting('hanafiAsr', false),
   showDisclaimer: getLegacySetting('showDisclaimer', true),
   nightMode: getLegacySetting('nightMode', false),
+  nightModeMaghrib: false,
   showTrackingDisclaimer: getLegacySetting('showTrackingDisclaimer', true),
   location: isMigration() ? 'london' : null
 };

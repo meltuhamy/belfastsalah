@@ -7,43 +7,45 @@
 </ion-header>
 
 <ion-content>
-  <ion-list no-border="">
-    <ion-list-header>Notifications</ion-list-header>
-    <ion-item>
-      <ion-toggle checked="false"></ion-toggle>
-      <ion-label>Notify before prayer</ion-label>
-      <ion-icon name="alarm" item-left></ion-icon>
-    </ion-item>
-    <ion-item>
-      <ion-icon name='timer' item-left></ion-icon>
-      Minutes before prayer
-      <ion-note item-right>
-        5
-      </ion-note>
-    </ion-item>
-    <ion-list-header>Prayer time settings</ion-list-header>
-    <ion-item>
-      <ion-toggle checked="false"></ion-toggle>
-      <ion-label>Use hanafi asr</ion-label>
-      <ion-icon name="sunny" item-left></ion-icon>
-    </ion-item>
-    <ion-item>
-      <ion-icon name='map' item-left></ion-icon>
-      Location
-      <ion-note item-right>
-        London
-      </ion-note>
-    </ion-item>
-    <ion-list-header>Night mode</ion-list-header>
-    <ion-item>
-      <ion-toggle checked="false"></ion-toggle>
-      <ion-label>Use night mode</ion-label>
-      <ion-icon name="bulb" item-left></ion-icon>
-    </ion-item>
-    <ion-item>
-      <ion-toggle checked="false"></ion-toggle>
-      <ion-label>Enable at Maghrib</ion-label>
-      <ion-icon name="moon" item-left></ion-icon>
-    </ion-item>
-  </ion-list>
+  <form [formGroup]="form" *ngIf="settingsReady">
+    <ion-list no-border="">
+      <ion-list-header>Notifications</ion-list-header>
+      <ion-item>
+        <ion-toggle formControlName="notifications"></ion-toggle>
+        <ion-label>Notify before prayer</ion-label>
+        <ion-icon name="alarm" item-left></ion-icon>
+      </ion-item>
+      <ion-item>
+        <ion-icon name='timer' item-left></ion-icon>
+        Minutes before prayer
+        <ion-note item-right>
+          {{options.notifyMinutes}}
+        </ion-note>
+      </ion-item>
+      <ion-list-header>Prayer time settings</ion-list-header>
+      <ion-item>
+        <ion-toggle formControlName="hanafiAsr"></ion-toggle>
+        <ion-label>Use hanafi asr</ion-label>
+        <ion-icon name="sunny" item-left></ion-icon>
+      </ion-item>
+      <ion-item>
+        <ion-icon name='map' item-left></ion-icon>
+        Location
+        <ion-note item-right>
+          {{options.location | titleCase }}
+        </ion-note>
+      </ion-item>
+      <ion-list-header>Night mode</ion-list-header>
+      <ion-item>
+        <ion-toggle formControlName="nightMode"></ion-toggle>
+        <ion-label>Use night mode</ion-label>
+        <ion-icon name="bulb" item-left></ion-icon>
+      </ion-item>
+      <ion-item>
+        <ion-toggle formControlName="nightModeMaghrib"></ion-toggle>
+        <ion-label>Enable at Maghrib</ion-label>
+        <ion-icon name="moon" item-left></ion-icon>
+      </ion-item>
+    </ion-list>
+  </form>
 </ion-content>
