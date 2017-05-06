@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 
 import { Storage } from '@ionic/storage';
 
-
+const CACHED_PROMISE_TTL = 1000;
 @Injectable()
 export class Settings {
   private SETTINGS_KEY: string = '_settings';
@@ -11,6 +11,9 @@ export class Settings {
 
   _defaults: any;
   _readyPromise: Promise<any>;
+
+  cachedPromise: Promise<any>;
+  cachedPromiseTimestamp: number;
 
   constructor(public storage: Storage, defaults: any) {
     this._defaults = defaults;
@@ -21,7 +24,12 @@ export class Settings {
       // already loaded!
       return Promise.resolve(this.settings);
     } else {
-      return this.storage.get(this.SETTINGS_KEY).then((value) => {
+      let nowTimestamp = new Date().getTime();
+      if(useCache && this.cachedPromise && this.cachedPromiseTimestamp && (this.cachedPromiseTimestamp + CACHED_PROMISE_TTL) > nowTimestamp){
+        return this.cachedPromise;
+      }
+      this.cachedPromiseTimestamp = nowTimestamp;
+      this.cachedPromise = this.storage.get(this.SETTINGS_KEY).then((value) => {
         if(value) {
           this.settings = value;
           this._mergeDefaults(this._defaults);
@@ -33,6 +41,7 @@ export class Settings {
           })
         }
       });
+      return this.cachedPromise;
     }
 
   }

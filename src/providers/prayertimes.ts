@@ -182,7 +182,7 @@ export class PrayerTimes{
     return this.http.get(`./assets/prayertimes/${resourceName}.json`).toPromise().then(response => response.json());
   }
 
-  getPreferredTimeTableFromAssetAndSave(): Promise<PrayerTimesTable>{
+  getPreferredTimeTableFromAssetAndSave({saveToDb = false} = {}): Promise<PrayerTimesTable>{
     return this.settings.load()
       .then(() => this.settings.getValue('location'))
       .then(location => {
@@ -218,13 +218,17 @@ export class PrayerTimes{
 
         }
       })
-      .then(timeTableJson => this.setTimeTableJson(timeTableJson))
+      .then(timeTableJson => this.setTimeTableJson(timeTableJson, {saveToDb}))
       .then(savedTimeTableJson => new PrayerTimesTable(savedTimeTableJson, this.settings.allSettings));
   }
 
-  setTimeTableJson(timeTableJson : any) : Promise<any> {
+  setTimeTableJson(timeTableJson : any, {saveToDb = false} = {}) : Promise<any> {
     this.cachedPrayerTimesTableJson = timeTableJson;
-    return this.storage.set(STORAGE_KEY, timeTableJson);
+    if(saveToDb){
+      return this.storage.set(STORAGE_KEY, timeTableJson);
+    } else {
+      return Promise.resolve(timeTableJson);
+    }
   }
 
   getTimeTable() : Promise<PrayerTimesTable> {
@@ -232,14 +236,7 @@ export class PrayerTimes{
       if(this.cachedPrayerTimesTableJson){
         return Promise.resolve(new PrayerTimesTable(this.cachedPrayerTimesTableJson, this.settings.allSettings));
       } else {
-        return this.storage.get(STORAGE_KEY).then(prayerTimesJson => {
-          if(prayerTimesJson){
-            this.cachedPrayerTimesTableJson = prayerTimesJson;
-            return new PrayerTimesTable(prayerTimesJson, this.settings.allSettings);
-          } else {
-            return this.getPreferredTimeTableFromAssetAndSave();
-          }
-        });
+        return this.getPreferredTimeTableFromAssetAndSave();
       }
     });
   }
