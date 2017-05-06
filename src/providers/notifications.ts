@@ -3,7 +3,7 @@ import {LocalNotifications, ILocalNotification} from '@ionic-native/local-notifi
 import {PrayerTimes, PrayerTimeTime} from "./prayertimes";
 import {Settings} from "./settings";
 
-import {ToastController} from 'ionic-angular';
+import {Platform, ToastController} from 'ionic-angular';
 
 
 import addDays from 'date-fns/add_days';
@@ -14,10 +14,13 @@ const NUM_DAYS_TO_SCHEDULE: number = 10;
 
 @Injectable()
 export class Notifications {
-  constructor(public localNotifications: LocalNotifications, public toastCtrl: ToastController, public settings: Settings, public prayerTimes : PrayerTimes) {
+  constructor(public platform: Platform, public localNotifications: LocalNotifications, public toastCtrl: ToastController, public settings: Settings, public prayerTimes : PrayerTimes) {
   }
 
   schedule({showToast = false} = {}) {
+    if(!this.platform.is('cordova')){
+      return Promise.all([Promise.resolve()]);
+    }
     return Promise.all([this.prayerTimes.getTimeTable(), this.settings.load()]).then(([prayerTimeTable]) => {
       const notificationsEnabled = this.settings.allSettings.notifications;
       const notifyMinutes = this.settings.allSettings.notifyMinutes;

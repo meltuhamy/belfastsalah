@@ -4,6 +4,7 @@ import {NavController, ToastController} from 'ionic-angular';
 import {FormBuilder, FormGroup} from "@angular/forms";
 import {Settings} from "../../providers/settings";
 import {PrayerTimes} from "../../providers/prayertimes";
+import {Notifications} from "../../providers/notifications";
 
 @Component({
   selector: 'page-settings',
@@ -18,12 +19,12 @@ export class SettingsPage {
   form: FormGroup;
 
 
-  constructor(public navCtrl: NavController, public settings: Settings, public formBuilder: FormBuilder, public prayerTimes: PrayerTimes, public toastCtrl : ToastController) {
+  constructor(public navCtrl: NavController, public settings: Settings, public formBuilder: FormBuilder, public prayerTimes: PrayerTimes, public toastCtrl : ToastController, public notifications : Notifications) {
   }
 
   clickLocation(){
     this.settings.setValue('location', '').then(() => {
-      this.prayerTimes.getTimeTable({useCache: false}).then(() => {
+      this.prayerTimes.getTimeTable({useCache: false}).then(() => this.notifications.schedule()).then(() => {
         this.toastCtrl.create({message: 'Location changed', duration: 1600}).present();
       });
     });
@@ -41,7 +42,27 @@ export class SettingsPage {
     this.form = this.formBuilder.group(group);
 
     this.form.valueChanges.subscribe((v) => {
-      this.settings.merge(this.form.value);
+      const oldNotificationSetting = this.settings.allSettings.notifications;
+      const oldHanafiSetting = this.settings.allSettings.hanafiAsr;
+      this.settings.merge(this.form.value).then(() => {
+        // if notifications changed, we need to re-schedule
+        if(oldNotificationSetting !== v.notifications){
+          return this.notifications.schedule().then(() => {
+            if(v.notifications){
+              this.toastCtrl.create({message: 'Notifications enabled', duration: 1600}).present();
+            } else {
+              this.toastCtrl.create({message: 'Notifications disabled', duration: 1600}).present();
+            }
+          });
+        }
+
+        // If hanafi asr has changed, re-schedule
+        if(oldHanafiSetting !== v.hanafiAsr){
+          this.notifications.schedule();
+        }
+
+      });
+
     });
   }
 
