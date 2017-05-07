@@ -1,0 +1,31 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>
+      Notification
+    </ion-title>
+    <ion-buttons start>
+      <button ion-button (click)="dismiss()">
+        <span ion-text color="primary" showWhen="ios">Cancel</span>
+        <ion-icon name="md-close" showWhen="android,windows"></ion-icon>
+      </button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content padding text-center>
+
+  <p>Use the slider to change the notification time</p>
+
+  <ion-range [(ngModel)]="newNotifyMinutes" min="0" max="20">
+    <!--<ion-label range-left>0 mins</ion-label>-->
+    <!--<ion-label range-right>20 mins</ion-label>-->
+  </ion-range>
+
+
+  <p *ngIf="newNotifyMinutes === 0">Notify me at time of prayer</p>
+  <p *ngIf="newNotifyMinutes === 1">Notify me a minute before prayer time</p>
+  <p *ngIf="newNotifyMinutes > 1 ">Notify me {{newNotifyMinutes}} minutes before prayer time</p>
+
+  <button ion-button (click)="dismiss(true)">Done</button>
+
+</ion-content>

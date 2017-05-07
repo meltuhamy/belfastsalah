@@ -4,6 +4,7 @@ import { Storage, IonicStorageModule } from '@ionic/storage'
 import { PrayerTimesApp } from './app.component';
 import { MonthPage, MonthSelector } from '../pages/month/month';
 import { SettingsPage } from '../pages/settings/settings';
+import { MinuteSelectorModal } from '../pages/settings/minute-selector-modal';
 import { TodayPage } from '../pages/today/today';
 import { TabsPage } from '../pages/tabs/tabs';
 import { PrayerTimes } from "../providers/prayertimes";
@@ -40,6 +41,7 @@ export function provideSettings(storage: Storage) {
     MonthPage,
     MonthSelector,
     SettingsPage,
+    MinuteSelectorModal,
     TodayPage,
     TabsPage,
     PrayerItemComponent,
@@ -60,7 +62,8 @@ export function provideSettings(storage: Storage) {
     SettingsPage,
     TodayPage,
     TabsPage,
-    MonthSelector
+    MonthSelector,
+    MinuteSelectorModal
   ],
   providers: [{provide: ErrorHandler, useClass: IonicErrorHandler}, { provide: Settings, useFactory: provideSettings, deps: [ Storage ] }, PrayerTimes, LocalNotifications, Notifications]
 })

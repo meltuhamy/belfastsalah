@@ -1,10 +1,12 @@
 import { Component } from '@angular/core';
 
-import {NavController, ToastController} from 'ionic-angular';
+import {ModalController, NavController, ToastController} from 'ionic-angular';
 import {FormBuilder, FormGroup} from "@angular/forms";
 import {Settings} from "../../providers/settings";
 import {PrayerTimes} from "../../providers/prayertimes";
 import {Notifications} from "../../providers/notifications";
+
+import {MinuteSelectorModal} from './minute-selector-modal';
 
 @Component({
   selector: 'page-settings',
@@ -21,7 +23,7 @@ export class SettingsPage {
   hasHanafiAsr: false;
 
 
-  constructor(public navCtrl: NavController, public settings: Settings, public formBuilder: FormBuilder, public prayerTimes: PrayerTimes, public toastCtrl : ToastController, public notifications : Notifications) {
+  constructor(public navCtrl: NavController, public settings: Settings, public formBuilder: FormBuilder, public prayerTimes: PrayerTimes, public toastCtrl : ToastController, public notifications : Notifications, public modalCtrl: ModalController) {
   }
 
   clickLocation(){
@@ -32,6 +34,23 @@ export class SettingsPage {
         this.toastCtrl.create({message: 'Location changed', duration: 1600}).present();
       });
     });
+
+  }
+
+  clickNotifyMinutes(){
+    const previousNotifyMinutes = this.settings.allSettings.notifyMinutes;
+    const modal = this.modalCtrl.create(MinuteSelectorModal, {previousNotifyMinutes});
+    const modalDismissed = new Promise(resolve => modal.onDidDismiss((data) => resolve(data)));
+    modalDismissed.then(({newNotifyMinutes}) => {
+      if(newNotifyMinutes !== previousNotifyMinutes){
+        this.settings.setValue('notifyMinutes', newNotifyMinutes);
+        this.notifications.schedule().then(() => {
+          this.toastCtrl.create({message: 'Notification time changed', duration: 1600}).present();
+        });
+      }
+    });
+
+    modal.present();
 
   }
 
@@ -94,3 +113,5 @@ export class SettingsPage {
   }
 
 }
+
+

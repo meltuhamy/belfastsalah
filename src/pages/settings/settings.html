@@ -15,13 +15,13 @@
         <ion-label>Notify before prayer</ion-label>
         <ion-icon name="alarm" item-left></ion-icon>
       </ion-item>
-      <ion-item *ngIf="options.notifications">
+      <button ion-item (click)="clickNotifyMinutes()" *ngIf="options.notifications">
         <ion-icon name='timer' item-left></ion-icon>
         Minutes before prayer
         <ion-note item-right>
           {{options.notifyMinutes}}
         </ion-note>
-      </ion-item>
+      </button>
       <ion-list-header>Prayer time settings</ion-list-header>
       <button ion-item (click)="clickLocation()">
         <ion-icon name='map' item-left></ion-icon>
