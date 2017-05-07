@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { Platform } from 'ionic-angular';
+import {AlertController, Platform} from 'ionic-angular';
 import { StatusBar, Splashscreen } from 'ionic-native';
 
 import { TabsPage } from '../pages/tabs/tabs';
@@ -16,16 +16,17 @@ export class PrayerTimesApp {
   settings: any;
   nextPrayerType: string;
 
-  constructor(public platform: Platform, settings: Settings, public deploy: Deploy, public notifications : Notifications, public prayerTimes : PrayerTimes) {
+  constructor(public platform: Platform, settings: Settings, public deploy: Deploy, public notifications : Notifications, public prayerTimes : PrayerTimes, public alertCtrl : AlertController) {
     settings.load()
       .then(() => platform.ready())
       .then(() => {
         StatusBar.styleDefault();
-        Splashscreen.hide();
         this.checkForLatestAppVersion();
         this.scheduleNotifications();
         this.settings = settings.allSettings;
-        this.initialisePrayerTimes();
+        this.initialisePrayerTimes().then(() => {
+          Splashscreen.hide();
+        });
       });
   }
 
@@ -33,8 +34,26 @@ export class PrayerTimesApp {
     if(this.platform.is('cordova')){
       this.deploy.check().then((snapshotAvailable: boolean) => {
         if (snapshotAvailable) {
-          this.deploy.download().then(() => {
-            return this.deploy.extract().then(() => this.deploy.load());
+          this.deploy.getMetadata().then((metadata) => {
+            this.alertCtrl.create({
+              title: 'Update available',
+              message: `A new version of Prayer Times is available. ${metadata && metadata.releaseNotes}`,
+              buttons: [
+                {
+                  text: 'Cancel',
+                  role: 'cancel',
+                  handler: () => {
+
+                  }
+                },
+                {
+                  text: 'Update',
+                  handler: () => {
+                    return this.deploy.extract().then(() => this.deploy.load());
+                  }
+                }
+              ]
+            }).present();
           });
         }
       });
@@ -48,7 +67,7 @@ export class PrayerTimesApp {
   }
 
   initialisePrayerTimes(){
-    this.prayerTimes.getTimeTable().then(prayerTimes => {
+    return this.prayerTimes.getTimeTable().then(prayerTimes => {
       const {next} = prayerTimes.getNextAndPrevPrayer();
       this.nextPrayerType = next.type;
       tick.subscribe(value => {
