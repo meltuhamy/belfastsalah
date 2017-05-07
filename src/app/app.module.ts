@@ -20,6 +20,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { HttpModule } from '@angular/http';
 
 import {LocalNotifications} from '@ionic-native/local-notifications';
+import {SplashScreen} from '@ionic-native/splash-screen';
 
 import {Notifications} from '../providers/notifications';
 
@@ -65,6 +66,6 @@ export function provideSettings(storage: Storage) {
     MonthSelector,
     MinuteSelectorModal
   ],
-  providers: [{provide: ErrorHandler, useClass: IonicErrorHandler}, { provide: Settings, useFactory: provideSettings, deps: [ Storage ] }, PrayerTimes, LocalNotifications, Notifications]
+  providers: [{provide: ErrorHandler, useClass: IonicErrorHandler}, { provide: Settings, useFactory: provideSettings, deps: [ Storage ] }, PrayerTimes, LocalNotifications, Notifications, SplashScreen]
 })
 export class AppModule {}
