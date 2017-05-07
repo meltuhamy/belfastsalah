@@ -18,6 +18,8 @@ export class SettingsPage {
 
   form: FormGroup;
 
+  hasHanafiAsr: false;
+
 
   constructor(public navCtrl: NavController, public settings: Settings, public formBuilder: FormBuilder, public prayerTimes: PrayerTimes, public toastCtrl : ToastController, public notifications : Notifications) {
   }
@@ -26,6 +28,7 @@ export class SettingsPage {
     let previousLocation = this.settings.allSettings.location;
     this.settings.setValue('location', '').then(() => {
       this.prayerTimes.getTimeTable({useCache: false, previousLocation}).then(() => this.notifications.schedule()).then(() => {
+        this.initialise();
         this.toastCtrl.create({message: 'Location changed', duration: 1600}).present();
       });
     });
@@ -76,14 +79,18 @@ export class SettingsPage {
   ionViewWillEnter() {
     // Build an empty form for the template to render
     this.form = this.formBuilder.group({});
+    this.initialise();
+  }
 
-
+  initialise() {
     this.settings.load().then(() => {
-      this.settingsReady = true;
       this.options = this.settings.allSettings;
-
       this._buildForm();
-    });
+    }).then(() => this.prayerTimes.getTimeTable())
+      .then((prayerTimeTable) => {
+        this.hasHanafiAsr = prayerTimeTable.hasHanafiAsr();
+      })
+      .then(() => this.settingsReady = true);
   }
 
 }

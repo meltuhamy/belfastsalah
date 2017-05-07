@@ -166,6 +166,10 @@ export class PrayerTimesTable{
     return {next: possibilities[resultIndex], prev: possibilities[resultIndex-1]};
   }
 
+  hasHanafiAsr(){
+    return this.getByDate(new Date()).hasHanafiAsr();
+  }
+
 
 
 
