@@ -1,1 +1,1 @@
-<ion-nav [root]="rootPage"></ion-nav>
+<ion-nav *ngIf="settings" [root]="rootPage" [ngClass]="{'night-mode': settings.nightMode}"></ion-nav>

@@ -12,6 +12,7 @@ import {Notifications} from "../providers/notifications";
 })
 export class PrayerTimesApp {
   rootPage = TabsPage;
+  settings: any;
 
   constructor(public platform: Platform, settings: Settings, public deploy: Deploy, public notifications : Notifications) {
     settings.load()
@@ -21,6 +22,7 @@ export class PrayerTimesApp {
         Splashscreen.hide();
         this.checkForLatestAppVersion();
         this.scheduleNotifications();
+        this.settings = settings.allSettings;
       });
   }
 
