@@ -23,8 +23,9 @@ export class SettingsPage {
   }
 
   clickLocation(){
+    let previousLocation = this.settings.allSettings.location;
     this.settings.setValue('location', '').then(() => {
-      this.prayerTimes.getTimeTable({useCache: false}).then(() => this.notifications.schedule()).then(() => {
+      this.prayerTimes.getTimeTable({useCache: false, previousLocation}).then(() => this.notifications.schedule()).then(() => {
         this.toastCtrl.create({message: 'Location changed', duration: 1600}).present();
       });
     });

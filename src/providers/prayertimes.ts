@@ -182,7 +182,7 @@ export class PrayerTimes{
     return this.http.get(`./assets/prayertimes/${resourceName}.json`).toPromise().then(response => response.json());
   }
 
-  getPreferredTimeTableFromAssetAndSave({saveToDb = false} = {}): Promise<PrayerTimesTable>{
+  getPreferredTimeTableFromAssetAndSave({saveToDb = false, previousLocation = ''} = {}): Promise<PrayerTimesTable>{
     return this.settings.load()
       .then(() => this.settings.getValue('location'))
       .then(location => {
@@ -190,21 +190,21 @@ export class PrayerTimes{
           return this.getJsonFromAsset(location);
         } else {
           return new Promise(resolve => {
-            let alert = this.alertCtrl.create();
+            let alert = this.alertCtrl.create({enableBackdropDismiss: false});
             alert.setTitle('Choose location');
 
             alert.addInput({
               type: 'radio',
               label: 'London',
               value: 'london',
-              checked: true
+              checked: previousLocation ? (previousLocation === 'london') : true
             });
 
             alert.addInput({
               type: 'radio',
               label: 'Belfast',
               value: 'belfast',
-              checked: false
+              checked: previousLocation === 'belfast'
             });
 
             alert.addButton({
@@ -231,12 +231,12 @@ export class PrayerTimes{
     }
   }
 
-  getTimeTable({useCache = true} = {}) : Promise<PrayerTimesTable> {
+  getTimeTable({useCache = true, previousLocation = ''} = {}) : Promise<PrayerTimesTable> {
     return this.settings.load().then(() => {
       if(this.cachedPrayerTimesTableJson && useCache){
         return Promise.resolve(new PrayerTimesTable(this.cachedPrayerTimesTableJson, this.settings.allSettings));
       } else {
-        return this.getPreferredTimeTableFromAssetAndSave();
+        return this.getPreferredTimeTableFromAssetAndSave({previousLocation});
       }
     });
   }
