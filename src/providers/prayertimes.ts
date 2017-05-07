@@ -9,6 +9,7 @@ import {Observable} from "rxjs";
 import {Settings} from "./settings";
 import { Storage } from '@ionic/storage';
 import { AlertController } from 'ionic-angular';
+import {SplashScreen} from "@ionic-native/splash-screen";
 
 
 const STORAGE_KEY = '_prayer';
@@ -179,7 +180,7 @@ export class PrayerTimesTable{
 export class PrayerTimes{
   cachedPrayerTimesTableJson : any;
 
-  constructor(public http: Http, public settings: Settings, public storage: Storage, public alertCtrl : AlertController) {
+  constructor(public http: Http, public settings: Settings, public storage: Storage, public alertCtrl : AlertController, public splashScreen : SplashScreen) {
   }
 
   getJsonFromAsset(resourceName: string) : Promise<any>{
@@ -217,6 +218,7 @@ export class PrayerTimes{
                 resolve(this.settings.setValue('location', selectedLocation).then(() => this.getJsonFromAsset(selectedLocation)));
               }
             });
+            this.splashScreen.hide();
             alert.present();
           });
 

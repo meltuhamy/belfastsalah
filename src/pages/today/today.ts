@@ -1,5 +1,5 @@
 import {Component} from '@angular/core';
-
+import {SplashScreen} from '@ionic-native/splash-screen';
 import {NavController} from 'ionic-angular';
 import {PrayerTimeDay, PrayerTimes, PrayerTimeTime, tick, PrayerTimesTable} from "../../providers/prayertimes";
 import addDays from 'date-fns/add_days';
@@ -16,7 +16,7 @@ export class TodayPage {
   currentDate: Date;
   prayerTimesTable: PrayerTimesTable;
 
-  constructor(public navCtrl: NavController, public prayerTimesService : PrayerTimes) {
+  constructor(public navCtrl: NavController, public prayerTimesService : PrayerTimes, public splashScreen : SplashScreen) {
     tick.subscribe(date => {
       this.update(date);
     });
@@ -41,7 +41,9 @@ export class TodayPage {
   }
 
   ionViewWillEnter() {
-    this.loadTimeTable();
+    this.loadTimeTable().then(() => {
+      this.splashScreen.hide();
+    });
   }
 
 
