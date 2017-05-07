@@ -10,7 +10,7 @@ import addDays from 'date-fns/add_days';
 import subtractMinutes from 'date-fns/sub_minutes';
 import addMinutes from 'date-fns/add_minutes';
 
-const NUM_DAYS_TO_SCHEDULE: number = 10;
+const NUM_DAYS_TO_SCHEDULE: number = 20;
 
 @Injectable()
 export class Notifications {
