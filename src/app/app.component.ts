@@ -49,7 +49,17 @@ export class PrayerTimesApp {
                 {
                   text: 'Update',
                   handler: () => {
-                    return this.deploy.extract().then(() => this.deploy.load());
+                    setTimeout(() => {
+                      this.alertCtrl.create({
+                        title: 'Downloading update',
+                        message: 'The app will restart automatically once this is done',
+                        enableBackdropDismiss: false
+                      }).present();
+                    }, 100);
+
+                    this.deploy.download().then(() => {
+                      return this.deploy.extract().then(() => this.deploy.load());
+                    });
                   }
                 }
               ]
