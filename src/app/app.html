@@ -1,1 +1,1 @@
-<ion-nav *ngIf="settings" [root]="rootPage" [ngClass]="{'night-mode': settings.nightMode}"></ion-nav>
+<ion-nav *ngIf="settings" [root]="rootPage" [ngClass]="{'night-mode': isNightMode(settings.nightMode, settings.nightModeMaghrib, nextPrayerType)}"></ion-nav>
