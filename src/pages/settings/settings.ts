@@ -1,12 +1,14 @@
 import { Component } from '@angular/core';
 
-import {ModalController, NavController, ToastController} from 'ionic-angular';
+import {AlertController, ModalController, NavController, ToastController} from 'ionic-angular';
 import {FormBuilder, FormGroup} from "@angular/forms";
 import {Settings} from "../../providers/settings";
 import {PrayerTimes} from "../../providers/prayertimes";
 import {Notifications} from "../../providers/notifications";
 
 import {MinuteSelectorModal} from './minute-selector-modal';
+
+import packageJson from '../../../package.json';
 
 @Component({
   selector: 'page-settings',
@@ -23,9 +25,15 @@ export class SettingsPage {
   hasHanafiAsr: false;
 
 
-  constructor(public navCtrl: NavController, public settings: Settings, public formBuilder: FormBuilder, public prayerTimes: PrayerTimes, public toastCtrl : ToastController, public notifications : Notifications, public modalCtrl: ModalController) {
+  constructor(public navCtrl: NavController, public settings: Settings, public formBuilder: FormBuilder, public prayerTimes: PrayerTimes, public toastCtrl : ToastController, public notifications : Notifications, public modalCtrl: ModalController, public alertCtrl : AlertController) {
   }
 
+  showInfo() {
+    this.alertCtrl.create({
+      title: `Prayer Times ${packageJson.version}`,
+      message: `Created by Mohamed Eltuhamy`
+    }).present();
+  }
   clickLocation(){
     let previousLocation = this.settings.allSettings.location;
     this.settings.setValue('location', '').then(() => {

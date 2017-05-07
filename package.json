@@ -1,6 +1,7 @@
 {
   "name": "belfastsalah2",
   "author": "Mohamed Eltuhamy",
+  "version": "2.0.0",
   "homepage": "http://ionicframework.com/",
   "private": true,
   "scripts": {
