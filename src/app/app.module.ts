@@ -25,6 +25,18 @@ import {SplashScreen} from '@ionic-native/splash-screen';
 import {Notifications} from '../providers/notifications';
 
 import { TitleCasePipe } from './pipes';
+import * as Raven from 'raven-js';
+
+Raven
+  .config('https://268df6a81baf4219a9a7af2b4eb7985c@sentry.io/167151')
+  .install();
+
+export class RavenErrorHandler extends IonicErrorHandler {
+  handleError(err:any) : void {
+    Raven.captureException(err.originalError);
+    super.handleError(err);
+  }
+}
 
 const cloudSettings: CloudSettings = {
   'core': {
@@ -66,6 +78,6 @@ export function provideSettings(storage: Storage) {
     MonthSelector,
     MinuteSelectorModal
   ],
-  providers: [{provide: ErrorHandler, useClass: IonicErrorHandler}, { provide: Settings, useFactory: provideSettings, deps: [ Storage ] }, PrayerTimes, LocalNotifications, Notifications, SplashScreen]
+  providers: [{provide: ErrorHandler, useClass: RavenErrorHandler}, { provide: Settings, useFactory: provideSettings, deps: [ Storage ] }, PrayerTimes, LocalNotifications, Notifications, SplashScreen]
 })
 export class AppModule {}
