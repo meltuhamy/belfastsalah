@@ -7,7 +7,7 @@
 </ion-header>
 
 <ion-content>
-  <div *ngIf="nextPrayer">
+  <div *ngIf="nextPrayer && prevPrayer">
     <ion-card class="next-prayer-card" >
       <ion-card-header text-center class="next-prayer-card__title">Next Prayer: {{nextPrayer.name}}</ion-card-header>
       <ion-card-content text-center>

@@ -1,4 +1,4 @@
-import {Component} from '@angular/core';
+import {ChangeDetectorRef, Component} from '@angular/core';
 import {SplashScreen} from '@ionic-native/splash-screen';
 import {NavController} from 'ionic-angular';
 import {PrayerTimeDay, PrayerTimes, PrayerTimeTime, tick, PrayerTimesTable} from "../../providers/prayertimes";
@@ -15,11 +15,9 @@ export class TodayPage {
   prevPrayer: PrayerTimeTime;
   currentDate: Date;
   prayerTimesTable: PrayerTimesTable;
+  private tickSub;
 
-  constructor(public navCtrl: NavController, public prayerTimesService : PrayerTimes, public splashScreen : SplashScreen) {
-    tick.subscribe(date => {
-      this.update(date);
-    });
+  constructor(public navCtrl: NavController, public prayerTimesService : PrayerTimes, public splashScreen : SplashScreen, private cd : ChangeDetectorRef) {
   }
 
   loadTimeTable(){
@@ -37,13 +35,23 @@ export class TodayPage {
       this.nextPrayer = times.next;
       this.prevPrayer = times.prev;
       this.currentDate = date;
+      this.cd.detectChanges();
     }
   }
 
   ionViewWillEnter() {
     this.loadTimeTable().then(() => {
+      this.tickSub = tick.subscribe(date => {
+        this.update(date);
+      });
       this.splashScreen.hide();
     });
+  }
+
+  ionViewWillLeave(){
+    if(this.tickSub) {
+      this.tickSub.unsubscribe();
+    }
   }
 
 

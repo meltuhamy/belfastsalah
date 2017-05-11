@@ -136,6 +136,8 @@ export class PrayerTimesTable{
     let dayTimes = this.getByDate(date);
     let dayAfterTimes = this.getDayAfter(date);
     let dayBeforeTimes = this.getDayBefore(date);
+    let dayBefore = subDays(date, 1);
+    let dayAfter = addDays(date, 1);
 
     let possibilities = [
       dayBeforeTimes.isha,
@@ -154,7 +156,15 @@ export class PrayerTimesTable{
 
     // TODO: Can optimize using binary search
     possibilities.forEach((possiblePrayerTime, index) => {
-      let currentTime = possiblePrayerTime.toDate(date).getTime();
+      // first index is day before, last index is day after
+      let d = date;
+      if (index === 0) {
+        d = dayBefore;
+      } else if (index === possibilities.length - 1) {
+        d = dayAfter;
+      }
+
+      let currentTime = possiblePrayerTime.toDate(d).getTime();
       let distance = Math.abs(timeToCompare - currentTime);
       if (resultIndex === undefined || (distance < minDistance && currentTime > timeToCompare)) {
         resultIndex = index;
