@@ -1,5 +1,5 @@
 import { NgModule, ErrorHandler } from '@angular/core';
-import { IonicApp, IonicModule, IonicErrorHandler } from 'ionic-angular';
+import { IonicApp, IonicModule } from 'ionic-angular';
 import { Storage, IonicStorageModule } from '@ionic/storage'
 import { PrayerTimesApp } from './app.component';
 import { MonthPage, MonthSelector } from '../pages/month/month';
@@ -31,10 +31,9 @@ Raven
   .config('https://268df6a81baf4219a9a7af2b4eb7985c@sentry.io/167151')
   .install();
 
-export class RavenErrorHandler extends IonicErrorHandler {
+export class RavenErrorHandler implements ErrorHandler {
   handleError(err:any) : void {
     Raven.captureException(err.originalError);
-    super.handleError(err);
   }
 }
 
