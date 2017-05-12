@@ -13,12 +13,12 @@
   <allow-intent href="geo:*"/>
   <platform name="android">
     <allow-intent href="market:*"/>
-    <icon qualifier="ldpi" src="resources/res/icons/android/icon-36-ldpi.png"/>
-    <icon qualifier="mdpi" src="resources/res/icons/android/icon-48-mdpi.png"/>
-    <icon qualifier="hdpi" src="resources/res/icons/android/icon-72-hdpi.png"/>
-    <icon qualifier="xhdpi" src="resources/res/icons/android/icon-96-xhdpi.png"/>
-    <icon qualifier="xxhdpi" src="resources/res/icons/android/icon-144-xxhdpi.png"/>
-    <icon qualifier="xxxhdpi" src="resources/res/icons/android/icon-192-xxxhdpi.png"/>
+    <icon qualifier="ldpi" src="resources/res/android/icon/drawable-ldpi-icon.png" density="ldpi"/>
+    <icon qualifier="mdpi" src="resources/res/android/icon/drawable-mdpi-icon.png" density="mdpi"/>
+    <icon qualifier="hdpi" src="resources/res/android/icon/drawable-hdpi-icon.png" density="hdpi"/>
+    <icon qualifier="xhdpi" src="resources/res/android/icon/drawable-xhdpi-icon.png" density="xhdpi"/>
+    <icon qualifier="xxhdpi" src="resources/res/android/icon/drawable-xxhdpi-icon.png" density="xxhdpi"/>
+    <icon qualifier="xxxhdpi" src="resources/res/android/icon/drawable-xxxhdpi-icon.png" density="xxxhdpi"/>
     <splash qualifier="ldpi" src="resources/res/screens/android/screen-ldpi-portrait.png"/>
     <splash qualifier="mdpi" src="resources/res/screens/android/screen-mdpi-portrait.png"/>
     <splash qualifier="hdpi" src="resources/res/screens/android/screen-hdpi-portrait.png"/>
