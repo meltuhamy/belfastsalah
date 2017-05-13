@@ -5,6 +5,7 @@ import {PrayerTimeDay, PrayerTimes, PrayerTimesTable} from "../../providers/pray
 
 import format from 'date-fns/format';
 import setMonth from 'date-fns/set_month';
+import {Analytics} from "../../providers/analytics";
 
 
 @Component({
@@ -57,7 +58,12 @@ export class MonthPage {
 
   now: Date;
 
-  constructor(public navCtrl: NavController, public prayerTimesService: PrayerTimes, private popoverCtrl: PopoverController) {
+  tabEnterTime: Date;
+
+  constructor(public navCtrl: NavController,
+              public prayerTimesService: PrayerTimes,
+              private popoverCtrl: PopoverController,
+              public analytics: Analytics) {
     this.initialise(new Date());
   }
 
@@ -89,5 +95,14 @@ export class MonthPage {
     });
   }
 
+  ionViewWillEnter() {
+    this.tabEnterTime = new Date();
+    this.analytics.track('Tab - Enter - Month');
+  }
+
+  ionViewWillLeave(){
+    let now = new Date();
+    this.analytics.track('Tab - Leave - Month', {tabTimeSeconds: (now.getTime() - this.tabEnterTime.getTime())/1000});
+  }
 
 }

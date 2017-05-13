@@ -16,6 +16,7 @@ import {Analytics} from "../../providers/analytics";
   templateUrl: 'settings.html'
 })
 export class SettingsPage {
+  tabEnterTime: Date;
 
   settingsReady = false;
 
@@ -119,6 +120,13 @@ export class SettingsPage {
     // Build an empty form for the template to render
     this.form = this.formBuilder.group({});
     this.initialise();
+    this.tabEnterTime = new Date();
+    this.analytics.track('Tab - Enter - Settings');
+  }
+
+  ionViewWillLeave(){
+    let now = new Date();
+    this.analytics.track('Tab - Leave - Month', {tabTimeSeconds: (now.getTime() - this.tabEnterTime.getTime())/1000});
   }
 
   initialise() {

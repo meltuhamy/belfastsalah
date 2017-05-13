@@ -5,6 +5,7 @@ import {PrayerTimeDay, PrayerTimes, PrayerTimeTime, PrayerTimesTable} from "../.
 import addDays from 'date-fns/add_days';
 import {Subscription} from "rxjs";
 import {TimerObservable} from "rxjs/observable/TimerObservable";
+import {Analytics} from "../../providers/analytics";
 
 @Component({
   selector: 'page-today',
@@ -17,9 +18,14 @@ export class TodayPage {
   prevPrayer: PrayerTimeTime;
   currentDate: Date;
   prayerTimesTable: PrayerTimesTable;
+  tabEnterTime: Date;
   private tickSub : Subscription;
 
-  constructor(public navCtrl: NavController, public prayerTimesService : PrayerTimes, public splashScreen : SplashScreen, private cd : ChangeDetectorRef) {
+  constructor(public navCtrl: NavController,
+              public prayerTimesService : PrayerTimes,
+              public splashScreen : SplashScreen,
+              private cd : ChangeDetectorRef,
+              public analytics: Analytics) {
   }
 
   loadTimeTable(){
@@ -51,9 +57,14 @@ export class TodayPage {
 
       this.splashScreen.hide();
     });
+
+    this.tabEnterTime = new Date();
+    this.analytics.track('Tab - Enter - Today');
   }
 
   ionViewWillLeave(){
+    let now = new Date();
+    this.analytics.track('Tab - Leave - Today', {tabTimeSeconds: (now.getTime() - this.tabEnterTime.getTime())/1000});
     if(this.tickSub) {
       this.tickSub.unsubscribe();
     }
