@@ -9,6 +9,7 @@ import {Notifications} from "../../providers/notifications";
 import {MinuteSelectorModal} from './minute-selector-modal';
 
 import packageJson from '../../../package.json';
+import {Analytics} from "../../providers/analytics";
 
 @Component({
   selector: 'page-settings',
@@ -25,7 +26,16 @@ export class SettingsPage {
   hasHanafiAsr: false;
 
 
-  constructor(public navCtrl: NavController, public settings: Settings, public formBuilder: FormBuilder, public prayerTimes: PrayerTimes, public toastCtrl : ToastController, public notifications : Notifications, public modalCtrl: ModalController, public alertCtrl : AlertController) {
+  constructor(
+    public navCtrl: NavController,
+    public settings: Settings,
+    public formBuilder: FormBuilder,
+    public prayerTimes: PrayerTimes,
+    public toastCtrl : ToastController,
+    public notifications : Notifications,
+    public modalCtrl: ModalController,
+    public alertCtrl : AlertController,
+    public analytics: Analytics) {
   }
 
   showInfo() {
@@ -76,6 +86,8 @@ export class SettingsPage {
       const oldNotificationSetting = this.settings.allSettings.notifications;
       const oldHanafiSetting = this.settings.allSettings.hanafiAsr;
       this.settings.merge(this.form.value).then(() => {
+        this.analytics.peopleSet(Object.assign({}, this.settings.allSettings));
+
         // if notifications changed, we need to re-schedule
         if(oldNotificationSetting !== v.notifications){
           return this.notifications.schedule().then(() => {
