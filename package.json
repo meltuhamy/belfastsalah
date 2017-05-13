@@ -9,7 +9,7 @@
     "build": "ionic-app-scripts build",
     "ionic:build": "ionic-app-scripts build",
     "ionic:serve": "ionic-app-scripts serve",
-    "deploy": "ionic build --prod && ionic upload"
+    "deploy": "ionic build --prod && ionic upload --note $(node -p -e \"require('./package.json').version\")"
   },
   "dependencies": {
     "@angular/common": "4.0.0",
