@@ -9,12 +9,18 @@ import {Platform, ToastController} from 'ionic-angular';
 import addDays from 'date-fns/add_days';
 import subtractMinutes from 'date-fns/sub_minutes';
 import addMinutes from 'date-fns/add_minutes';
+import {Analytics} from "./analytics";
 
 const NUM_DAYS_TO_SCHEDULE: number = 20;
 
 @Injectable()
 export class Notifications {
-  constructor(public platform: Platform, public localNotifications: LocalNotifications, public toastCtrl: ToastController, public settings: Settings, public prayerTimes : PrayerTimes) {
+  constructor(public platform: Platform,
+              public localNotifications: LocalNotifications,
+              public toastCtrl: ToastController,
+              public settings: Settings,
+              public prayerTimes : PrayerTimes,
+              public analytics: Analytics) {
   }
 
   schedule({showToast = false} = {}) {
@@ -81,6 +87,39 @@ export class Notifications {
         });
 
     });
+
+  }
+
+  startTracking(){
+    // Available events: schedule, trigger, click, update, clear, clearall, cancel, cancelall
+
+
+    function notificationProperties(notification, state){
+      let notificationData;
+      try {
+        notificationData = JSON.parse(notification.data);
+      } catch (e){
+        notificationData = {not_json: true};
+      }
+
+      notification.appState = state;
+
+      for(let k in notificationData){
+        if(notificationData.hasOwnProperty(k)){
+          notification['data_'+k] = notificationData[k];
+        }
+      }
+      return notification;
+    }
+
+    this.localNotifications.on('schedule', () => this.analytics.track('Notification: schedule'));
+    this.localNotifications.on('trigger', (e, n, a) => this.analytics.track('Notification: trigger', notificationProperties(n, a)));
+    this.localNotifications.on('click', (e, n, a) => this.analytics.track('Notification: click', notificationProperties(n, a)));
+    this.localNotifications.on('update', () => this.analytics.track('Notification: update'));
+    this.localNotifications.on('clear', (e, n, a) => this.analytics.track('Notification: clearall', notificationProperties(n, a)));
+    this.localNotifications.on('clearall', (e, appState) => this.analytics.track('Notification: clearall', {appState}));
+    this.localNotifications.on('cancel', () => this.analytics.track('Notification: cancel'));
+    this.localNotifications.on('cancelall', () => this.analytics.track('Notification: cancelall'));
 
   }
 
