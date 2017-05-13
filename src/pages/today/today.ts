@@ -1,8 +1,10 @@
 import {ChangeDetectorRef, Component} from '@angular/core';
 import {SplashScreen} from '@ionic-native/splash-screen';
 import {NavController} from 'ionic-angular';
-import {PrayerTimeDay, PrayerTimes, PrayerTimeTime, tick, PrayerTimesTable} from "../../providers/prayertimes";
+import {PrayerTimeDay, PrayerTimes, PrayerTimeTime, PrayerTimesTable} from "../../providers/prayertimes";
 import addDays from 'date-fns/add_days';
+import {Subscription} from "rxjs";
+import {TimerObservable} from "rxjs/observable/TimerObservable";
 
 @Component({
   selector: 'page-today',
@@ -15,7 +17,7 @@ export class TodayPage {
   prevPrayer: PrayerTimeTime;
   currentDate: Date;
   prayerTimesTable: PrayerTimesTable;
-  private tickSub;
+  private tickSub : Subscription;
 
   constructor(public navCtrl: NavController, public prayerTimesService : PrayerTimes, public splashScreen : SplashScreen, private cd : ChangeDetectorRef) {
   }
@@ -41,9 +43,12 @@ export class TodayPage {
 
   ionViewWillEnter() {
     this.loadTimeTable().then(() => {
-      this.tickSub = tick.subscribe(date => {
-        this.update(date);
+      let timer = TimerObservable.create(0, 1000);
+
+      this.tickSub = timer.subscribe(t => {
+        this.update(new Date());
       });
+
       this.splashScreen.hide();
     });
   }

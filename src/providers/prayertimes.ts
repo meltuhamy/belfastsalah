@@ -5,7 +5,6 @@ import addDays from 'date-fns/add_days';
 import distanceInWordsToNow from 'date-fns/distance_in_words_to_now';
 import format from 'date-fns/format';
 import 'rxjs/add/operator/toPromise';
-import {Observable} from "rxjs";
 import {Settings} from "./settings";
 import { Storage } from '@ionic/storage';
 import { AlertController } from 'ionic-angular';
@@ -13,9 +12,6 @@ import {SplashScreen} from "@ionic-native/splash-screen";
 
 
 const STORAGE_KEY = '_prayer';
-
-
-export const tick = Observable.interval(1000).map(() => new Date());
 
 export class PrayerTimeTime {
   hours: number;

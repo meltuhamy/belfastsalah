@@ -24,6 +24,10 @@ import {SplashScreen} from '@ionic-native/splash-screen';
 
 import {Notifications} from '../providers/notifications';
 
+import {Analytics} from '../providers/analytics';
+
+import { Device } from '@ionic-native/device';
+
 import { TitleCasePipe } from './pipes';
 import * as Raven from 'raven-js';
 
@@ -77,6 +81,15 @@ export function provideSettings(storage: Storage) {
     MonthSelector,
     MinuteSelectorModal
   ],
-  providers: [{provide: ErrorHandler, useClass: RavenErrorHandler}, { provide: Settings, useFactory: provideSettings, deps: [ Storage ] }, PrayerTimes, LocalNotifications, Notifications, SplashScreen]
+  providers: [
+    {provide: ErrorHandler, useClass: RavenErrorHandler},
+    { provide: Settings, useFactory: provideSettings, deps: [ Storage ] },
+    PrayerTimes,
+    LocalNotifications,
+    Device,
+    Notifications,
+    SplashScreen,
+    Analytics
+  ]
 })
 export class AppModule {}
