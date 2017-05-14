@@ -37,11 +37,11 @@ export class PrayerTimesApp {
       .then(() => platform.ready())
       .then(() => {
         StatusBar.styleDefault();
-        this.checkForLatestAppVersion();
-        this.scheduleNotifications();
+        this.initialisePrayerTimes()
+          .then(() => this.initialiseAnalytics())
+          .then(() => this.checkForLatestAppVersion())
+          .then(() => this.scheduleNotifications());
         this.settings = settingsProvider.allSettings;
-        this.initialisePrayerTimes();
-        this.initialiseAnalytics();
       });
   }
 

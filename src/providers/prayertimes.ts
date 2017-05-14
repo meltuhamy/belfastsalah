@@ -185,8 +185,50 @@ export class PrayerTimesTable{
 @Injectable()
 export class PrayerTimes{
   cachedPrayerTimesTableJson : any;
+  locationSelectorVisible: boolean;
+  locationSelectorPromise;
 
   constructor(public http: Http, public settings: Settings, public storage: Storage, public alertCtrl : AlertController, public splashScreen : SplashScreen) {
+    this.locationSelectorVisible = false;
+  }
+
+  selectLocation(previousLocation: string){
+    if(this.locationSelectorVisible){
+      return this.locationSelectorPromise;
+    } else {
+      this.locationSelectorPromise = new Promise(resolve => {
+        let alert = this.alertCtrl.create({enableBackdropDismiss: false});
+        alert.setTitle('Choose location');
+
+        alert.addInput({
+          type: 'radio',
+          label: 'London',
+          value: 'london',
+          checked: previousLocation ? (previousLocation === 'london') : true
+        });
+
+        alert.addInput({
+          type: 'radio',
+          label: 'Belfast',
+          value: 'belfast',
+          checked: previousLocation === 'belfast'
+        });
+
+        alert.addButton({
+          text: 'OK',
+          handler: selectedLocation => {
+            resolve(this.settings.setValue('location', selectedLocation).then(() => this.getJsonFromAsset(selectedLocation)));
+          }
+        });
+        this.splashScreen.hide();
+        alert.present();
+      }).then(returned => {
+        this.locationSelectorVisible = false;
+        return returned;
+      });
+      this.locationSelectorVisible = true;
+      return this.locationSelectorPromise;
+    }
   }
 
   getJsonFromAsset(resourceName: string) : Promise<any>{
@@ -200,34 +242,7 @@ export class PrayerTimes{
         if(location){
           return this.getJsonFromAsset(location);
         } else {
-          return new Promise(resolve => {
-            let alert = this.alertCtrl.create({enableBackdropDismiss: false});
-            alert.setTitle('Choose location');
-
-            alert.addInput({
-              type: 'radio',
-              label: 'London',
-              value: 'london',
-              checked: previousLocation ? (previousLocation === 'london') : true
-            });
-
-            alert.addInput({
-              type: 'radio',
-              label: 'Belfast',
-              value: 'belfast',
-              checked: previousLocation === 'belfast'
-            });
-
-            alert.addButton({
-              text: 'OK',
-              handler: selectedLocation => {
-                resolve(this.settings.setValue('location', selectedLocation).then(() => this.getJsonFromAsset(selectedLocation)));
-              }
-            });
-            this.splashScreen.hide();
-            alert.present();
-          });
-
+          return this.selectLocation(previousLocation);
         }
       })
       .then(timeTableJson => this.setTimeTableJson(timeTableJson, {saveToDb}))
