@@ -117,7 +117,6 @@ export class PrayerTimesTable{
   getDayAfter(date: Date = new Date(), daysOffset: number = 1) : PrayerTimeDay{
     return this.getByDate(addDays(date, daysOffset));
   }
-
   getByDate(date: Date): PrayerTimeDay {
     return this.months[date.getMonth()][date.getDate()];
   }
@@ -136,41 +135,22 @@ export class PrayerTimesTable{
     let dayAfter = addDays(date, 1);
 
     let possibilities = [
-      dayBeforeTimes.isha,
-      dayTimes.fajr,
-      dayTimes.shuruq,
-      dayTimes.duhr,
-      dayTimes.preferredAsr,
-      dayTimes.maghrib,
-      dayTimes.isha,
-      dayAfterTimes.fajr
+      {prayer: dayBeforeTimes.isha, time: dayBeforeTimes.isha.toDate(dayBefore)},
+      {prayer: dayTimes.fajr, time: dayTimes.fajr.toDate(date)},
+      {prayer: dayTimes.shuruq, time: dayTimes.shuruq.toDate(date)},
+      {prayer: dayTimes.duhr, time: dayTimes.duhr.toDate(date)},
+      {prayer: dayTimes.preferredAsr, time: dayTimes.preferredAsr.toDate(date)},
+      {prayer: dayTimes.maghrib, time: dayTimes.maghrib.toDate(date)},
+      {prayer: dayTimes.isha, time: dayTimes.isha.toDate(date)},
+      {prayer: dayAfterTimes.fajr, time: dayAfterTimes.fajr.toDate(dayAfter)}
     ];
 
-    let minDistance;
-    let timeToCompare = date.getTime();
-    let resultIndex;
-
-    // TODO: Can optimize using binary search
-    possibilities.forEach((possiblePrayerTime, index) => {
-      // first index is day before, last index is day after
-      let d = date;
-      if (index === 0) {
-        d = dayBefore;
-      } else if (index === possibilities.length - 1) {
-        d = dayAfter;
-      }
-
-      let currentTime = possiblePrayerTime.toDate(d).getTime();
-      let distance = Math.abs(timeToCompare - currentTime);
-      if (resultIndex === undefined || (distance < minDistance && currentTime > timeToCompare)) {
-        resultIndex = index;
-        minDistance = distance
-      }
-    });
+    let future = possibilities.filter(v => v.time > date);
+    let next = future[0].prayer;
+    let prev = possibilities[possibilities.indexOf(future[0])-1].prayer;
 
 
-
-    return {next: possibilities[resultIndex], prev: possibilities[resultIndex-1]};
+    return {next, prev};
   }
 
   hasHanafiAsr(){
