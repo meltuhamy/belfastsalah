@@ -99,12 +99,6 @@ export class MonthPage {
     this.tabEnterTime = new Date();
     this.analytics.track('Tab - Enter - Month');
     this.initialise(this.tabEnterTime);
-    setTimeout(() => {
-      let elem = window.document.getElementsByClassName('month__row--today');
-      if(elem.length > 0){
-        elem[0].scrollIntoView(false);
-      }
-    }, 0)
   }
 
   ionViewWillLeave(){
