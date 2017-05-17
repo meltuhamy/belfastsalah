@@ -9,7 +9,7 @@
 <ion-content>
   <div *ngIf="nextPrayer && prevPrayer">
     <ion-card class="next-prayer-card" >
-      <ion-card-header text-center class="next-prayer-card__title">Next Prayer: {{nextPrayer.name}}</ion-card-header>
+      <ion-card-header text-center class="next-prayer-card__title">Next: {{nextPrayer.name}}</ion-card-header>
       <ion-card-content text-center>
         <p class="next-prayer-card__title">{{nextPrayer.name}} is {{nextPrayer.timeAgo()}} ({{nextPrayer.formattedDate()}}).</p>
         <p class="next-prayer-card__title">{{prevPrayer.name}} was {{prevPrayer.timeAgo()}} ({{prevPrayer.formattedDate()}}).</p>
