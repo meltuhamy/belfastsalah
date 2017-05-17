@@ -23,11 +23,13 @@ export class Analytics {
     this.registrationProperties = {token : MP_TOKEN, distinct_id: `lodash_${++this.idCounter}`};
 
     window.document.addEventListener('pause', () => {
+      this.track('Pause Event');
       this.persist(QUEUE, this.queueBuffer);
       this.queueBuffer.length = 0;
     }, false);
 
     window.document.addEventListener('resume', () => {
+      this.track('Resume Event');
       let queue = this.restore(QUEUE);
       if(!queue){
         queue = [];
