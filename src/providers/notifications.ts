@@ -112,11 +112,12 @@ export class Notifications {
       return notification;
     }
 
-    this.localNotifications.on('schedule', () => this.analytics.track('Notification: schedule'));
-    this.localNotifications.on('trigger', (e, n, a) => this.analytics.track('Notification: trigger', notificationProperties(n, a)));
-    this.localNotifications.on('click', (e, n, a) => this.analytics.track('Notification: click', notificationProperties(n, a)));
+    this.localNotifications.on('trigger', (n, a) => this.analytics.track('Notification: trigger', notificationProperties(n, a)));
+    this.localNotifications.on('click', (n, a) => {
+      this.analytics.track('Notification: click', notificationProperties(n, a));
+    });
     this.localNotifications.on('update', () => this.analytics.track('Notification: update'));
-    this.localNotifications.on('clear', (e, n, a) => this.analytics.track('Notification: clearall', notificationProperties(n, a)));
+    this.localNotifications.on('clear', (n, a) => this.analytics.track('Notification: clearall', notificationProperties(n, a)));
     this.localNotifications.on('clearall', (e, appState) => this.analytics.track('Notification: clearall', {appState}));
     this.localNotifications.on('cancel', () => this.analytics.track('Notification: cancel'));
     this.localNotifications.on('cancelall', () => this.analytics.track('Notification: cancelall'));

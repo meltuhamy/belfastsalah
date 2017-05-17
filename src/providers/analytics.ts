@@ -29,13 +29,13 @@ export class Analytics {
     }, false);
 
     window.document.addEventListener('resume', () => {
-      this.track('Resume Event');
       let queue = this.restore(QUEUE);
       if(!queue){
         queue = [];
         this.persist(QUEUE, queue);
       }
       this.queueBuffer = queue;
+      this.track('Resume Event');
       this.schedulePush();
     }, false);
   }
@@ -46,10 +46,20 @@ export class Analytics {
 
 
   private restore(key) : any{
+    let storedItems = [];
     try {
-      return JSON.parse(window.localStorage.getItem(key));
+      storedItems = JSON.parse(window.localStorage.getItem(key));
     } catch (e){
     }
+
+    // merge storedItems with current items
+    let restored = this.queueBuffer;
+    storedItems.forEach(item => {
+      if(!restored.find(queueItem => queueItem.id === item.id)){
+        restored.push(item);
+      }
+    });
+    return restored;
   }
 
   private getQueue(batchSize = 0, endpoint?){
@@ -63,6 +73,7 @@ export class Analytics {
 
   private pushToQueue(val){
     val.id = this.queueBuffer.push(val) + (new Date().getTime());
+    console.info('Tracking', val);
     return val.id;
   }
 
@@ -111,6 +122,7 @@ export class Analytics {
     let headers = new Headers();
     headers.append('Content-Type', 'application/X-www-form-urlencoded');
 
+    console.info('Sending events: ', subQueue);
     this.http.post(`${TRACKING_ENDPOINT + endpoint}/`, body.toString(), {headers}).toPromise().then(() => {
       this.removeQueueItems(subQueue);
       this.schedulePush();
