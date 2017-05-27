@@ -3,6 +3,7 @@ import pullAllBy from 'lodash.pullallby';
 import {Http} from "@angular/http";
 import {Headers} from '@angular/http';
 import 'rxjs/add/operator/toPromise';
+import URLSearchParams from 'url-search-params';
 
 const QUEUE = 'mpq';
 const TRACKING_ENDPOINT = 'https://api.mixpanel.com/';
