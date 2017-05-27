@@ -55,7 +55,7 @@ export class Analytics {
 
     // merge storedItems with current items
     let restored = this.queueBuffer;
-    storedItems.forEach(item => {
+    (storedItems || []).forEach(item => {
       if(!restored.find(queueItem => queueItem.id === item.id)){
         restored.push(item);
       }
