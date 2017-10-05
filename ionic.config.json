@@ -1,6 +1,8 @@
 {
   "name": "belfastsalah2",
-  "app_id": "27a31d02",
-  "v2": true,
-  "typescript": true
+  "app_id": "6e868618",
+  "integrations": {
+    "cordova": {}
+  },
+  "type": "ionic-angular"
 }

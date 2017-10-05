@@ -1,0 +1,11 @@
+{
+  "android": {
+    "release": {
+      "keystore": "./com.meltuhamy.londonsalah.keystore",
+      "storePassword": "",
+      "alias": "",
+      "password" : "",
+      "keystoreType": ""
+    }
+  }
+}

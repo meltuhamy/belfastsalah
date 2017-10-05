@@ -54,7 +54,7 @@ export class Notifications {
               id: notificationId++,
               title: `${prayer.name} is at ${prayer.formattedDate()}`,
               at: notifyDate,
-              data: {prayerName}
+              data: {prayerName},
             };
 
             if (notifyMinutes > 0) {

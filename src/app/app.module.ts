@@ -29,17 +29,6 @@ import {Analytics} from '../providers/analytics';
 import { Device } from '@ionic-native/device';
 
 import { TitleCasePipe } from './pipes';
-import * as Raven from 'raven-js';
-
-Raven
-  .config('https://268df6a81baf4219a9a7af2b4eb7985c@sentry.io/167151')
-  .install();
-
-export class RavenErrorHandler implements ErrorHandler {
-  handleError(err:any) : void {
-    Raven.captureException(err.originalError);
-  }
-}
 
 const cloudSettings: CloudSettings = {
   'core': {
@@ -82,7 +71,6 @@ export function provideSettings(storage: Storage) {
     MinuteSelectorModal
   ],
   providers: [
-    {provide: ErrorHandler, useClass: RavenErrorHandler},
     { provide: Settings, useFactory: provideSettings, deps: [ Storage ] },
     PrayerTimes,
     LocalNotifications,
