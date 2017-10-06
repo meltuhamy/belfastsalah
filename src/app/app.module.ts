@@ -13,7 +13,6 @@ import { PrayerGridComponent } from './prayer-grid.component';
 import { Settings } from '../providers/settings';
 import { defaultSettings } from './defaultSettings';
 
-import { CloudSettings, CloudModule } from '@ionic/cloud-angular';
 
 import { BrowserModule } from '@angular/platform-browser';
 
@@ -21,6 +20,7 @@ import { HttpModule } from '@angular/http';
 
 import {LocalNotifications} from '@ionic-native/local-notifications';
 import {SplashScreen} from '@ionic-native/splash-screen';
+import {StatusBar} from '@ionic-native/status-bar';
 
 import {Notifications} from '../providers/notifications';
 
@@ -30,11 +30,12 @@ import { Device } from '@ionic-native/device';
 
 import { TitleCasePipe } from './pipes';
 
-const cloudSettings: CloudSettings = {
-  'core': {
-    'app_id': '27a31d02'
-  }
-};
+import { Pro } from '@ionic/pro';
+import {version as packageJsonVersion} from '../../package.json';
+
+const IonicPro = Pro.init('6e868618', {
+  appVersion: packageJsonVersion
+});
 
 export function provideSettings(storage: Storage) {
   return new Settings(storage, defaultSettings);
@@ -57,8 +58,7 @@ export function provideSettings(storage: Storage) {
     BrowserModule,
     HttpModule,
     IonicModule.forRoot(PrayerTimesApp),
-    IonicStorageModule.forRoot(),
-    CloudModule.forRoot(cloudSettings)
+    IonicStorageModule.forRoot()
   ],
   bootstrap: [IonicApp],
   entryComponents: [
@@ -77,6 +77,7 @@ export function provideSettings(storage: Storage) {
     Device,
     Notifications,
     SplashScreen,
+    StatusBar,
     Analytics
   ]
 })

@@ -1,10 +1,9 @@
 import { Component } from '@angular/core';
 import {AlertController, Platform} from 'ionic-angular';
-import { StatusBar } from 'ionic-native';
+import { StatusBar } from '@ionic-native/status-bar';
 
 import { TabsPage } from '../pages/tabs/tabs';
 import { Settings } from '../providers/settings';
-import { Deploy } from '@ionic/cloud-angular';
 import {Notifications} from "../providers/notifications";
 import {PrayerTimes} from "../providers/prayertimes";
 import {SplashScreen} from "@ionic-native/splash-screen";
@@ -26,66 +25,23 @@ export class PrayerTimesApp {
 
   constructor(public platform: Platform,
               public settingsProvider: Settings,
-              public deploy: Deploy,
               public notifications : Notifications,
               public prayerTimes : PrayerTimes,
               public alertCtrl : AlertController,
               public splashScreen: SplashScreen,
               public analytics : Analytics,
-              public device : Device) {
+              public device : Device,
+              private statusBar: StatusBar
+            ) {
     settingsProvider.load()
       .then(() => platform.ready())
       .then(() => {
-        StatusBar.styleDefault();
+        statusBar.styleDefault();
         this.initialisePrayerTimes()
           .then(() => this.initialiseAnalytics())
-          .then(() => this.checkForLatestAppVersion())
           .then(() => this.scheduleNotifications());
         this.settings = settingsProvider.allSettings;
       });
-  }
-
-  checkForLatestAppVersion(){
-    if(this.platform.is('cordova')){
-      this.deploy.check().then((snapshotAvailable: boolean) => {
-        if (snapshotAvailable) {
-          this.deploy.getMetadata().then((metadata) => {
-            this.alertCtrl.create({
-              title: 'Update available',
-              message: `A new version of Prayer Times is available. ${(metadata && metadata.releaseNotes) || ''}`,
-              buttons: [
-                {
-                  text: 'Cancel',
-                  role: 'cancel',
-                  handler: () => {
-
-                  }
-                },
-                {
-                  text: 'Update',
-                  handler: () => {
-                    setTimeout(() => {
-                      this.alertCtrl.create({
-                        title: 'Downloading update',
-                        message: 'The app will restart automatically once this is done',
-                        enableBackdropDismiss: false
-                      }).present();
-                    }, 100);
-
-                    this.deploy.download().then(() => {
-                      return this.deploy.extract().then(() => {
-                        this.splashScreen.show();
-                        return this.deploy.load();
-                      });
-                    });
-                  }
-                }
-              ]
-            }).present();
-          });
-        }
-      });
-    }
   }
 
   scheduleNotifications(){
