@@ -37,6 +37,14 @@ const IonicPro = Pro.init('6e868618', {
   appVersion: packageJsonVersion
 });
 
+
+export class MyErrorHandler implements ErrorHandler {
+  handleError(err: any): void {
+    IonicPro.monitoring.handleNewError(err);
+    console.error(err);
+  }
+}
+
 export function provideSettings(storage: Storage) {
   return new Settings(storage, defaultSettings);
 }
@@ -78,7 +86,8 @@ export function provideSettings(storage: Storage) {
     Notifications,
     SplashScreen,
     StatusBar,
-    Analytics
+    Analytics,
+    [{ provide: ErrorHandler, useClass: MyErrorHandler }] 
   ]
 })
 export class AppModule {}
