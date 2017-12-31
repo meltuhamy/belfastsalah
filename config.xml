@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.meltuhamy.londonsalah" version="2.2.2" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="com.meltuhamy.londonsalah" version="2.2.3" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>Prayer Times</name>
     <description>Prayer times with notifications</description>
     <author email="tuhamy@gmail.com" href="http://meltuhamy.com/">Mohamed Eltuhamy</author>
@@ -80,7 +80,6 @@
     <allow-navigation href="http://192.168.0.6:8100" />
     <icon src="resources/android/icon/drawable-xhdpi-icon.png" />
     <preference name="SplashShowOnlyFirstTime" value="false" />
-    <engine name="android" spec="^6.2.3" />
     <plugin name="cordova-plugin-console" spec="1.0.5" />
     <plugin name="cordova-plugin-device" spec="~1.1.4" />
     <plugin name="cordova-plugin-ionic-webview" spec="^1.1.9" />
@@ -97,6 +96,7 @@
     <plugin name="cordova-plugin-statusbar" spec="^2.2.3" />
     <allow-navigation href="http://10.101.2.194:8100" />
     <plugin name="cordova-sqlite-storage" spec="~2.0.0" />
-    <engine name="ios" spec="~4.4.0" />
     <plugin name="de.appplant.cordova.plugin.local-notification" spec="https://github.com/katzer/cordova-plugin-local-notifications.git#ios10" />
+    <engine name="android" spec="6.2.3" />
+    <engine name="ios" spec="4.4.0" />
 </widget>
