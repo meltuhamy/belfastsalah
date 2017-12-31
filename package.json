@@ -85,7 +85,7 @@
       "cordova-plugin-ionic-webview": {},
       "cordova-plugin-ionic": {
         "APP_ID": "6e868618",
-        "CHANNEL_NAME": "Production",
+        "CHANNEL_NAME": "Master",
         "UPDATE_METHOD": "background",
         "UPDATE_API": "https://api.ionicjs.com",
         "MAX_STORE": "2"
