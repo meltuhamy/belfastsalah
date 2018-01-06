@@ -3,7 +3,7 @@
     <name>Prayer Times</name>
     <description>Prayer times with notifications</description>
     <author email="tuhamy@gmail.com" href="http://meltuhamy.com/">Mohamed Eltuhamy</author>
-    <content src="index.html" />
+    <content original-src="index.html" src="http://192.168.0.6:8100" />
     <access origin="*" />
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
@@ -90,8 +90,6 @@
     <allow-navigation href="http://10.101.2.194:8100" />
     <plugin name="cordova-sqlite-storage" spec="~2.0.0" />
     <plugin name="de.appplant.cordova.plugin.local-notification" spec="https://github.com/katzer/cordova-plugin-local-notifications.git#ios10" />
-    <engine name="android" spec="6.2.3" />
-    <engine name="ios" spec="4.4.0" />
     <plugin name="cordova-plugin-ionic" spec="^1.1.9">
         <variable name="APP_ID" value="6e868618" />
         <variable name="CHANNEL_NAME" value="Master" />
@@ -99,4 +97,6 @@
         <variable name="UPDATE_API" value="https://api.ionicjs.com" />
         <variable name="MAX_STORE" value="2" />
     </plugin>
+    <engine name="android" spec="6.2.3" />
+    <engine name="ios" spec="4.4.0" />
 </widget>

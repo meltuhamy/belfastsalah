@@ -37,6 +37,8 @@ export class PrayerTimesApp {
       .then(() => platform.ready())
       .then(() => {
         statusBar.styleDefault();
+        statusBar.overlaysWebView(false);
+
         this.initialisePrayerTimes()
           .then(() => this.initialiseAnalytics())
           .then(() => this.scheduleNotifications());
