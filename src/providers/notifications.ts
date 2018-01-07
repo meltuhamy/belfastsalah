@@ -67,7 +67,7 @@ export class Notifications {
         });
       }
 
-      // add one more notification to remind the user to open the app!
+
       scheduledNotifications.push({
         id: notificationId++,
         title: `Still need prayer reminders?`,
@@ -90,39 +90,6 @@ export class Notifications {
 
   }
 
-  startTracking(){
-    // Available events: schedule, trigger, click, update, clear, clearall, cancel, cancelall
-
-
-    function notificationProperties(notification, state){
-      let notificationData;
-      try {
-        notificationData = JSON.parse(notification.data);
-      } catch (e){
-        notificationData = {not_json: true};
-      }
-
-      notification.appState = state;
-
-      for(let k in notificationData){
-        if(notificationData.hasOwnProperty(k)){
-          notification['data_'+k] = notificationData[k];
-        }
-      }
-      return notification;
-    }
-
-    this.localNotifications.on('trigger', (n, a) => this.analytics.track('Notification: trigger', notificationProperties(n, a)));
-    this.localNotifications.on('click', (n, a) => {
-      this.analytics.track('Notification: click', notificationProperties(n, a));
-    });
-    this.localNotifications.on('update', () => this.analytics.track('Notification: update'));
-    this.localNotifications.on('clear', (n, a) => this.analytics.track('Notification: clearall', notificationProperties(n, a)));
-    this.localNotifications.on('clearall', (e, appState) => this.analytics.track('Notification: clearall', {appState}));
-    this.localNotifications.on('cancel', () => this.analytics.track('Notification: cancel'));
-    this.localNotifications.on('cancelall', () => this.analytics.track('Notification: cancelall'));
-
-  }
 
   cancelAll() {
     return this.localNotifications.cancelAll().then(() => new Promise(resolve => setTimeout(() => resolve(), 500)));

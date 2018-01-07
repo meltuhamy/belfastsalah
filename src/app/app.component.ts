@@ -106,6 +106,5 @@ export class PrayerTimesApp {
     }
 
     this.analytics.track('Ready');
-    this.notifications.startTracking();
   }
 }
