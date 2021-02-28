@@ -1,0 +1,54 @@
+.MonthPrayerTable {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+  /* position: relative; */
+}
+
+.MonthPrayerTable thead tr:nth-child(1) th {
+  background: white;
+  position: sticky;
+  top: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dark .MonthPrayerTable thead tr:nth-child(1) th {
+  background: var(--ion-item-background);
+}
+
+.MonthPrayerTable__col {
+  text-align: center;
+  padding: 4px 0 4px 0;
+  font-size: 14px;
+}
+
+.MonthPrayerTable__col--day {
+  width: 20px;
+}
+
+.MonthPrayerTable__row:nth-child(even) {
+  background: var(--ion-color-light);
+}
+
+.MonthPrayerTable__row--selected .MonthPrayerTable__col {
+  background: var(--ion-color-primary) !important;
+  color: var(--ion-color-primary-contrast);
+}
+
+.MonthPrayerTable__row--selected .MonthPrayerTable__col:first-child {
+  /* top-left | top-right | bottom-right | bottom-left */
+  border-radius: 8px 0 0 8px;
+}
+
+.MonthPrayerTable__row--selected .MonthPrayerTable__col:last-child {
+  /* top-left | top-right | bottom-right | bottom-left */
+  border-radius: 0 8px 8px 0;
+}
+
+@media (max-width: 375px) {
+  .MonthPrayerTable__col {
+    font-size: 12px;
+  }
+}

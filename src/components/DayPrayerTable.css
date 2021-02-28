@@ -1,0 +1,14 @@
+.DayPrayerTable {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
+  max-width: 180px;
+}
+
+.DayPrayerTable__col--prayer {
+  width: 50%;
+}
+
+.DayPrayerTable__col--time {
+  text-align: center;
+}

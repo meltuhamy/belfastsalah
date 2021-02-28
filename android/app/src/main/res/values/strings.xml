@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Prayer Times</string>
+    <string name="title_activity_main">Prayer Times</string>
+    <string name="package_name">com.meltuhamy.londonsalah</string>
+    <string name="custom_url_scheme">com.meltuhamy.londonsalah</string>
+</resources>

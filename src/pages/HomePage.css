@@ -1,0 +1,21 @@
+.HomePage__month-card {
+  overflow: visible;
+}
+
+.HomePage__month-card {
+  transition: margin 0.2s ease-in-out;
+}
+
+.HomePage__month-card__content {
+  transition: padding 0.2s ease-in-out;
+}
+
+.HomePage .HomePage__month-card {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.HomePage .HomePage__month-card__content {
+  padding-left: 4px;
+  padding-right: 4px;
+}

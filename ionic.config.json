@@ -1,8 +1,7 @@
 {
-  "name": "belfastsalah2",
-  "app_id": "6e868618",
+  "name": "Prayer Times",
   "integrations": {
-    "cordova": {}
+    "capacitor": {}
   },
-  "type": "ionic-angular"
+  "type": "react"
 }
