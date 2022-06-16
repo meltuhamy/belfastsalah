@@ -1,6 +1,6 @@
 {
   "name": "prayertimes2021",
-  "version": "3.0.5",
+  "version": "3.0.6",
   "private": true,
   "dependencies": {
     "@capacitor/android": "^3.5.1",
