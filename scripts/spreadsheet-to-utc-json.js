@@ -18,8 +18,8 @@ async function getData(location, year) {
       "asr1",
       "asr2",
       "maghrib",
-      "isha"
-    ]
+      "isha",
+    ],
   }).fromFile(filePath);
 }
 
@@ -37,7 +37,7 @@ function isLeap(year) {
   return (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
 }
 function jsonArrayToOutputArray(jsonArray, year) {
-  const output = jsonArray.map(originalData => [
+  const output = jsonArray.map((originalData) => [
     originalData.month,
     originalData.day,
     toUTC(originalData.fajr, originalData.date, year),
@@ -46,7 +46,7 @@ function jsonArrayToOutputArray(jsonArray, year) {
     toUTC(originalData.asr1, originalData.date, year),
     toUTC(originalData.asr2, originalData.date, year),
     toUTC(originalData.maghrib, originalData.date, year),
-    toUTC(originalData.isha, originalData.date, year)
+    toUTC(originalData.isha, originalData.date, year),
   ]);
 
   if (!isLeap(year)) {
@@ -80,9 +80,8 @@ function writeJSONFile(data, location, year) {
   fs.writeFileSync(filePath, dataAsString);
 }
 
-
-processCSV("london", 2020);
-processCSV("london", 2021);
 processCSV("london", 2022);
 processCSV("london", 2023);
 processCSV("london", 2024);
+processCSV("london", 2025);
+processCSV("london", 2026);
