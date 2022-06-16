@@ -14,7 +14,7 @@ import {
   useIonViewDidEnter,
   useIonViewDidLeave,
 } from "@ionic/react";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { usePrayerDay } from "../lib/usePrayerDay";
 import { getMonthNames } from "../lib/dateUtils";
 import MonthPrayerTable from "../components/MonthPrayerTable";
@@ -25,12 +25,13 @@ import MonthPicker from "../components/MonthPicker";
 import NextPrayerCard from "../components/NextPrayerCard";
 import TodayTimesCard from "../components/TodayTimesCard";
 import CenteredMaxWidthContainer from "../components/CenteredMaxWidthContainer";
-import { Plugins } from "@capacitor/core";
-const { SplashScreen } = Plugins;
+import { App } from "@capacitor/app";
+import { SplashScreen } from "@capacitor/splash-screen";
+
 let shouldExitApp = false;
-Plugins.App.addListener("backButton", () => {
+App.addListener("backButton", () => {
   if (shouldExitApp) {
-    Plugins.App.exitApp();
+    App.exitApp();
   }
 });
 

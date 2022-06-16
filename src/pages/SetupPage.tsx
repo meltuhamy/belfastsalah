@@ -19,8 +19,7 @@ import { getDefaultSettings, AppSettings } from "../lib/settings";
 import { PrayerLocation } from "../lib/PrayerTimes";
 import SettingsList from "../components/SettingsList";
 import CenteredMaxWidthContainer from "../components/CenteredMaxWidthContainer";
-import { Plugins } from "@capacitor/core";
-const { SplashScreen } = Plugins;
+import { SplashScreen } from "@capacitor/splash-screen";
 
 const SetupPage: React.FC = () => {
   useEffect(() => {

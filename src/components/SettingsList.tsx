@@ -14,8 +14,7 @@ import { alarm, timer, map, sunny, bulb, moon } from "ionicons/icons";
 import { PrayerLocation } from "../lib/PrayerTimeData";
 import supportsHanafiAsr, { AsrMethod } from "../lib/PrayerTimes";
 import { AppSettings } from "../lib/settings";
-import { Plugins } from "@capacitor/core";
-const { LocalNotifications } = Plugins;
+import { LocalNotifications } from "@capacitor/local-notifications";
 
 type Props = {
   settings: AppSettings;
@@ -49,8 +48,8 @@ const SettingsList: React.FC<Props> = ({
           onIonChange={() => {
             const newValue = !settings.notify;
             if (newValue) {
-              LocalNotifications.requestPermission().then((response) => {
-                if (response.granted) {
+              LocalNotifications.requestPermissions().then((response) => {
+                if (response.display === "granted") {
                   onNotifyChange(newValue);
                 }
               });

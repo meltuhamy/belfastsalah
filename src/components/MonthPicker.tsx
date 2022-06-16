@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { IonPicker, IonIcon } from "@ionic/react";
+import React from "react";
+import { IonIcon, useIonPicker } from "@ionic/react";
 import { calendar, refresh } from "ionicons/icons";
 import { getMonthNames } from "../lib/dateUtils";
 
@@ -9,7 +9,7 @@ type Props = {
   now: Date;
 };
 const MonthPicker: React.FC<Props> = ({ value, onChange, now }) => {
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [present] = useIonPicker();
 
   const options = getMonthNames().map((text, i) => ({
     text,
@@ -24,7 +24,22 @@ const MonthPicker: React.FC<Props> = ({ value, onChange, now }) => {
       <IonIcon
         icon={calendar}
         onClick={() => {
-          setPickerOpen(true);
+          present({
+            buttons: [
+              {
+                text: "Save",
+                handler: (v) => {
+                  onChange(v.Month.value);
+                },
+              },
+            ],
+            columns: [
+              {
+                name: "Month",
+                options,
+              },
+            ],
+          });
         }}
       />
       {nowMonth !== value ? (
@@ -35,26 +50,6 @@ const MonthPicker: React.FC<Props> = ({ value, onChange, now }) => {
           }}
         />
       ) : null}
-      <IonPicker
-        columns={[
-          {
-            name: "Month",
-            options,
-          },
-        ]}
-        buttons={[
-          {
-            text: "Save",
-            handler: (v) => {
-              onChange(v.Month.value);
-            },
-          },
-        ]}
-        isOpen={pickerOpen}
-        onDidDismiss={() => {
-          setPickerOpen(false);
-        }}
-      ></IonPicker>
     </>
   );
 };

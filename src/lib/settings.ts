@@ -1,9 +1,8 @@
+import { Storage } from "@capacitor/storage";
 import { AsrMethod, PrayerLocation } from "./PrayerTimes";
 
-import { Plugins } from "@capacitor/core";
 import debounce from "./debounce";
 
-const { Storage } = Plugins;
 const STORAGE_KEY = "settings";
 const isSystemDarkMode =
   window.matchMedia &&

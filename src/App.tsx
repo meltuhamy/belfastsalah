@@ -27,7 +27,7 @@ import "./theme/variables.css";
 import { useSettings } from "./lib/useSettings";
 import { AppContext } from "./State";
 import { usePrayerDay } from "./lib/usePrayerDay";
-import { LocalNotification, Plugins } from "@capacitor/core";
+import { LocalNotificationSchema } from "@capacitor/local-notifications";
 import { useInterval } from "./lib/useInterval";
 import {
   BelfastPrayerTimes,
@@ -45,6 +45,9 @@ import { addSaveListener, removeSaveListener } from "./lib/settings";
 import FullPageSpinner from "./components/FullPageSpinner";
 import SetupPage from "./pages/SetupPage";
 
+import { setupIonicReact } from "@ionic/react";
+setupIonicReact();
+
 const MAX_NOTIFICATIONS = 64;
 
 const App: React.FC = () => {
@@ -52,10 +55,8 @@ const App: React.FC = () => {
   const { dispatch } = useContext(AppContext);
   const [{ next }] = usePrayerDay();
   const [showSettingsSavedToast, setShowSettingsSavedToast] = useState(false);
-  const [
-    showNotifyToast,
-    setShowNotifyToast,
-  ] = useState<Array<LocalNotification> | null>([]);
+  const [showNotifyToast, setShowNotifyToast] =
+    useState<Array<LocalNotificationSchema> | null>([]);
 
   // fire the ticker
   useInterval(() => {
@@ -117,7 +118,7 @@ const App: React.FC = () => {
       if (enabled) {
         const now = new Date();
         let currentPrayerTime = now;
-        const notificationsToSchedule: Array<LocalNotification> = [];
+        const notificationsToSchedule: Array<LocalNotificationSchema> = [];
         for (let i = 0; i < MAX_NOTIFICATIONS - 1; i++) {
           const currentPrayer = await prayerTimes.getNext(currentPrayerTime);
           notificationsToSchedule.push({
@@ -163,7 +164,9 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
-    function handleNotifyUpdateEvent(notifications: Array<LocalNotification>) {
+    function handleNotifyUpdateEvent(
+      notifications: Array<LocalNotificationSchema>
+    ) {
       setShowNotifyToast(notifications);
     }
     addUpdateNotifyListener(handleNotifyUpdateEvent);

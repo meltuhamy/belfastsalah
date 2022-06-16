@@ -1,14 +1,15 @@
-import { LocalNotification } from "@capacitor/core";
-import { Plugins } from "@capacitor/core";
+import {
+  LocalNotifications,
+  LocalNotificationSchema,
+} from "@capacitor/local-notifications";
 import debounce from "./debounce";
 
-const { LocalNotifications } = Plugins;
 const updateCallbacks: Array<
-  (notifications: Array<LocalNotification>) => void
+  (notifications: Array<LocalNotificationSchema>) => void
 > = [];
 
 async function clearAndSetNotificationsImpl(
-  notifications: Array<LocalNotification>
+  notifications: Array<LocalNotificationSchema>
 ) {
   const pendingNotifications = await LocalNotifications.getPending();
   console.log("checking notifications", pendingNotifications);
@@ -23,7 +24,7 @@ async function clearAndSetNotificationsImpl(
   if (notifications.length > 0) {
     console.log("caslling schecule", notifications);
     await LocalNotifications.schedule({
-      notifications: notifications,
+      notifications: notifications.map((n) => ({ ...n, allowWhileIdle: true })),
     });
   }
 
@@ -38,19 +39,19 @@ const clearAndSetNotificationsDebounced = debounce(
 );
 
 export function clearAndSetNotifications(
-  notifications: Array<LocalNotification>
+  notifications: Array<LocalNotificationSchema>
 ) {
   return clearAndSetNotificationsDebounced(notifications);
 }
 
 export function addUpdateNotifyListener(
-  callback: (notifications: Array<LocalNotification>) => void
+  callback: (notifications: Array<LocalNotificationSchema>) => void
 ) {
   updateCallbacks.push(callback);
 }
 
 export function removeUpdateNotifyListener(
-  callback: (notifications: Array<LocalNotification>) => void
+  callback: (notifications: Array<LocalNotificationSchema>) => void
 ) {
   updateCallbacks.splice(updateCallbacks.indexOf(callback), 1);
 }
