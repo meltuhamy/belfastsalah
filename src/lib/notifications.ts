@@ -8,27 +8,41 @@ const updateCallbacks: Array<
   (notifications: Array<LocalNotificationSchema>) => void
 > = [];
 
+// Android 13 (API 33) made POST_NOTIFICATIONS a runtime permission, so from
+// targetSdk 33 upwards scheduling silently does nothing until the user has
+// granted it. iOS has always needed the same up-front grant.
+async function ensureNotificationPermission(): Promise<boolean> {
+  const current = await LocalNotifications.checkPermissions();
+  if (current.display === "granted") {
+    return true;
+  }
+  if (current.display === "denied") {
+    return false;
+  }
+
+  const requested = await LocalNotifications.requestPermissions();
+  return requested.display === "granted";
+}
+
 async function clearAndSetNotificationsImpl(
   notifications: Array<LocalNotificationSchema>
 ) {
   const pendingNotifications = await LocalNotifications.getPending();
-  console.log("checking notifications", pendingNotifications);
 
   if (pendingNotifications.notifications.length > 0) {
-    console.log("calling cancell", pendingNotifications);
-
     await LocalNotifications.cancel(pendingNotifications);
-    console.log("Cancelled");
   }
 
   if (notifications.length > 0) {
-    console.log("caslling schecule", notifications);
+    if (!(await ensureNotificationPermission())) {
+      updateCallbacks.forEach((cb) => cb([]));
+      return;
+    }
+
     await LocalNotifications.schedule({
       notifications: notifications.map((n) => ({ ...n, allowWhileIdle: true })),
     });
   }
-
-  console.log("claling callbacks", updateCallbacks);
 
   updateCallbacks.forEach((cb) => cb(notifications));
 }
