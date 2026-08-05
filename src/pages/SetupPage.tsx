@@ -16,7 +16,10 @@ import {
 } from "@ionic/react";
 import { useSettings } from "../lib/useSettings";
 import { getDefaultSettings, AppSettings } from "../lib/settings";
-import { PrayerLocation } from "../lib/PrayerTimes";
+import supportsHanafiAsr, {
+  AsrMethod,
+  PrayerLocation,
+} from "../lib/PrayerTimes";
 import SettingsList from "../components/SettingsList";
 import CenteredMaxWidthContainer from "../components/CenteredMaxWidthContainer";
 import { SplashScreen } from "@capacitor/splash-screen";
@@ -52,7 +55,20 @@ const SetupPage: React.FC = () => {
         <IonRadioGroup
           allowEmptySelection={false}
           value={inputSettings.location}
-          onChange={(e) => setSetting({ location: e.currentTarget.value })}
+          onIonChange={(e) => {
+            // Ionic components emit ionChange, not React's change event. Using
+            // onChange here meant the selection was never stored, so the
+            // controlled value snapped straight back to London.
+            const newLocation = e.detail.value as PrayerLocation;
+            setSetting({
+              location: newLocation,
+              // Belfast's timetable has no second asr column, so hanafi asr
+              // has to fall back or the data parser throws.
+              asrMethod: supportsHanafiAsr(newLocation)
+                ? inputSettings.asrMethod
+                : AsrMethod.Shafi,
+            });
+          }}
         >
           <IonListHeader>
             <IonLabel>Location</IonLabel>
