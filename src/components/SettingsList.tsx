@@ -7,13 +7,12 @@ import {
   IonIcon,
   IonToggle,
   IonRange,
-  IonSelect,
-  IonSelectOption,
 } from "@ionic/react";
 import { alarm, timer, map, sunny, bulb, moon } from "ionicons/icons";
 import { PrayerLocation } from "../lib/PrayerTimeData";
 import supportsHanafiAsr, { AsrMethod } from "../lib/PrayerTimes";
 import { AppSettings } from "../lib/settings";
+import LocationSelector from "./LocationSelector";
 import { LocalNotifications } from "@capacitor/local-notifications";
 
 type Props = {
@@ -82,20 +81,11 @@ const SettingsList: React.FC<Props> = ({
       </IonListHeader>
       <IonItem>
         <IonIcon icon={map} slot="start" />
-        <IonSelect
-          label="Location"
-          value={settings.location}
-          onIonChange={(event) => {
-            const newValue = event.detail.value as PrayerLocation;
-            onLocationChange(
-              newValue,
-              supportsHanafiAsr(newValue) ? settings.asrMethod : AsrMethod.Shafi
-            );
-          }}
-        >
-          <IonSelectOption value="london">London</IonSelectOption>
-          <IonSelectOption value="belfast">Belfast</IonSelectOption>
-        </IonSelect>
+        <LocationSelector
+          location={settings.location}
+          asrMethod={settings.asrMethod}
+          onChange={onLocationChange}
+        />
       </IonItem>
       {settings.location !== null && supportsHanafiAsr(settings.location) && (
         <IonItem>

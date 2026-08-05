@@ -6,28 +6,26 @@ import {
   IonTitle,
   IonContent,
   IonList,
-  IonRadioGroup,
   IonListHeader,
   IonLabel,
   IonItem,
-  IonRadio,
+  IonIcon,
   IonText,
   IonButton,
 } from "@ionic/react";
+import { map } from "ionicons/icons";
 import { useSettings } from "../lib/useSettings";
 import { getDefaultSettings, AppSettings } from "../lib/settings";
-import supportsHanafiAsr, {
-  AsrMethod,
-  PrayerLocation,
-} from "../lib/PrayerTimes";
+import { PrayerLocation } from "../lib/PrayerTimes";
 import SettingsList from "../components/SettingsList";
+import LocationSelector from "../components/LocationSelector";
 import CenteredMaxWidthContainer from "../components/CenteredMaxWidthContainer";
 import { SplashScreen } from "@capacitor/splash-screen";
 
 const SetupPage: React.FC = () => {
   useEffect(() => {
     SplashScreen.hide();
-  });
+  }, []);
   const defaultSettings = getDefaultSettings();
 
   const [inputSettings, setInputSettings] = useState<AppSettings>({
@@ -38,8 +36,11 @@ const SetupPage: React.FC = () => {
   const [settingsListVisible, setSettingsListVisible] = useState(false);
   const [, setAppSettings] = useSettings();
 
+  // Functional update: this screen re-renders every second off the app's
+  // ticker, so reading inputSettings from the render closure left a window
+  // where an update could be written on top of a stale snapshot.
   const setSetting = (o: Partial<AppSettings>) =>
-    setInputSettings({ ...inputSettings, ...o });
+    setInputSettings((previous) => ({ ...previous, ...o }));
 
   const onNext = () => {
     setSettingsListVisible(true);
@@ -52,44 +53,23 @@ const SetupPage: React.FC = () => {
   const firstPage = (
     <>
       <IonList>
-        <IonRadioGroup
-          allowEmptySelection={false}
-          value={inputSettings.location}
-          onIonChange={(e) => {
-            // Ionic components emit ionChange, not React's change event. Using
-            // onChange here meant the selection was never stored, so the
-            // controlled value snapped straight back to London.
-            const newLocation = e.detail.value as PrayerLocation;
-            setSetting({
-              location: newLocation,
-              // Belfast's timetable has no second asr column, so hanafi asr
-              // has to fall back or the data parser throws.
-              asrMethod: supportsHanafiAsr(newLocation)
-                ? inputSettings.asrMethod
-                : AsrMethod.Shafi,
-            });
-          }}
-        >
-          <IonListHeader>
-            <IonLabel>Location</IonLabel>
-          </IonListHeader>
-          {/*
-            Ionic 8 removed the legacy syntax where an ion-radio sat next to a
-            sibling ion-label inside an ion-item. It no longer associates the
-            two, so only the radio dot itself was clickable and tapping the row
-            did nothing. The label has to live inside the control.
-          */}
-          <IonItem>
-            <IonRadio value="london" labelPlacement="end" justify="start">
-              London
-            </IonRadio>
-          </IonItem>
-          <IonItem>
-            <IonRadio value="belfast" labelPlacement="end" justify="start">
-              Belfast
-            </IonRadio>
-          </IonItem>
-        </IonRadioGroup>
+        <IonListHeader>
+          <IonLabel>Location</IonLabel>
+        </IonListHeader>
+        {/*
+          The same control the settings screen uses, rather than a second
+          hand-rolled picker. See LocationSelector for why.
+        */}
+        <IonItem>
+          <IonIcon icon={map} slot="start" />
+          <LocationSelector
+            location={inputSettings.location}
+            asrMethod={inputSettings.asrMethod}
+            onChange={(location, asrMethod) =>
+              setSetting({ location, asrMethod })
+            }
+          />
+        </IonItem>
       </IonList>
       <IonText color="medium">Timing is based on your device's clock.</IonText>
       <IonButton className="ion-margin-top" expand="block" onClick={onNext}>
