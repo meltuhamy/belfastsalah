@@ -21,8 +21,10 @@ platform :ios do
       build_number: ENV.fetch("BUILD_NUMBER", Time.now.to_i.to_s)
     )
 
+    # Capacitor 8 uses Swift Package Manager rather than CocoaPods, so there
+    # is no .xcworkspace to point at - the project builds directly.
     build_app(
-      workspace: "ios/App/App.xcworkspace",
+      project: "ios/App/App.xcodeproj",
       scheme: "App",
       configuration: "Release",
       export_method: "app-store",

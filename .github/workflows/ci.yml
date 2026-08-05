@@ -104,7 +104,7 @@ jobs:
         run: |
           xcodebuild \
             -scheme App \
-            -workspace App.xcworkspace \
+            -project App.xcodeproj \
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build \
