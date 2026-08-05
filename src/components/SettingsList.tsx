@@ -41,9 +41,7 @@ const SettingsList: React.FC<Props> = ({
       </IonListHeader>
       <IonItem>
         <IonIcon icon={alarm} slot="start" />
-        <IonLabel>Notify before prayer</IonLabel>
         <IonToggle
-          slot="end"
           checked={settings.notify}
           onIonChange={() => {
             const newValue = !settings.notify;
@@ -57,25 +55,25 @@ const SettingsList: React.FC<Props> = ({
               onNotifyChange(newValue);
             }
           }}
-        />
+        >
+          Notify before prayer
+        </IonToggle>
       </IonItem>
       {settings.notify && (
         <IonItem>
           <IonIcon icon={timer} slot="start" />
-          <IonLabel>
-            Notify {settings.notifyMinutes} minutes before prayer
-            <br />
-            <IonRange
-              min={0}
-              max={20}
-              step={1}
-              value={settings.notifyMinutes}
-              onIonChange={(event) => {
-                const newValue = event.detail.value;
-                onNotifyMinutesChange(newValue as number);
-              }}
-            ></IonRange>
-          </IonLabel>
+          <IonRange
+            label={`Notify ${settings.notifyMinutes} minutes before prayer`}
+            labelPlacement="stacked"
+            min={0}
+            max={20}
+            step={1}
+            value={settings.notifyMinutes}
+            onIonChange={(event) => {
+              const newValue = event.detail.value;
+              onNotifyMinutesChange(newValue as number);
+            }}
+          ></IonRange>
         </IonItem>
       )}
 
@@ -84,8 +82,8 @@ const SettingsList: React.FC<Props> = ({
       </IonListHeader>
       <IonItem>
         <IonIcon icon={map} slot="start" />
-        <IonLabel>Location</IonLabel>
         <IonSelect
+          label="Location"
           value={settings.location}
           onIonChange={(event) => {
             const newValue = event.detail.value as PrayerLocation;
@@ -102,17 +100,17 @@ const SettingsList: React.FC<Props> = ({
       {settings.location !== null && supportsHanafiAsr(settings.location) && (
         <IonItem>
           <IonIcon icon={sunny} slot="start" />
-          <IonLabel>Use Hanafi Asr</IonLabel>
           <IonToggle
             checked={settings.asrMethod === AsrMethod.Hanafi}
-            slot="end"
             onIonChange={(e) => {
               const nowChecked = e.detail.checked;
               onAsrMethodChange(
                 nowChecked ? AsrMethod.Hanafi : AsrMethod.Shafi
               );
             }}
-          />
+          >
+            Use Hanafi Asr
+          </IonToggle>
         </IonItem>
       )}
       <IonListHeader>
@@ -120,26 +118,26 @@ const SettingsList: React.FC<Props> = ({
       </IonListHeader>
       <IonItem>
         <IonIcon icon={bulb} slot="start" />
-        <IonLabel>Use dark mode</IonLabel>
         <IonToggle
-          slot="end"
           checked={settings.nightMode}
           onIonChange={() => {
             onDarkModeChange(!settings.nightMode);
           }}
-        />
+        >
+          Use dark mode
+        </IonToggle>
       </IonItem>
       {settings.nightMode && (
         <IonItem>
           <IonIcon icon={moon} slot="start" />
-          <IonLabel>Enable at Maghrib</IonLabel>
           <IonToggle
-            slot="end"
             checked={settings.nightModeMaghrib}
             onIonChange={() => {
               onDarkModeMaghribChange(!settings.nightModeMaghrib);
             }}
-          />
+          >
+            Enable at Maghrib
+          </IonToggle>
         </IonItem>
       )}
     </IonList>

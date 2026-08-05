@@ -73,13 +73,21 @@ const SetupPage: React.FC = () => {
           <IonListHeader>
             <IonLabel>Location</IonLabel>
           </IonListHeader>
+          {/*
+            Ionic 8 removed the legacy syntax where an ion-radio sat next to a
+            sibling ion-label inside an ion-item. It no longer associates the
+            two, so only the radio dot itself was clickable and tapping the row
+            did nothing. The label has to live inside the control.
+          */}
           <IonItem>
-            <IonLabel>London</IonLabel>
-            <IonRadio slot="start" value="london" />
+            <IonRadio value="london" labelPlacement="end" justify="start">
+              London
+            </IonRadio>
           </IonItem>
           <IonItem>
-            <IonLabel>Belfast</IonLabel>
-            <IonRadio slot="start" value="belfast" />
+            <IonRadio value="belfast" labelPlacement="end" justify="start">
+              Belfast
+            </IonRadio>
           </IonItem>
         </IonRadioGroup>
       </IonList>
