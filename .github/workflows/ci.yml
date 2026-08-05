@@ -1,8 +1,9 @@
 name: CI
 
 on:
+  # Runs on every branch, so native builds are verified before a pull request
+  # exists - this is the only place the Android and iOS toolchains are checked.
   push:
-    branches: [master]
   pull_request:
   workflow_dispatch:
 
