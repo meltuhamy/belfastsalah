@@ -1,4 +1,4 @@
-import { Storage } from "@capacitor/storage";
+import { Preferences } from "@capacitor/preferences";
 import { AsrMethod, PrayerLocation } from "./PrayerTimes";
 
 import debounce from "./debounce";
@@ -31,7 +31,7 @@ export function getDefaultSettings(): AppSettings {
 }
 
 async function getSettingsFromStorage(): Promise<AppSettings | null> {
-  const appSettings = await Storage.get({ key: STORAGE_KEY });
+  const appSettings = await Preferences.get({ key: STORAGE_KEY });
   if (!appSettings.value) {
     return null;
   }
@@ -48,7 +48,7 @@ export async function getSettings(): Promise<AppSettings | null> {
 }
 
 async function saveSettingsToStorage(appSettings: AppSettings) {
-  await Storage.set({
+  await Preferences.set({
     key: STORAGE_KEY,
     value: JSON.stringify(appSettings),
   });

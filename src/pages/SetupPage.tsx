@@ -68,7 +68,7 @@ const SetupPage: React.FC = () => {
         </IonRadioGroup>
       </IonList>
       <IonText color="medium">Timing is based on your device's clock.</IonText>
-      <IonButton class="ion-margin-top" expand="block" onClick={onNext}>
+      <IonButton className="ion-margin-top" expand="block" onClick={onNext}>
         Next
       </IonButton>
     </>
@@ -89,7 +89,7 @@ const SetupPage: React.FC = () => {
           setSetting({ nightModeMaghrib })
         }
       />
-      <IonButton class="ion-margin-top" expand="block" onClick={onSave}>
+      <IonButton className="ion-margin-top" expand="block" onClick={onSave}>
         Done
       </IonButton>
     </>

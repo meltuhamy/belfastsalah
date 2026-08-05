@@ -1,60 +1,54 @@
 {
-  "name": "prayertimes2021",
-  "version": "3.0.6",
+  "name": "prayertimes",
+  "version": "4.0.0",
   "private": true,
-  "dependencies": {
-    "@capacitor/android": "^3.5.1",
-    "@capacitor/app": "^1.1.1",
-    "@capacitor/core": "^3.5.1",
-    "@capacitor/ios": "^3.5.1",
-    "@capacitor/local-notifications": "^1.1.0",
-    "@capacitor/splash-screen": "^1.2.2",
-    "@capacitor/storage": "^1.2.5",
-    "@ionic/react": "^6.1.10",
-    "@ionic/react-router": "^6.1.10",
-    "@testing-library/jest-dom": "^5.16.4",
-    "@testing-library/react": "^13.3.0",
-    "@testing-library/user-event": "^14.2.0",
-    "@types/jest": "^24.0.25",
-    "@types/node": "^12.12.24",
-    "@types/react": "^16.9.17",
-    "@types/react-dom": "^18.0.5",
-    "@types/react-router": "^5.1.18",
-    "@types/react-router-dom": "^5.3.3",
-    "date-fns": "^2.16.1",
-    "ionicons": "^5.0.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-intersection-observer": "^8.31.0",
-    "react-router": "^5.0.1",
-    "react-router-dom": "^5.0.1",
-    "react-scripts": "5.0.1",
-    "typescript": "3.8.3"
-  },
+  "type": "module",
+  "description": "Prayer times for Belfast and London, straight from the mosque timetable.",
+  "license": "GPL-3.0",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test --transformIgnorePatterns 'node_modules/(?!(@ionic/react|@ionic/react-router|@ionic/core|@stencil/core|ionicons)/)'",
-    "eject": "react-scripts eject"
+    "dev": "vite",
+    "start": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "oxlint",
+    "sync": "npm run build && cap sync",
+    "assets": "capacitor-assets generate --iconBackgroundColor '#002541' --splashBackgroundColor '#002541'"
   },
-  "eslintConfig": {
-    "extends": "react-app"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+  "dependencies": {
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/local-notifications": "^8.2.1",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@ionic/react": "^8.8.17",
+    "@ionic/react-router": "^8.8.17",
+    "date-fns": "^4.4.0",
+    "ionicons": "^8.1.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-intersection-observer": "^11.0.0",
+    "react-router": "^5.3.4",
+    "react-router-dom": "^5.3.4"
   },
   "devDependencies": {
-    "@capacitor/cli": "^3.5.1",
-    "csvtojson": "^2.0.10"
-  },
-  "description": "An Ionic project"
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/ios": "^8.5.0",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@types/react-router": "^5.1.20",
+    "@types/react-router-dom": "^5.3.3",
+    "@vitejs/plugin-react": "^6.0.5",
+    "csvtojson": "^2.0.10",
+    "jsdom": "^30.0.1",
+    "oxlint": "^1.77.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.0",
+    "vitest": "^4.1.10"
+  }
 }

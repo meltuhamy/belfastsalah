@@ -22,7 +22,7 @@ const initialState: State = {
 };
 const AppContext = createContext({
   state: { ...initialState },
-  dispatch: (action: Action) => {}
+  dispatch: (_action: Action) => {}
 });
 
 type ActionType =
@@ -64,7 +64,7 @@ const reducer = (state: State, action: Action): State => {
   return state;
 };
 
-const AppContextProvider: React.FC = props => {
+const AppContextProvider: React.FC<{ children?: React.ReactNode }> = props => {
   const fullInitialState = {
     ...initialState
   };

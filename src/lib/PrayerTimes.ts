@@ -1,10 +1,9 @@
 import { addDays, subDays, getDaysInMonth } from "date-fns";
-import { getDay, PrayerData } from "./PrayerTimeData";
+import { getDay, PrayerData, PrayerLocation } from "./PrayerTimeData";
 
-export enum PrayerLocation {
-  London = "london",
-  Belfast = "belfast"
-}
+// Re-exported so callers can keep importing it from either module. It used to
+// be declared separately in both, which made two nominally distinct types.
+export { PrayerLocation };
 
 export enum Prayer {
   Fajr,

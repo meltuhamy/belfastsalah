@@ -1,19 +1,34 @@
 import {
+  BelfastPrayerTimes,
   LondonPrayerTimes,
   PrayerTime,
   AsrMethod,
   Prayer,
+  PrayerLocation
 } from "./PrayerTimes";
+import { getAvailableYears } from "./PrayerTimeData";
 
 const londonShafi = new LondonPrayerTimes(AsrMethod.Shafi);
 const londonHanafi = new LondonPrayerTimes(AsrMethod.Hanafi);
 
-declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toBePrayer(prayer: Prayer, time: Date): R;
-    }
-  }
+// Prayer times are stored and compared in UTC so that these tests give the
+// same result regardless of the machine's timezone.
+function utc(
+  year: number,
+  month: number,
+  day: number,
+  hours = 0,
+  minutes = 0
+): Date {
+  return new Date(Date.UTC(year, month - 1, day, hours, minutes));
+}
+
+interface PrayerMatchers<R = unknown> {
+  toBePrayer(prayer: Prayer, time: Date): R;
+}
+
+declare module "vitest" {
+  interface Matchers<T = any> extends PrayerMatchers<T> {}
 }
 
 expect.extend({
@@ -36,137 +51,154 @@ expect.extend({
     message = message + ". \n";
 
     if (matchingTime) {
-      message = message + "Has matchin time " + time;
+      message = message + "Has matching time " + time.toISOString();
     } else {
       message =
         message +
         "Times not matching. Expected " +
-        time +
+        time.toISOString() +
         ". Received " +
-        received.time;
+        received.time.toISOString();
     }
 
     return { pass: matchingPrayer && matchingTime, message: () => message };
-  },
+  }
+});
+
+describe("Prayer data year selection", () => {
+  it("Should offer every year we ship data for", () => {
+    expect(getAvailableYears(PrayerLocation.London)).toEqual([
+      2022, 2023, 2024, 2025, 2026
+    ]);
+    expect(getAvailableYears(PrayerLocation.Belfast)).toEqual([2019]);
+  });
+
+  it("Should use the data for the requested year, not an older one", async () => {
+    // Regression test: the year list used to be hardcoded and stopped at 2024,
+    // so 2025 and 2026 were quietly served 2024's timetable. 301 of 366 days
+    // differ between 2024 and 2026, so this is a real accuracy bug.
+    // 2026-03-04 -> 04:58 in the 2024 table, 05:01 in the 2026 table.
+    const marchFourth2026 = await londonShafi.getDay(utc(2026, 3, 4));
+
+    expect(marchFourth2026[Prayer.Fajr]).toBePrayer(
+      Prayer.Fajr,
+      utc(2026, 3, 4, 5, 1)
+    );
+  });
+
+  it("Should clamp to the earliest year we have when asked for an older one", async () => {
+    // 2019 predates our London data, so it falls back to the earliest (2022).
+    const dayTimes = await londonShafi.getDay(utc(2019, 7, 8));
+    expect(dayTimes[Prayer.Fajr].prayer).toEqual(Prayer.Fajr);
+  });
+
+  it("Should clamp to the latest year we have when asked for a future one", async () => {
+    // 2099 is beyond our data, so it falls back to the latest (2026).
+    const dayTimes = await londonShafi.getDay(utc(2099, 3, 4));
+    expect(dayTimes[Prayer.Fajr].time.getUTCHours()).toEqual(5);
+    expect(dayTimes[Prayer.Fajr].time.getUTCMinutes()).toEqual(1);
+  });
 });
 
 describe("London Prayer Times", () => {
+  // 2024-07-08: ["7","8","01:58","03:51","12:11","16:26","17:40","20:20","21:30"]
   it("Should allow getting a prayer day with shafi asr", async () => {
-    const julyEighthTimes = await londonShafi.getDay(
-      new Date("July 8, 1995 06:00:00")
-    );
-    //  UTC: ["7", "8", "01:57", "03:50", "12:11", "16:26", "17:40", "20:20", "21:30"],
+    const julyEighthTimes = await londonShafi.getDay(utc(2024, 7, 8, 6));
+
     expect(julyEighthTimes[Prayer.Fajr]).toBePrayer(
       Prayer.Fajr,
-      new Date("July 8, 1995 02:57:00") // add an hour because of utc
+      utc(2024, 7, 8, 1, 58)
     );
 
     expect(julyEighthTimes[Prayer.Shuruq]).toBePrayer(
       Prayer.Shuruq,
-      new Date("July 8, 1995 04:50:00") // add an hour because of utc
+      utc(2024, 7, 8, 3, 51)
     );
 
     expect(julyEighthTimes[Prayer.Duhr]).toBePrayer(
       Prayer.Duhr,
-      new Date("July 8, 1995 13:11:00") // add an hour because of utc
+      utc(2024, 7, 8, 12, 11)
     );
 
     expect(julyEighthTimes[Prayer.Asr]).toBePrayer(
       Prayer.Asr,
-      new Date("July 8, 1995 17:26:00") // add an hour because of utc
+      utc(2024, 7, 8, 16, 26)
     );
 
     expect(julyEighthTimes[Prayer.Maghrib]).toBePrayer(
       Prayer.Maghrib,
-      new Date("July 8, 1995 21:21:00") // add an hour because of utc
+      utc(2024, 7, 8, 20, 20)
     );
 
     expect(julyEighthTimes[Prayer.Isha]).toBePrayer(
       Prayer.Isha,
-      new Date("July 8, 1995 22:31:00") // add an hour because of utc
+      utc(2024, 7, 8, 21, 30)
     );
   });
 
   it("Should allow getting a prayer day with hanafi asr", async () => {
-    const julyEighthTimes = await londonHanafi.getDay(
-      new Date("July 8, 1995 06:00:00")
-    );
-    //  UTC: ["7", "8", "01:57", "03:50", "12:11", "16:26", "17:40", "20:20", "21:30"],
+    const julyEighthTimes = await londonHanafi.getDay(utc(2024, 7, 8, 6));
+
     expect(julyEighthTimes[Prayer.Fajr]).toBePrayer(
       Prayer.Fajr,
-      new Date("July 8, 1995 02:57:00") // add an hour because of utc
+      utc(2024, 7, 8, 1, 58)
     );
 
     expect(julyEighthTimes[Prayer.Shuruq]).toBePrayer(
       Prayer.Shuruq,
-      new Date("July 8, 1995 04:50:00") // add an hour because of utc
+      utc(2024, 7, 8, 3, 51)
     );
 
     expect(julyEighthTimes[Prayer.Duhr]).toBePrayer(
       Prayer.Duhr,
-      new Date("July 8, 1995 13:11:00") // add an hour because of utc
+      utc(2024, 7, 8, 12, 11)
     );
 
+    // The only difference from shafi: asr uses the second asr column.
     expect(julyEighthTimes[Prayer.Asr]).toBePrayer(
       Prayer.Asr,
-      new Date("July 8, 1995 18:40:00") // add an hour because of utc
+      utc(2024, 7, 8, 17, 40)
     );
 
     expect(julyEighthTimes[Prayer.Maghrib]).toBePrayer(
       Prayer.Maghrib,
-      new Date("July 8, 1995 21:21:00") // add an hour because of utc
+      utc(2024, 7, 8, 20, 20)
     );
 
     expect(julyEighthTimes[Prayer.Isha]).toBePrayer(
       Prayer.Isha,
-      new Date("July 8, 1995 22:31:00") // add an hour because of utc
+      utc(2024, 7, 8, 21, 30)
     );
   });
 
   it("Should allow getting next/prev prayers by Date object", async () => {
-    const nextPrayerAfterMidnight = await londonShafi.getNext(
-      new Date("July 8, 1995 00:00:00")
-    );
+    const nextPrayerAfterMidnight = await londonShafi.getNext(utc(2024, 7, 8));
 
     expect(nextPrayerAfterMidnight).toBePrayer(
       Prayer.Fajr,
-      new Date("July 8, 1995 02:57")
+      utc(2024, 7, 8, 1, 58)
     );
 
-    // 3 minutes later, prev prayer should be fajr
-    const prayerBeforeAt3AM = await londonShafi.getPrev(
-      new Date("July 8, 1995 03:00")
-    );
+    // a couple of minutes later, prev prayer should be fajr
+    const prayerBeforeTwoAM = await londonShafi.getPrev(utc(2024, 7, 8, 2));
 
-    expect(prayerBeforeAt3AM).toBePrayer(
-      Prayer.Fajr,
-      new Date("July 8, 1995 02:57")
-    );
+    expect(prayerBeforeTwoAM).toBePrayer(Prayer.Fajr, utc(2024, 7, 8, 1, 58));
   });
 
   it("Should allow getting next/prev prayers by PrayerTime object", async () => {
-    const julyEighthTimes = await londonShafi.getDay(
-      new Date("July 8, 1995 06:00:00")
-    );
+    const julyEighthTimes = await londonShafi.getDay(utc(2024, 7, 8, 6));
 
     const afterFajr = await londonShafi.getNext(julyEighthTimes[Prayer.Fajr]);
 
-    expect(afterFajr).toBePrayer(
-      Prayer.Shuruq,
-      new Date("July 8, 1995 04:50:00")
-    );
+    expect(afterFajr).toBePrayer(Prayer.Shuruq, utc(2024, 7, 8, 3, 51));
 
     const beforeShuruq = await londonShafi.getPrev(afterFajr);
     expect(beforeShuruq).toEqual(julyEighthTimes[Prayer.Fajr]);
   });
 
   it("Should allow getting next/prev prayers for a day", async () => {
-    const dayTimes = await londonShafi.getDay(
-      new Date("July 8, 1995 00:00:00")
-    );
-    const nextPrayerAfterMidnight = await londonShafi.getNext(
-      new Date("July 8, 1995 00:00:00")
-    );
+    const dayTimes = await londonShafi.getDay(utc(2024, 7, 8));
+    const nextPrayerAfterMidnight = await londonShafi.getNext(utc(2024, 7, 8));
 
     let currentPrayer = nextPrayerAfterMidnight;
     let prevPrayer;
@@ -204,12 +236,8 @@ describe("London Prayer Times", () => {
   });
 
   it("Should allow getting next/prev prayers between days", async () => {
-    const day1Times = await londonShafi.getDay(
-      new Date("July 8, 1995 00:00:00")
-    );
-    const day2Times = await londonShafi.getDay(
-      new Date("July 9, 1995 00:00:00")
-    );
+    const day1Times = await londonShafi.getDay(utc(2024, 7, 8));
+    const day2Times = await londonShafi.getDay(utc(2024, 7, 9));
 
     const prayerAfterDay1Isha = await londonShafi.getNext(
       day1Times[Prayer.Isha]
@@ -222,11 +250,9 @@ describe("London Prayer Times", () => {
   });
 
   it("Should allow getting next prayers between months", async () => {
-    const lastDayOfJuly = new Date("July 31, 1995 00:00:00");
-    const lastDayOfJulyTimes = await londonShafi.getDay(lastDayOfJuly);
-    const firstDayOfAugustTimes = await londonShafi.getDay(
-      new Date("August 1, 1995 00:00:00")
-    );
+    // 2024-07-31 isha 20:56, 2024-08-01 fajr 02:40
+    const lastDayOfJulyTimes = await londonShafi.getDay(utc(2024, 7, 31));
+    const firstDayOfAugustTimes = await londonShafi.getDay(utc(2024, 8, 1));
 
     const prayerAfterIshaOnLastDayOfJuly = await londonShafi.getNext(
       lastDayOfJulyTimes[Prayer.Isha].time
@@ -238,7 +264,7 @@ describe("London Prayer Times", () => {
 
     expect(firstDayOfAugustTimes[Prayer.Fajr]).toBePrayer(
       Prayer.Fajr,
-      new Date("August 1, 1995 03:39:00")
+      utc(2024, 8, 1, 2, 40)
     );
 
     const prayerBefore = await londonShafi.getPrev(
@@ -249,24 +275,20 @@ describe("London Prayer Times", () => {
   });
 
   it("Should allow getting next/prev prayers in feb during a non-leap year", async () => {
-    // ["2", "28", "05:08", "06:45", "12:18", "15:03", "15:47", "17:42", "19:09"],
-    // ["3", "1", "05:06", "06:43", "12:18", "15:04", "15:48", "17:44", "19:10"],
-    const lastDayFebTimes = await londonShafi.getDay(
-      new Date("February 28, 1995 00:00:00")
-    );
+    // 2023-02-28: ["2","28","05:09","06:46","12:18","15:03","15:47","17:42","19:09"]
+    // 2023-03-01: ["3","1","05:07","06:44","12:18","15:04","15:48","17:43","19:09"]
+    const lastDayFebTimes = await londonShafi.getDay(utc(2023, 2, 28));
 
     expect(lastDayFebTimes[Prayer.Isha]).toBePrayer(
       Prayer.Isha,
-      new Date("February 28, 1995 19:08")
+      utc(2023, 2, 28, 19, 9)
     );
 
-    const firstDayMarchTimes = await londonShafi.getDay(
-      new Date("March 1, 1995 00:00:00")
-    );
+    const firstDayMarchTimes = await londonShafi.getDay(utc(2023, 3, 1));
 
     expect(firstDayMarchTimes[Prayer.Fajr]).toBePrayer(
       Prayer.Fajr,
-      new Date("March 1, 1995 05:06:00")
+      utc(2023, 3, 1, 5, 7)
     );
 
     const prayerAfterIshaOnLastDayOfFeb = await londonShafi.getNext(
@@ -284,25 +306,19 @@ describe("London Prayer Times", () => {
   });
 
   it("Should allow getting next/prev prayers in feb during a leap year", async () => {
-    // ["2", "28", "05:08", "06:45", "12:18", "15:03", "15:47", "17:42", "19:09"],
-    // ["2", "29", "05:08", "06:45", "12:18", "15:03", "15:47", "17:42", "19:09"],
-    // ["3", "1", "05:06", "06:43", "12:18", "15:04", "15:48", "17:44", "19:10"],
-    const secondLastDayFebTimes = await londonShafi.getDay(
-      new Date("February 28, 1992 00:00:00")
-    );
-
-    const lastDayFebTimes = await londonShafi.getDay(
-      new Date("February 29, 1992 00:00:00")
-    );
+    // 2024 is a leap year.
+    // 2024-02-28: ["2","28","05:09","06:46","12:18","15:03","15:46","17:41","19:08"]
+    // 2024-02-29: ["2","29","05:07","06:44","12:18","15:04","15:48","17:43","19:09"]
+    // 2024-03-01: ["3","1","05:05","06:42","12:18","15:05","15:49","17:45","19:11"]
+    const secondLastDayFebTimes = await londonShafi.getDay(utc(2024, 2, 28));
+    const lastDayFebTimes = await londonShafi.getDay(utc(2024, 2, 29));
 
     expect(lastDayFebTimes[Prayer.Isha]).toBePrayer(
       Prayer.Isha,
-      new Date("February 29, 1992 19:08")
+      utc(2024, 2, 29, 19, 9)
     );
 
-    const firstDayMarchTimes = await londonShafi.getDay(
-      new Date("March 1, 1992 00:00:00")
-    );
+    const firstDayMarchTimes = await londonShafi.getDay(utc(2024, 3, 1));
 
     const nextPrayerAfterSecondLastDayFebIsha = await londonShafi.getNext(
       secondLastDayFebTimes[Prayer.Isha].time
@@ -331,24 +347,19 @@ describe("London Prayer Times", () => {
   });
 
   it("Should get next/prev prayers between years", async () => {
-    // ["12", "31", "06:26", "08:03", "12:08", "13:45", "14:15", "16:04", "17:41"]
-    // ["1", "1", "06:26", "08:03", "12:09", "13:46", "14:17", "16:05", "17:42"]
-    const lastDayDecTimes = await londonShafi.getDay(
-      new Date("December 31, 1995 00:00")
-    );
-
-    const firstJanTimes = await londonShafi.getDay(
-      new Date("January 1, 1996 00:00")
-    );
+    // 2023-12-31: ["12","31","06:26","08:03","12:09","13:45","14:15","16:04","17:41"]
+    // 2024-01-01: ["1","1","06:26","08:03","12:09","13:46","14:16","16:05","17:42"]
+    const lastDayDecTimes = await londonShafi.getDay(utc(2023, 12, 31));
+    const firstJanTimes = await londonShafi.getDay(utc(2024, 1, 1));
 
     expect(firstJanTimes[Prayer.Fajr]).toBePrayer(
       Prayer.Fajr,
-      new Date("January 1, 1996 06:26")
+      utc(2024, 1, 1, 6, 26)
     );
 
     expect(lastDayDecTimes[Prayer.Isha]).toBePrayer(
       Prayer.Isha,
-      new Date("December 31, 1995 17:41")
+      utc(2023, 12, 31, 17, 41)
     );
 
     const prayerAfterLastDayDecIsha = await londonShafi.getNext(
@@ -361,5 +372,29 @@ describe("London Prayer Times", () => {
       firstJanTimes[Prayer.Fajr]
     );
     expect(prayerBeforeFirstJanFajr).toEqual(lastDayDecTimes[Prayer.Isha]);
+  });
+});
+
+describe("Belfast Prayer Times", () => {
+  const belfast = new BelfastPrayerTimes();
+
+  // 2019-07-08: ["7","8","01:58","03:56","12:30","16:57",null,"21:01","22:50"]
+  it("Should allow getting a prayer day", async () => {
+    const julyEighthTimes = await belfast.getDay(utc(2019, 7, 8, 6));
+
+    expect(julyEighthTimes[Prayer.Fajr]).toBePrayer(
+      Prayer.Fajr,
+      utc(2019, 7, 8, 1, 58)
+    );
+
+    expect(julyEighthTimes[Prayer.Asr]).toBePrayer(
+      Prayer.Asr,
+      utc(2019, 7, 8, 16, 57)
+    );
+
+    expect(julyEighthTimes[Prayer.Isha]).toBePrayer(
+      Prayer.Isha,
+      utc(2019, 7, 8, 22, 50)
+    );
   });
 });
