@@ -40,8 +40,6 @@
       prompting. Without these, targetSdk 31+ silently downgrades every
       scheduled notification to an inexact alarm.
     -->
-    <uses-permission
-        android:name="android.permission.SCHEDULE_EXACT_ALARM"
-        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 </manifest>
