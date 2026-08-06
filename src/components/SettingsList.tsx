@@ -36,6 +36,33 @@ const SettingsList: React.FC<Props> = ({
   return (
     <IonList>
       <IonListHeader>
+        <IonLabel>Prayer time settings</IonLabel>
+      </IonListHeader>
+      <IonItem>
+        <IonIcon icon={map} slot="start" />
+        <LocationSelector
+          location={settings.location}
+          asrMethod={settings.asrMethod}
+          onChange={onLocationChange}
+        />
+      </IonItem>
+      {settings.location !== null && supportsHanafiAsr(settings.location) && (
+        <IonItem>
+          <IonIcon icon={sunny} slot="start" />
+          <IonToggle
+            checked={settings.asrMethod === AsrMethod.Hanafi}
+            onIonChange={(e) => {
+              const nowChecked = e.detail.checked;
+              onAsrMethodChange(
+                nowChecked ? AsrMethod.Hanafi : AsrMethod.Shafi
+              );
+            }}
+          >
+            Use Hanafi Asr
+          </IonToggle>
+        </IonItem>
+      )}
+      <IonListHeader>
         <IonLabel>Notifications</IonLabel>
       </IonListHeader>
       <IonItem>
@@ -76,33 +103,6 @@ const SettingsList: React.FC<Props> = ({
         </IonItem>
       )}
 
-      <IonListHeader>
-        <IonLabel>Prayer time settings</IonLabel>
-      </IonListHeader>
-      <IonItem>
-        <IonIcon icon={map} slot="start" />
-        <LocationSelector
-          location={settings.location}
-          asrMethod={settings.asrMethod}
-          onChange={onLocationChange}
-        />
-      </IonItem>
-      {settings.location !== null && supportsHanafiAsr(settings.location) && (
-        <IonItem>
-          <IonIcon icon={sunny} slot="start" />
-          <IonToggle
-            checked={settings.asrMethod === AsrMethod.Hanafi}
-            onIonChange={(e) => {
-              const nowChecked = e.detail.checked;
-              onAsrMethodChange(
-                nowChecked ? AsrMethod.Hanafi : AsrMethod.Shafi
-              );
-            }}
-          >
-            Use Hanafi Asr
-          </IonToggle>
-        </IonItem>
-      )}
       <IonListHeader>
         <IonLabel>Dark mode</IonLabel>
       </IonListHeader>

@@ -9,16 +9,18 @@ import { test, expect, type Page } from "@playwright/test";
 //     inside an ion-item - which Ionic 8 no longer associates, leaving only
 //     the radio dot clickable.
 //
-// Both screens now share LocationSelector, so there is one control to keep
-// working. These tests drive it in a real browser because hit testing inside
-// Ionic's shadow DOM is not something jsdom can answer.
+// Setup now renders the same SettingsList the settings screen does, so there
+// is one control to keep working. These run in a real browser because hit
+// testing inside Ionic's shadow DOM is not something jsdom can answer.
 
 const selectValue = (page: Page) =>
   page.$eval("ion-select", (s) => (s as unknown as { value: string }).value);
 
-/** Taps the row well away from the control, at its trailing edge. */
+/** Taps the location row well away from the control, at its trailing edge. */
 async function tapRowAwayFromControl(page: Page) {
-  const row = page.locator("ion-item").filter({ has: page.locator("ion-select") });
+  const row = page
+    .locator("ion-item")
+    .filter({ has: page.locator("ion-select") });
   const box = await row.boundingBox();
   if (!box) {
     throw new Error("Could not find the location row");
@@ -38,6 +40,36 @@ async function chooseFromDialog(page: Page, label: string) {
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await page.waitForSelector("ion-select");
+});
+
+test("is a single screen with no wizard step", async ({ page }) => {
+  await expect(page.getByRole("button", { name: "Next" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Done" })).toBeVisible();
+});
+
+test("shows location above notifications", async ({ page }) => {
+  const locationRow = page
+    .locator("ion-item")
+    .filter({ has: page.locator("ion-select") });
+  const notifyRow = page
+    .locator("ion-item")
+    .filter({ hasText: "Notify before prayer" });
+
+  const locationBox = await locationRow.boundingBox();
+  const notifyBox = await notifyRow.boundingBox();
+  expect(locationBox!.y).toBeLessThan(notifyBox!.y);
+});
+
+test("shows every settings group, in order, without paging", async ({
+  page,
+}) => {
+  // Matching on list headers rather than text: "Dark mode" as a substring also
+  // hits the "Use dark mode" toggle.
+  await expect(page.locator("ion-list-header")).toHaveText([
+    "Prayer time settings",
+    "Notifications",
+    "Dark mode",
+  ]);
 });
 
 test("defaults to London", async ({ page }) => {
@@ -82,19 +114,20 @@ test("keeps the choice across repeated changes", async ({ page }) => {
   }
 });
 
-test("carries the chosen location through to the settings step", async ({
+test("hides hanafi asr for locations that do not support it", async ({
   page,
 }) => {
+  // London publishes a second asr column, Belfast does not.
+  await expect(page.getByText("Use Hanafi Asr")).toBeVisible();
+
   await tapRowAwayFromControl(page);
   await chooseFromDialog(page, "Belfast");
   await expect.poll(() => selectValue(page)).toBe("belfast");
 
-  await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByText("Use Hanafi Asr")).toHaveCount(0);
+});
 
-  // The settings step renders the same control, already carrying the choice.
-  await expect
-    .poll(() => page.locator("ion-select").first().evaluate(
-      (s) => (s as unknown as { value: string }).value
-    ))
-    .toBe("belfast");
+test("completing setup leaves the setup screen", async ({ page }) => {
+  await page.getByRole("button", { name: "Done" }).click();
+  await expect(page.getByRole("button", { name: "Done" })).toHaveCount(0);
 });
