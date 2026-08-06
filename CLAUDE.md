@@ -50,6 +50,14 @@ CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2
 
 CI installs its own browser and needs no override.
 
+## Hidden test notification
+
+Long-pressing the timer icon on the reminder row schedules a notification a
+few seconds out, so the reminder path can be checked without waiting for a
+prayer time. There is deliberately no visible affordance. `sendTestNotification`
+in `src/lib/notifications.ts` uses id 9999, clear of the prayer reminders,
+which use 0-64.
+
 ## Prayer data
 
 `src/lib/PrayerTimeData.ts` holds `prayerDataLoaders`, the single source of

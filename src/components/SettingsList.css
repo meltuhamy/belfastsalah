@@ -1,0 +1,42 @@
+.settings-list__range {
+  width: 100%;
+  padding: 8px 0;
+}
+
+/* Ionic's own stacked range label renders small and washed out. This is the
+   same information at body size and full contrast. */
+.settings-list__range-label {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  line-height: 1.3;
+  color: var(--ion-text-color, #000);
+}
+
+.settings-list__range ion-range {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* The long-press diagnostic lives on this icon. No affordance by design, but
+   it should not select text or show a callout while being held.
+   Wrapping the icon takes it out of Ionic's `ion-icon[slot=start]` rules, so
+   the size and the 32px gap to the row content are restored here - otherwise
+   the icon renders at 16px and drags the label out of line with every other
+   row. The padding widens the press target to 44px without moving the icon;
+   the negative margins keep the layout where it was. */
+.settings-list__test-target {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  margin-block: -10px;
+  margin-inline-start: -10px;
+  margin-inline-end: 22px;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.settings-list__test-target ion-icon {
+  font-size: 24px;
+}
