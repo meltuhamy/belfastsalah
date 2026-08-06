@@ -172,6 +172,7 @@ const SettingsList: React.FC<Props> = ({
         </IonItem>
       )}
       <IonToast
+        data-testid="test-notification-toast"
         isOpen={testResult !== null}
         onDidDismiss={() => setTestResult(null)}
         message={testResult ?? ""}

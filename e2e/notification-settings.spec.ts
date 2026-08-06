@@ -17,8 +17,13 @@ async function enableReminders(page: Page) {
   await expect(page.locator(".settings-list__range-label")).toBeVisible();
 }
 
+// Matched by test id rather than message: whether the browser actually grants
+// notification permission is not something a headless run can be relied on to
+// do, and either outcome - scheduled, or blocked - means the long press fired.
+// Asserting only the success message made this fail on CI while passing
+// locally, which said nothing about the code.
 const testToast = (page: Page) =>
-  page.locator('ion-toast[message*="Test notification"]');
+  page.getByTestId("test-notification-toast");
 
 test("reads the reminder offset in full-size text", async ({ page }) => {
   await enableReminders(page);
@@ -70,6 +75,10 @@ test("schedules a test notification on long press", async ({ page }) => {
   await page.mouse.up();
 
   await expect(testToast(page)).toBeVisible();
+  await expect(testToast(page)).toHaveAttribute(
+    "message",
+    /Test notification in \d+ seconds|Notifications are blocked/
+  );
 });
 
 test("does not fire on a short tap", async ({ page }) => {
@@ -78,5 +87,5 @@ test("does not fire on a short tap", async ({ page }) => {
   await page.getByTestId("notify-test-target").click();
   await page.waitForTimeout(1200);
 
-  await expect(testToast(page)).toHaveCount(0);
+  await expect(testToast(page)).toBeHidden();
 });
