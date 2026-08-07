@@ -3,7 +3,7 @@ import { test, expect, type Page } from "@playwright/test";
 // The link lives in the shared SettingsList, so it has to appear on both the
 // setup screen and the settings screen.
 
-const POLICY_URL = "http://meltuhamy.com/privacy-policy/";
+const POLICY_URL = "https://meltuhamy.com/privacy-policy/";
 
 const policyLink = (page: Page) => page.getByTestId("privacy-policy-link");
 

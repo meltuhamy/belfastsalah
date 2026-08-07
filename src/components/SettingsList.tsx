@@ -190,7 +190,7 @@ const SettingsList: React.FC<Props> = ({
         which it cannot come back from.
       */}
       <IonItem
-        href="http://meltuhamy.com/privacy-policy/"
+        href="https://meltuhamy.com/privacy-policy/"
         target="_blank"
         rel="noopener noreferrer"
         detail={false}
