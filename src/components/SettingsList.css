@@ -39,4 +39,7 @@
 
 .settings-list__test-target ion-icon {
   font-size: 24px;
+  /* Ionic dims row icons to 54% of the text colour. Opacity rather than a
+     fixed rgba so it still follows the text colour in dark mode. */
+  opacity: 0.54;
 }

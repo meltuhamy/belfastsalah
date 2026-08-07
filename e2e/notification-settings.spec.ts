@@ -57,6 +57,39 @@ test("lines the reminder row up with the rest of the list", async ({
   expect(label!.x).toBe(toggle!.x);
 });
 
+test("renders the timer icon like every other row icon", async ({ page }) => {
+  // The icon is wrapped so it can carry the long-press handlers, which takes
+  // it out of Ionic's ion-icon[slot=start] rules. That has already cost the
+  // size, the spacing and the colour once each, so this compares the effective
+  // appearance of every row icon rather than any single property.
+  await enableReminders(page);
+
+  const swatches = [];
+  for (const icon of await page.locator("ion-item ion-icon").all()) {
+    const box = await icon.boundingBox();
+    if (!box || box.x > 100) {
+      continue;
+    }
+    swatches.push(
+      await icon.evaluate((el) => {
+        const style = getComputedStyle(el);
+        const parts = style.color.match(/[\d.]+/g)!.map(Number);
+        return {
+          rgb: `${parts[0]},${parts[1]},${parts[2]}`,
+          // colour alpha and element opacity are interchangeable visually
+          alpha: Math.round((parts[3] ?? 1) * Number(style.opacity) * 100) / 100,
+          size: style.fontSize,
+        };
+      })
+    );
+  }
+
+  expect(swatches.length).toBeGreaterThan(1);
+  for (const swatch of swatches) {
+    expect(swatch).toEqual(swatches[0]);
+  }
+});
+
 test("gives the hidden press target a usable hit area", async ({ page }) => {
   await enableReminders(page);
   const box = await page.getByTestId("notify-test-target").boundingBox();
