@@ -16,8 +16,7 @@ import {
   timer,
   map,
   sunny,
-  bulb,
-  moon,
+  contrast,
   globeOutline,
   lockClosed,
   openOutline,
@@ -25,6 +24,7 @@ import {
 import { PrayerLocation, locationNames } from "../lib/PrayerTimeData";
 import supportsHanafiAsr, { AsrMethod } from "../lib/PrayerTimes";
 import { AppSettings } from "../lib/settings";
+import { THEMES, Theme, themeLabels } from "../lib/theme";
 import { describeTimeZone, getDeviceTimeZone } from "../lib/timeZone";
 import { zoneChoiceApplies } from "../lib/displayZone";
 import LocationSelector from "./LocationSelector";
@@ -43,8 +43,7 @@ type Props = {
   onNotifyMinutesChange: (newNotifyMinutes: number) => void;
   onLocationChange: (newLocation: PrayerLocation, asrMethod: AsrMethod) => void;
   onAsrMethodChange: (newAsrMethod: AsrMethod) => void;
-  onDarkModeChange: (newDarkMode: boolean) => void;
-  onDarkModeMaghribChange: (newDarkModeMaghrib: boolean) => void;
+  onThemeChange: (newTheme: Theme) => void;
   onShowTimesInDeviceZoneChange: (newShowTimesInDeviceZone: boolean) => void;
 };
 const SettingsList: React.FC<Props> = ({
@@ -53,8 +52,7 @@ const SettingsList: React.FC<Props> = ({
   onNotifyMinutesChange,
   onLocationChange,
   onAsrMethodChange,
-  onDarkModeChange,
-  onDarkModeMaghribChange,
+  onThemeChange,
   onShowTimesInDeviceZoneChange,
 }) => {
   const [testResult, setTestResult] = useState<string | null>(null);
@@ -205,32 +203,26 @@ const SettingsList: React.FC<Props> = ({
       )}
 
       <IonListHeader>
-        <IonLabel>Dark mode</IonLabel>
+        <IonLabel>Appearance</IonLabel>
       </IonListHeader>
       <IonItem>
-        <IonIcon icon={bulb} slot="start" />
-        <IonToggle
-          checked={settings.nightMode}
-          onIonChange={() => {
-            onDarkModeChange(!settings.nightMode);
-          }}
+        <IonIcon icon={contrast} slot="start" />
+        <IonSelect
+          label="Theme"
+          value={settings.theme}
+          interface="alert"
+          okText="Choose"
+          cancelText="Cancel"
+          data-testid="theme-select"
+          onIonChange={(event) => onThemeChange(event.detail.value as Theme)}
         >
-          Use dark mode
-        </IonToggle>
+          {THEMES.map((theme) => (
+            <IonSelectOption key={theme} value={theme}>
+              {themeLabels[theme]}
+            </IonSelectOption>
+          ))}
+        </IonSelect>
       </IonItem>
-      {settings.nightMode && (
-        <IonItem>
-          <IonIcon icon={moon} slot="start" />
-          <IonToggle
-            checked={settings.nightModeMaghrib}
-            onIonChange={() => {
-              onDarkModeMaghribChange(!settings.nightModeMaghrib);
-            }}
-          >
-            Enable at Maghrib
-          </IonToggle>
-        </IonItem>
-      )}
       <IonListHeader>
         <IonLabel>About</IonLabel>
       </IonListHeader>

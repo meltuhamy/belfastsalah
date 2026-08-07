@@ -10,11 +10,21 @@ import {
 import { useSettings } from "../lib/useSettings";
 import { getDefaultSettings, AppSettings } from "../lib/settings";
 import { PrayerLocation } from "../lib/PrayerTimes";
+import { Theme } from "../lib/theme";
 import SettingsList from "../components/SettingsList";
 import CenteredMaxWidthContainer from "../components/CenteredMaxWidthContainer";
 import { SplashScreen } from "@capacitor/splash-screen";
 
-const SetupPage: React.FC = () => {
+type Props = {
+  /**
+   * Setup keeps its answers local until Done, but a theme you cannot see is
+   * not a theme you can choose, so this one is reported as it changes and
+   * applied straight away.
+   */
+  onThemePreview: (newTheme: Theme) => void;
+};
+
+const SetupPage: React.FC<Props> = ({ onThemePreview }) => {
   useEffect(() => {
     SplashScreen.hide();
   }, []);
@@ -53,10 +63,10 @@ const SetupPage: React.FC = () => {
               setSetting({ location, asrMethod })
             }
             onAsrMethodChange={(asrMethod) => setSetting({ asrMethod })}
-            onDarkModeChange={(nightMode) => setSetting({ nightMode })}
-            onDarkModeMaghribChange={(nightModeMaghrib) =>
-              setSetting({ nightModeMaghrib })
-            }
+            onThemeChange={(theme) => {
+              setSetting({ theme });
+              onThemePreview(theme);
+            }}
             onShowTimesInDeviceZoneChange={(showTimesInDeviceZone) =>
               setSetting({ showTimesInDeviceZone, timeZoneNoticeSeen: true })
             }

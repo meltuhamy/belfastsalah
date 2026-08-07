@@ -48,10 +48,7 @@ const SettingsTab: React.FC = () => {
               setSetting({ location, asrMethod })
             }
             onAsrMethodChange={(asrMethod) => setSetting({ asrMethod })}
-            onDarkModeChange={(nightMode) => setSetting({ nightMode })}
-            onDarkModeMaghribChange={(nightModeMaghrib) =>
-              setSetting({ nightModeMaghrib })
-            }
+            onThemeChange={(theme) => setSetting({ theme })}
             onShowTimesInDeviceZoneChange={(showTimesInDeviceZone) =>
               // Choosing here answers the home screen prompt too, so it does
               // not turn up later asking a question already settled.

@@ -11,7 +11,7 @@ describe("SetupPage location picker", () => {
   function renderSetup() {
     return render(
       <AppContextProvider>
-        <SetupPage />
+        <SetupPage onThemePreview={() => {}} />
       </AppContextProvider>
     );
   }

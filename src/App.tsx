@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useLayoutEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Route } from "react-router-dom";
 import { IonApp, IonRouterOutlet, IonToast } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
@@ -24,8 +24,17 @@ import "@ionic/react/css/text-transformation.css";
 import "@ionic/react/css/flex-utils.css";
 import "@ionic/react/css/display.css";
 
-/* Theme variables */
+/* This app's own colours, which are not Ionic 8's defaults. */
 import "./theme/variables.css";
+
+/* Ionic's dark palette, applied by adding .ion-palette-dark to <html>. This
+   used to be a hand-copied fork of Ionic's pre-8 dark theme.
+
+   Imported after variables.css and not before: Ionic puts its mode class on
+   <html>, so .ion-palette-dark and the :root block above land on the same
+   element with equal specificity, and whichever comes last wins. The other
+   order silently leaves the light palette in force in dark mode. */
+import "@ionic/react/css/palettes/dark.class.css";
 import { useSettings } from "./lib/useSettings";
 import { AppContext } from "./State";
 import { usePrayerDay } from "./lib/usePrayerDay";
@@ -34,10 +43,11 @@ import { useInterval } from "./lib/useInterval";
 import {
   BelfastPrayerTimes,
   LondonPrayerTimes,
-  Prayer,
   PrayerLocation,
   prayerToString,
 } from "./lib/PrayerTimes";
+import { useTheme } from "./lib/useTheme";
+import { Theme } from "./lib/theme";
 import {
   addUpdateNotifyListener,
   clearAndSetNotifications,
@@ -65,36 +75,14 @@ const App: React.FC = () => {
     dispatch({ type: "setTick", payload: null });
   }, 1000);
 
-  const nightMode = settings !== null && settings.nightMode;
-  const nightModeMaghrib = settings !== null && settings.nightModeMaghrib;
-  const nextPrayer = next !== null && next.prayer;
-
-  useLayoutEffect(() => {
-    if (nightMode) {
-      if (nextPrayer !== false && nightModeMaghrib) {
-        switch (nextPrayer) {
-          case Prayer.Fajr:
-          case Prayer.Shuruq:
-          case Prayer.Isha:
-            document.body.classList.add("dark");
-            break;
-          case Prayer.Duhr:
-          case Prayer.Asr:
-          case Prayer.Maghrib:
-            document.body.classList.remove("dark");
-            break;
-        }
-      } else {
-        if (nightModeMaghrib) {
-          document.body.classList.remove("dark");
-        } else {
-          document.body.classList.add("dark");
-        }
-      }
-    } else {
-      document.body.classList.remove("dark");
-    }
-  }, [nightMode, nightModeMaghrib, nextPrayer]);
+  // One owner of the palette. Before setup completes there are no stored
+  // settings to read, so the setup screen reports its choice up here rather
+  // than applying it itself - two components toggling the class would fight.
+  const [setupTheme, setSetupTheme] = useState<Theme>("system");
+  useTheme(
+    settings?.theme ?? setupTheme,
+    next === null ? null : next.prayer
+  );
 
   const location = settings == null ? null : settings.location;
   const showTimesInDeviceZone =
@@ -195,7 +183,7 @@ const App: React.FC = () => {
   if (!hydrated) {
     contents = <FullPageSpinner />;
   } else if (!settings) {
-    contents = <SetupPage />;
+    contents = <SetupPage onThemePreview={setSetupTheme} />;
   } else {
     contents = (
       <IonReactRouter>

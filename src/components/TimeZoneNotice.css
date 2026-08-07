@@ -1,7 +1,10 @@
 .TimeZoneNotice {
   padding: 12px 16px 8px;
   margin: 0 8px 8px;
-  border: 1px solid var(--ion-color-step-150, #e0e0e0);
+  /* Derived from the text colour rather than a fixed grey, so it stays a
+     faint hairline in both palettes. Ionic sets --ion-text-color-rgb in dark
+     and leaves it unset in light, where the fallback is the black we want. */
+  border: 1px solid rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.2);
   border-radius: 8px;
 }
 

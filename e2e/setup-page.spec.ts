@@ -63,12 +63,10 @@ test("shows location above notifications", async ({ page }) => {
 test("shows every settings group, in order, without paging", async ({
   page,
 }) => {
-  // Matching on list headers rather than text: "Dark mode" as a substring also
-  // hits the "Use dark mode" toggle.
   await expect(page.locator("ion-list-header")).toHaveText([
     "Prayer time settings",
     "Notifications",
-    "Dark mode",
+    "Appearance",
     "About",
   ]);
 });

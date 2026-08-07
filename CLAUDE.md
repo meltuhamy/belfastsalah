@@ -66,6 +66,22 @@ prayer time. There is deliberately no visible affordance. `sendTestNotification`
 in `src/lib/notifications.ts` uses id 9999, clear of the prayer reminders,
 which use 0-64.
 
+## Theming
+
+One setting, `theme`, with four values: `system` (default), `light`, `dark`,
+`maghrib`. `src/lib/theme.ts` decides; `useTheme` in `App.tsx` is the only
+thing that touches the palette class, and it puts Ionic's `.ion-palette-dark`
+on `<html>`.
+
+`theme/variables.css` holds the app's own colours, which are *not* Ionic 8's
+defaults, and it must be imported **before** `palettes/dark.class.css`. Both
+land on `<html>` with equal specificity, so source order decides the winner;
+the other way round leaves the light palette in force in dark mode, which
+looks fine until you notice the striped rows in the month table are white.
+
+Setup keeps its answers local until Done, so it reports the theme up to
+`App` via `onThemePreview` — otherwise the picker looks dead on that screen.
+
 ## Prayer data
 
 `src/lib/PrayerTimeData.ts` holds `prayerDataLoaders`, the single source of

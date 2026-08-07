@@ -1,12 +1,10 @@
 import { Preferences } from "@capacitor/preferences";
 import { AsrMethod, PrayerLocation } from "./PrayerTimes";
+import { Theme } from "./theme";
 
 import debounce from "./debounce";
 
 const STORAGE_KEY = "settings";
-const isSystemDarkMode =
-  window.matchMedia &&
-  window.matchMedia("(prefers-color-scheme: dark)").matches;
 
 const saveCallbacks: Array<() => void> = [];
 
@@ -14,8 +12,8 @@ export type AppSettings = {
   notify: boolean;
   notifyMinutes: number;
   asrMethod: AsrMethod;
-  nightMode: boolean;
-  nightModeMaghrib: boolean;
+  // Light, dark, follow the device, or dark between Maghrib and sunrise.
+  theme: Theme;
   location: PrayerLocation | null;
   // False shows the timetable's own clock, which is what the mosque prints.
   showTimesInDeviceZone: boolean;
@@ -30,11 +28,49 @@ export function getDefaultSettings(): AppSettings {
     notify: false,
     notifyMinutes: 5,
     asrMethod: AsrMethod.Shafi,
-    nightMode: isSystemDarkMode,
-    nightModeMaghrib: false,
+    // Following the device is the default. It used to be a boolean seeded
+    // from the device once at first launch and then never updated again.
+    theme: "system",
     location: null,
     showTimesInDeviceZone: false,
     timeZoneNoticeSeen: false,
+  };
+}
+
+// What settings looked like before the theme rewrite: a pair of booleans, the
+// second only meaningful when the first was on.
+type LegacySettings = {
+  nightMode?: boolean;
+  nightModeMaghrib?: boolean;
+};
+
+function themeFromLegacy(legacy: LegacySettings): Theme | null {
+  if (legacy.nightMode == null) {
+    return null;
+  }
+  if (!legacy.nightMode) {
+    return "light";
+  }
+  return legacy.nightModeMaghrib ? "maghrib" : "dark";
+}
+
+/**
+ * Brings a stored blob up to the current shape.
+ *
+ * Fields added since it was written fall back to their defaults, and the old
+ * dark-mode booleans map onto the theme they were producing - so an upgrade
+ * looks like nothing happened rather than silently resetting someone's
+ * appearance. Deliberately does not map an old "off" to "system": it was an
+ * explicit setting, even if its initial value came from the device.
+ */
+export function migrateSettings(stored: unknown): AppSettings {
+  const { nightMode, nightModeMaghrib, ...rest } = (stored ?? {}) as
+    LegacySettings & Partial<AppSettings>;
+  const legacyTheme = themeFromLegacy({ nightMode, nightModeMaghrib });
+  return {
+    ...getDefaultSettings(),
+    ...rest,
+    ...(legacyTheme === null ? {} : { theme: legacyTheme }),
   };
 }
 
@@ -44,7 +80,7 @@ async function getSettingsFromStorage(): Promise<AppSettings | null> {
     return null;
   }
 
-  return JSON.parse(appSettings.value);
+  return migrateSettings(JSON.parse(appSettings.value));
 }
 
 let settingsCache: AppSettings | null | undefined = undefined;
