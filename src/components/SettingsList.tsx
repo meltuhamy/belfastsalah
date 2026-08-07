@@ -9,7 +9,16 @@ import {
   IonRange,
   IonToast,
 } from "@ionic/react";
-import { alarm, timer, map, sunny, bulb, moon } from "ionicons/icons";
+import {
+  alarm,
+  timer,
+  map,
+  sunny,
+  bulb,
+  moon,
+  lockClosed,
+  openOutline,
+} from "ionicons/icons";
 import { PrayerLocation } from "../lib/PrayerTimeData";
 import supportsHanafiAsr, { AsrMethod } from "../lib/PrayerTimes";
 import { AppSettings } from "../lib/settings";
@@ -171,6 +180,27 @@ const SettingsList: React.FC<Props> = ({
           </IonToggle>
         </IonItem>
       )}
+      <IonListHeader>
+        <IonLabel>About</IonLabel>
+      </IonListHeader>
+      {/*
+        IonItem with href renders an anchor, so the whole row is the link.
+        target="_blank" is what tells Capacitor to hand the URL to the system
+        browser rather than navigating the app's own webview away from itself,
+        which it cannot come back from.
+      */}
+      <IonItem
+        href="http://meltuhamy.com/privacy-policy/"
+        target="_blank"
+        rel="noopener noreferrer"
+        detail={false}
+        data-testid="privacy-policy-link"
+      >
+        <IonIcon icon={lockClosed} slot="start" />
+        <IonLabel>Privacy policy</IonLabel>
+        <IonIcon icon={openOutline} slot="end" size="small" />
+      </IonItem>
+
       <IonToast
         data-testid="test-notification-toast"
         isOpen={testResult !== null}

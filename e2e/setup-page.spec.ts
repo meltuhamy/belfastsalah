@@ -69,6 +69,7 @@ test("shows every settings group, in order, without paging", async ({
     "Prayer time settings",
     "Notifications",
     "Dark mode",
+    "About",
   ]);
 });
 

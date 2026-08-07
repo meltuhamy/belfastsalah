@@ -1,0 +1,52 @@
+import { test, expect, type Page } from "@playwright/test";
+
+// The link lives in the shared SettingsList, so it has to appear on both the
+// setup screen and the settings screen.
+
+const POLICY_URL = "http://meltuhamy.com/privacy-policy/";
+
+const policyLink = (page: Page) => page.getByTestId("privacy-policy-link");
+
+async function openSetup(page: Page) {
+  await page.goto("/");
+  await page.waitForSelector("ion-select");
+}
+
+async function openSettings(page: Page) {
+  // The app shows setup until settings have been saved, so get past it first.
+  await openSetup(page);
+  await page.getByRole("button", { name: "Done" }).click();
+  await expect(page.getByRole("button", { name: "Done" })).toHaveCount(0);
+  await page.goto("/settings");
+  await page.waitForSelector("ion-select");
+}
+
+for (const [screen, open] of [
+  ["setup", openSetup],
+  ["settings", openSettings],
+] as const) {
+  test(`shows the privacy policy link on the ${screen} screen`, async ({
+    page,
+  }) => {
+    await open(page);
+    await expect(policyLink(page)).toBeVisible();
+    await expect(policyLink(page)).toContainText("Privacy policy");
+    await expect(policyLink(page)).toHaveAttribute("href", POLICY_URL);
+  });
+
+  test(`opens the policy outside the app from the ${screen} screen`, async ({
+    page,
+  }) => {
+    // Without target="_blank" Capacitor navigates its own webview to the
+    // policy, and there is no way back to the app from there.
+    await open(page);
+    await expect(policyLink(page)).toHaveAttribute("target", "_blank");
+    await expect(policyLink(page)).toHaveAttribute("rel", /noopener/);
+  });
+}
+
+test("makes the whole privacy row tappable", async ({ page }) => {
+  await openSetup(page);
+  const box = await policyLink(page).boundingBox();
+  expect(box!.height).toBeGreaterThanOrEqual(44);
+});
