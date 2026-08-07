@@ -17,6 +17,8 @@ export type AppSettings = {
   nightMode: boolean;
   nightModeMaghrib: boolean;
   location: PrayerLocation | null;
+  // False shows the timetable's own clock, which is what the mosque prints.
+  showTimesInDeviceZone: boolean;
 };
 
 export function getDefaultSettings(): AppSettings {
@@ -27,6 +29,7 @@ export function getDefaultSettings(): AppSettings {
     nightMode: isSystemDarkMode,
     nightModeMaghrib: false,
     location: null,
+    showTimesInDeviceZone: false,
   };
 }
 

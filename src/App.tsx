@@ -2,7 +2,9 @@ import React, { useContext, useEffect, useLayoutEffect, useState } from "react";
 import { Route } from "react-router-dom";
 import { IonApp, IonRouterOutlet, IonToast } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
-import { format, subMinutes } from "date-fns";
+import { subMinutes } from "date-fns";
+import { formatTimeInZone } from "./lib/timeZone";
+import { locationTimeZones } from "./lib/PrayerTimeData";
 import HomePage from "./pages/HomePage";
 import SettingsPage from "./pages/SettingsPage";
 
@@ -95,6 +97,8 @@ const App: React.FC = () => {
   }, [nightMode, nightModeMaghrib, nextPrayer]);
 
   const location = settings == null ? null : settings.location;
+  const showTimesInDeviceZone =
+    settings == null ? null : settings.showTimesInDeviceZone;
   const asrMethod = settings == null ? null : settings.asrMethod;
   const notificationsEnabled = settings == null ? null : settings.notify;
   const notificationMinutes = settings == null ? null : settings.notifyMinutes;
@@ -113,6 +117,10 @@ const App: React.FC = () => {
         ? new LondonPrayerTimes(asrMethod)
         : new BelfastPrayerTimes();
 
+    const notificationZone = showTimesInDeviceZone
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : locationTimeZones[location];
+
     // clear all notifications
     async function clearAllAndSet(enabled: boolean, minutesBefore: number) {
       if (enabled) {
@@ -122,10 +130,11 @@ const App: React.FC = () => {
         for (let i = 0; i < MAX_NOTIFICATIONS - 1; i++) {
           const currentPrayer = await prayerTimes.getNext(currentPrayerTime);
           notificationsToSchedule.push({
-            title: `${prayerToString(currentPrayer.prayer)} is at ${format(
-              currentPrayer.time,
-              "HH:mm"
-            )}`,
+            // Must use the same clock the app shows, or the lock screen and
+            // the app disagree about when the prayer is.
+            title: `${prayerToString(
+              currentPrayer.prayer
+            )} is at ${formatTimeInZone(currentPrayer.time, notificationZone)}`,
             body:
               minutesBefore > 0
                 ? `${minutesBefore} minute reminder`
@@ -151,7 +160,14 @@ const App: React.FC = () => {
       }
     }
     clearAllAndSet(notificationsEnabled, notificationMinutes);
-  }, [location, asrMethod, notificationsEnabled, notificationMinutes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    location,
+    asrMethod,
+    notificationsEnabled,
+    notificationMinutes,
+    showTimesInDeviceZone
+  ]);
 
   useEffect(() => {
     function handleSavedEvent() {

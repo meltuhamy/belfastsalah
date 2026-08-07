@@ -1,6 +1,7 @@
 import { AppContext } from "../State";
 import { useContext, useEffect } from "react";
 import { useSettings } from "./useSettings";
+import { getZonedDateParts, UK_TIME_ZONE } from "./timeZone";
 import {
   PrayerLocation,
   LondonPrayerTimes,
@@ -29,7 +30,7 @@ export function usePrayerDay() {
         : new BelfastPrayerTimes();
   }
 
-  const tickDate = state.tick.getDate();
+  const tickDate = getZonedDateParts(state.tick, UK_TIME_ZONE).day;
 
   useEffect(() => {
     if (times !== null) {

@@ -17,10 +17,9 @@ export default defineConfig({
     setupFiles: "./src/setupTests.ts",
     // e2e/ is Playwright's; vitest would otherwise pick up its .spec.ts files.
     exclude: ["node_modules", "build", "e2e"],
-    // The prayer timetables are published as UK local times and the app
-    // indexes them by the device's local date, so the suite is pinned to the
-    // timezone the app is actually for. See README "Known issues" for the
-    // travelling-user case this papers over.
-    env: { TZ: "Europe/London" },
+    // Deliberately not pinned. The app reads and renders the timetable in its
+    // own zone, so the suite has to pass wherever the machine happens to be -
+    // run it under several with npm run test:zones.
+    env: { TZ: process.env.TZ ?? "Europe/London" },
   },
 });

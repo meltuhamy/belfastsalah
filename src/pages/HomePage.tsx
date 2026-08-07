@@ -27,6 +27,7 @@ import TodayTimesCard from "../components/TodayTimesCard";
 import CenteredMaxWidthContainer from "../components/CenteredMaxWidthContainer";
 import { App } from "@capacitor/app";
 import { SplashScreen } from "@capacitor/splash-screen";
+import { getZonedDateParts, UK_TIME_ZONE } from "../lib/timeZone";
 
 let shouldExitApp = false;
 App.addListener("backButton", () => {
@@ -43,7 +44,10 @@ const HomePage: React.FC = () => {
     rootMargin: "-77px 0px 0px 0px",
   });
 
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  // Month and year come from the timetable's calendar, so the table opens on
+  // the right page for someone whose device is on a different date.
+  const ukToday = getZonedDateParts(now, UK_TIME_ZONE);
+  const [selectedMonth, setSelectedMonth] = useState(ukToday.month - 1);
   const monthName = getMonthNames()[selectedMonth];
 
   useIonViewDidEnter(() => {
@@ -89,7 +93,7 @@ const HomePage: React.FC = () => {
             <IonCardContent className="HomePage__month-card__content">
               <MonthPrayerTable
                 month={selectedMonth}
-                year={now.getFullYear()}
+                year={ukToday.year}
               />
             </IonCardContent>
           </IonCard>

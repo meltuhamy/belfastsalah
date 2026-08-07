@@ -5,17 +5,19 @@ import {
   IonCardSubtitle,
   IonCardContent,
 } from "@ionic/react";
-import { format } from "date-fns";
+import { formatDateInZone } from "../lib/timeZone";
+import { useDisplayTimeZone } from "../lib/useDisplayTimeZone";
 import DayPrayerTable from "./DayPrayerTable";
 import { PrayerDayTimes } from "../lib/PrayerTimes";
 
 type Props = { dayTimes: PrayerDayTimes | null; now: Date };
 const TodayTimesCard: React.FC<Props> = ({ dayTimes, now }) => {
+  const timeZone = useDisplayTimeZone();
   return (
     <IonCard>
       <IonCardHeader>
         <IonCardSubtitle className="ion-text-center">
-          Today: {format(now, "eee d MMM")}
+          Today: {formatDateInZone(now, timeZone)}
         </IonCardSubtitle>
       </IonCardHeader>
       <IonCardContent>

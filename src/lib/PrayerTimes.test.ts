@@ -398,3 +398,41 @@ describe("Belfast Prayer Times", () => {
     );
   });
 });
+
+describe("Timezone independence", () => {
+  // These pin the behaviour the whole suite now relies on: the timetable is
+  // read and rendered in its own zone, so results do not move with the device.
+  // Before this, the suite had to be pinned to Europe/London to pass at all.
+
+  it("Should pick the day by UK date, not the device's", async () => {
+    // 23:30 UTC on 4 August is already the 5th in London, and still the 4th in
+    // Los Angeles. The London row is the right answer in both places.
+    const lateEvening = new Date("2026-08-04T23:30:00Z");
+    const times = await londonShafi.getDay(lateEvening);
+
+    // 2026-08-05: ["8","5","02:47","04:27","12:12","16:14","17:20","19:46","20:50"]
+    expect(times[Prayer.Fajr]).toBePrayer(Prayer.Fajr, utc(2026, 8, 5, 2, 47));
+  });
+
+  it("Should cross into the next day by UK date", async () => {
+    // Isha on the 5th is 20:50 UTC; the next prayer is Fajr on the 6th.
+    const afterIsha = new Date("2026-08-05T21:00:00Z");
+    const next = await londonShafi.getNext(afterIsha);
+
+    // 2026-08-06 fajr is 02:48 UTC
+    expect(next.prayer).toEqual(Prayer.Fajr);
+    expect(next.time).toEqual(utc(2026, 8, 6, 2, 48));
+  });
+
+  it("Should step a whole day when the UK clocks change", async () => {
+    // The UK springs forward on 2026-03-29. A flat 24 hours from late on the
+    // 28th skips the 29th entirely, which would have hidden a day of prayers.
+    // Isha on the 28th is 19:47 UTC, so late evening is past every prayer and
+    // the answer has to come from the 29th: fajr at 03:08 UTC.
+    const lateOn28th = new Date("2026-03-28T23:00:00Z");
+    const next = await londonShafi.getNext(lateOn28th);
+
+    expect(next.prayer).toEqual(Prayer.Fajr);
+    expect(next.time).toEqual(utc(2026, 3, 29, 3, 8));
+  });
+});

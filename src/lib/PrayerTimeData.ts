@@ -1,4 +1,5 @@
 import { Prayer, AsrMethod } from "./PrayerTimes";
+import { UK_TIME_ZONE, getZonedDateParts } from "./timeZone";
 
 export enum PrayerLocation {
   London = "london",
@@ -108,6 +109,13 @@ const prayerDataLoaders: Record<
   }
 };
 
+// The timetables are published as UK local times, so the timetable's own zone
+// - not the device's - decides which day's row applies.
+export const locationTimeZones: Record<PrayerLocation, string> = {
+  [PrayerLocation.Belfast]: UK_TIME_ZONE,
+  [PrayerLocation.London]: UK_TIME_ZONE
+};
+
 export function getAvailableYears(location: PrayerLocation): Array<number> {
   return Object.keys(prayerDataLoaders[location])
     .map(Number)
@@ -155,10 +163,12 @@ export async function getDay(
   location: PrayerLocation,
   asrMethod: AsrMethod
 ) {
-  const prayerData = await getPrayerData(
-    location,
-    asrMethod,
-    date.getFullYear()
+  // Read the calendar date in the timetable's zone. Using the device's local
+  // date meant anyone outside the UK was served the neighbouring day's times.
+  const { year, month, day } = getZonedDateParts(
+    date,
+    locationTimeZones[location]
   );
-  return prayerData[date.getMonth()][date.getDate() - 1];
+  const prayerData = await getPrayerData(location, asrMethod, year);
+  return { prayers: prayerData[month - 1][day - 1], year };
 }
