@@ -197,7 +197,15 @@ const SettingsList: React.FC<Props> = ({
         data-testid="privacy-policy-link"
       >
         <IonIcon icon={lockClosed} slot="start" />
-        <IonLabel>Privacy policy</IonLabel>
+        <IonLabel>
+          <h3>Privacy policy</h3>
+          {/*
+            Accurate as written: the app makes no network requests at all, has
+            no analytics or crash reporting, and ships its prayer data in the
+            bundle. Settings and reminders stay on the device.
+          */}
+          <p>No data leaves your device</p>
+        </IonLabel>
         <IonIcon icon={openOutline} slot="end" size="small" />
       </IonItem>
 

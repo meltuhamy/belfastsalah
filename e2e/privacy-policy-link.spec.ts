@@ -31,6 +31,7 @@ for (const [screen, open] of [
     await open(page);
     await expect(policyLink(page)).toBeVisible();
     await expect(policyLink(page)).toContainText("Privacy policy");
+    await expect(policyLink(page)).toContainText("No data leaves your device");
     await expect(policyLink(page)).toHaveAttribute("href", POLICY_URL);
   });
 
