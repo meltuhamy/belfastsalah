@@ -3,7 +3,7 @@ import { Route } from "react-router-dom";
 import { IonApp, IonRouterOutlet, IonToast } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
 import { subMinutes } from "date-fns";
-import { formatTimeInZone } from "./lib/timeZone";
+import { formatTimeInZone, getDeviceTimeZone } from "./lib/timeZone";
 import { locationTimeZones } from "./lib/PrayerTimeData";
 import HomePage from "./pages/HomePage";
 import SettingsPage from "./pages/SettingsPage";
@@ -118,7 +118,7 @@ const App: React.FC = () => {
         : new BelfastPrayerTimes();
 
     const notificationZone = showTimesInDeviceZone
-      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      ? getDeviceTimeZone()
       : locationTimeZones[location];
 
     // clear all notifications

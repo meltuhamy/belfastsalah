@@ -6,6 +6,7 @@ import {
   shiftZonedDay,
   formatTimeInZone,
   formatDateInZone,
+  describeTimeZone,
 } from "./timeZone";
 
 describe("getZonedDateParts", () => {
@@ -147,6 +148,26 @@ describe("formatTimeInZone", () => {
     );
     expect(formatTimeInZone(new Date("2026-01-15T13:05:00Z"), "UTC")).toEqual(
       "13:05"
+    );
+  });
+});
+
+describe("describeTimeZone", () => {
+  it("Should name the zone the way a person would", () => {
+    expect(describeTimeZone("Asia/Dubai", new Date("2026-07-15T12:00:00Z"))).toEqual(
+      "Gulf Standard Time"
+    );
+    expect(describeTimeZone("Europe/Paris", new Date("2026-07-15T12:00:00Z"))).toEqual(
+      "Central European Summer Time"
+    );
+  });
+
+  it("Should follow the season rather than name one zone two ways", () => {
+    expect(describeTimeZone(UK_TIME_ZONE, new Date("2026-01-15T12:00:00Z"))).toEqual(
+      "Greenwich Mean Time"
+    );
+    expect(describeTimeZone(UK_TIME_ZONE, new Date("2026-07-15T12:00:00Z"))).toEqual(
+      "British Summer Time"
     );
   });
 });

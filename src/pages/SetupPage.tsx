@@ -5,7 +5,6 @@ import {
   IonPage,
   IonTitle,
   IonContent,
-  IonText,
   IonButton,
 } from "@ionic/react";
 import { useSettings } from "../lib/useSettings";
@@ -58,10 +57,10 @@ const SetupPage: React.FC = () => {
             onDarkModeMaghribChange={(nightModeMaghrib) =>
               setSetting({ nightModeMaghrib })
             }
+            onShowTimesInDeviceZoneChange={(showTimesInDeviceZone) =>
+              setSetting({ showTimesInDeviceZone, timeZoneNoticeSeen: true })
+            }
           />
-          <IonText color="medium">
-            Timing is based on your device's clock.
-          </IonText>
           <IonButton
             className="ion-margin-top"
             expand="block"

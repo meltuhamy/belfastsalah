@@ -52,6 +52,11 @@ const SettingsTab: React.FC = () => {
             onDarkModeMaghribChange={(nightModeMaghrib) =>
               setSetting({ nightModeMaghrib })
             }
+            onShowTimesInDeviceZoneChange={(showTimesInDeviceZone) =>
+              // Choosing here answers the home screen prompt too, so it does
+              // not turn up later asking a question already settled.
+              setSetting({ showTimesInDeviceZone, timeZoneNoticeSeen: true })
+            }
           />
         </CenteredMaxWidthContainer>
       </IonContent>

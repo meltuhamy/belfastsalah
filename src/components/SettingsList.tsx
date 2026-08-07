@@ -7,6 +7,8 @@ import {
   IonIcon,
   IonToggle,
   IonRange,
+  IonSelect,
+  IonSelectOption,
   IonToast,
 } from "@ionic/react";
 import {
@@ -16,12 +18,15 @@ import {
   sunny,
   bulb,
   moon,
+  globeOutline,
   lockClosed,
   openOutline,
 } from "ionicons/icons";
-import { PrayerLocation } from "../lib/PrayerTimeData";
+import { PrayerLocation, locationNames } from "../lib/PrayerTimeData";
 import supportsHanafiAsr, { AsrMethod } from "../lib/PrayerTimes";
 import { AppSettings } from "../lib/settings";
+import { describeTimeZone, getDeviceTimeZone } from "../lib/timeZone";
+import { zoneChoiceApplies } from "../lib/displayZone";
 import LocationSelector from "./LocationSelector";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import {
@@ -40,6 +45,7 @@ type Props = {
   onAsrMethodChange: (newAsrMethod: AsrMethod) => void;
   onDarkModeChange: (newDarkMode: boolean) => void;
   onDarkModeMaghribChange: (newDarkModeMaghrib: boolean) => void;
+  onShowTimesInDeviceZoneChange: (newShowTimesInDeviceZone: boolean) => void;
 };
 const SettingsList: React.FC<Props> = ({
   settings,
@@ -49,8 +55,14 @@ const SettingsList: React.FC<Props> = ({
   onAsrMethodChange,
   onDarkModeChange,
   onDarkModeMaghribChange,
+  onShowTimesInDeviceZoneChange,
 }) => {
   const [testResult, setTestResult] = useState<string | null>(null);
+
+  // Only worth offering when the two clocks actually differ.
+  const now = new Date();
+  const deviceTimeZone = getDeviceTimeZone();
+  const showZoneChoice = zoneChoiceApplies(settings.location, now);
 
   // Hidden diagnostic: long-press the timer icon to fire a notification a few
   // seconds out, so the whole reminder path can be checked without waiting for
@@ -92,6 +104,45 @@ const SettingsList: React.FC<Props> = ({
             Use Hanafi Asr
           </IonToggle>
         </IonItem>
+      )}
+      {showZoneChoice && settings.location !== null && (
+        <>
+          {/*
+            IonSelect is a direct child of the item on purpose. Wrapping it in
+            a layout div takes it out of Ionic's item association, which leaves
+            only the control's own text clickable and the rest of the row dead
+            - the same Ionic 8 regression that broke the location picker twice.
+            The explanation therefore sits in its own row rather than beside it.
+          */}
+          <IonItem>
+            <IonIcon icon={globeOutline} slot="start" />
+            <IonSelect
+              label="Show times in"
+              value={settings.showTimesInDeviceZone}
+              interface="alert"
+              okText="Choose"
+              cancelText="Cancel"
+              data-testid="display-zone-select"
+              onIonChange={(event) =>
+                onShowTimesInDeviceZoneChange(event.detail.value as boolean)
+              }
+            >
+              <IonSelectOption value={false}>
+                {locationNames[settings.location]} time
+              </IonSelectOption>
+              <IonSelectOption value={true}>My clock</IonSelectOption>
+            </IonSelect>
+          </IonItem>
+          <IonItem lines="none" className="settings-list__note-item">
+            <IonLabel className="ion-text-wrap">
+              <p className="settings-list__note">
+                Your device is on {describeTimeZone(deviceTimeZone, now)}.
+                Reminders arrive at the same moment either way — this only
+                changes the clock you read them on.
+              </p>
+            </IonLabel>
+          </IonItem>
+        </>
       )}
       <IonListHeader>
         <IonLabel>Notifications</IonLabel>

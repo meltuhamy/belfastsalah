@@ -9,7 +9,7 @@ test.use({ permissions: ["notifications"] });
 
 async function enableReminders(page: Page) {
   await page.goto("/");
-  await page.waitForSelector("ion-select");
+  await page.waitForSelector("[data-testid=location-select]");
   await page
     .locator("ion-toggle")
     .filter({ hasText: "Notify before prayer" })

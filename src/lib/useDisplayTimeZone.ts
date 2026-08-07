@@ -1,6 +1,5 @@
 import { useSettings } from "./useSettings";
-import { locationTimeZones } from "./PrayerTimeData";
-import { getDeviceTimeZone, UK_TIME_ZONE } from "./timeZone";
+import { resolveDisplayTimeZone } from "./displayZone";
 
 /**
  * The zone the app should render clock times in.
@@ -12,12 +11,5 @@ import { getDeviceTimeZone, UK_TIME_ZONE } from "./timeZone";
  */
 export function useDisplayTimeZone(): string {
   const [settings] = useSettings();
-
-  if (settings == null || settings.location == null) {
-    return UK_TIME_ZONE;
-  }
-
-  return settings.showTimesInDeviceZone
-    ? getDeviceTimeZone()
-    : locationTimeZones[settings.location];
+  return resolveDisplayTimeZone(settings);
 }

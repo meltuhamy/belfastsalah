@@ -9,7 +9,7 @@ const policyLink = (page: Page) => page.getByTestId("privacy-policy-link");
 
 async function openSetup(page: Page) {
   await page.goto("/");
-  await page.waitForSelector("ion-select");
+  await page.waitForSelector("[data-testid=location-select]");
 }
 
 async function openSettings(page: Page) {
@@ -18,7 +18,7 @@ async function openSettings(page: Page) {
   await page.getByRole("button", { name: "Done" }).click();
   await expect(page.getByRole("button", { name: "Done" })).toHaveCount(0);
   await page.goto("/settings");
-  await page.waitForSelector("ion-select");
+  await page.waitForSelector("[data-testid=location-select]");
 }
 
 for (const [screen, open] of [

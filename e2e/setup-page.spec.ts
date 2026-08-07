@@ -14,13 +14,13 @@ import { test, expect, type Page } from "@playwright/test";
 // testing inside Ionic's shadow DOM is not something jsdom can answer.
 
 const selectValue = (page: Page) =>
-  page.$eval("ion-select", (s) => (s as unknown as { value: string }).value);
+  page.$eval("[data-testid=location-select]", (s) => (s as unknown as { value: string }).value);
 
 /** Taps the location row well away from the control, at its trailing edge. */
 async function tapRowAwayFromControl(page: Page) {
   const row = page
     .locator("ion-item")
-    .filter({ has: page.locator("ion-select") });
+    .filter({ has: page.locator("[data-testid=location-select]") });
   const box = await row.boundingBox();
   if (!box) {
     throw new Error("Could not find the location row");
@@ -39,7 +39,7 @@ async function chooseFromDialog(page: Page, label: string) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
-  await page.waitForSelector("ion-select");
+  await page.waitForSelector("[data-testid=location-select]");
 });
 
 test("is a single screen with no wizard step", async ({ page }) => {
@@ -50,7 +50,7 @@ test("is a single screen with no wizard step", async ({ page }) => {
 test("shows location above notifications", async ({ page }) => {
   const locationRow = page
     .locator("ion-item")
-    .filter({ has: page.locator("ion-select") });
+    .filter({ has: page.locator("[data-testid=location-select]") });
   const notifyRow = page
     .locator("ion-item")
     .filter({ hasText: "Notify before prayer" });

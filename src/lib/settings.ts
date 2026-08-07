@@ -19,6 +19,10 @@ export type AppSettings = {
   location: PrayerLocation | null;
   // False shows the timetable's own clock, which is what the mosque prints.
   showTimesInDeviceZone: boolean;
+  // Whether the one-off "your device isn't on London time" prompt has been
+  // answered. Missing in settings saved by older versions, which reads as
+  // false, so the prompt appears once for anyone it applies to.
+  timeZoneNoticeSeen: boolean;
 };
 
 export function getDefaultSettings(): AppSettings {
@@ -30,6 +34,7 @@ export function getDefaultSettings(): AppSettings {
     nightModeMaghrib: false,
     location: null,
     showTimesInDeviceZone: false,
+    timeZoneNoticeSeen: false,
   };
 }
 

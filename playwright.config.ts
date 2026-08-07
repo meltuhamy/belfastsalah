@@ -13,6 +13,11 @@ export default defineConfig({
   use: {
     baseURL: "http://127.0.0.1:5173",
     trace: "on-first-retry",
+    // The app shows extra timezone controls when the device's clock differs
+    // from the timetable's, so leaving this to the runner's clock would make
+    // most of these tests behave differently on a US machine, or in winter.
+    // Specs about that behaviour set their own zone with test.use.
+    timezoneId: "Europe/London",
   },
   projects: [
     {

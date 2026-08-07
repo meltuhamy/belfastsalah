@@ -17,6 +17,28 @@
   padding-bottom: 0;
 }
 
+/* A caption row: carries text under a control without being a row you can
+   tap, so it should not take a full row's height or look interactive. */
+.settings-list__note-item {
+  --min-height: 0;
+  --padding-top: 0;
+  --padding-bottom: 8px;
+  --background: transparent;
+  /* Lines the caption up with the row labels above rather than the screen
+     edge, so it reads as belonging to that control. 16px item inset + a 24px
+     icon + Ionic's 32px gap after a start-slot icon. */
+  --padding-start: 72px;
+}
+
+/* Deliberately smaller and dimmer than a control's own label, but still large
+   enough to read without squinting. */
+.settings-list__note {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--ion-color-medium, #92949c);
+}
+
 /* The long-press diagnostic lives on this icon. No affordance by design, but
    it should not select text or show a callout while being held.
    Wrapping the icon takes it out of Ionic's `ion-icon[slot=start]` rules, so

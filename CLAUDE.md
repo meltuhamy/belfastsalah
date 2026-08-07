@@ -41,6 +41,14 @@ Anything about whether a tap actually reaches a control belongs in `e2e/`, not
 in a vitest test — a jsdom test will happily pass against a control that
 cannot be clicked at all. This has bitten the setup screen twice.
 
+The app shows extra controls when the device's clock differs from the
+timetable's, so both suites pin a timezone rather than inheriting the machine's:
+`playwright.config.ts` sets `timezoneId: "Europe/London"`, and specs about that
+behaviour override it with `test.use({ timezoneId })`. On the vitest side,
+`npm run test:zones` runs the whole suite under five zones — run it after
+touching anything date-related, because a suite that only passes in London is
+how the original bug survived.
+
 In this sandbox Playwright's bundled browser version does not match the
 preinstalled one, so run e2e with:
 

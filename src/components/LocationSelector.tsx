@@ -1,6 +1,6 @@
 import React from "react";
 import { IonSelect, IonSelectOption } from "@ionic/react";
-import { PrayerLocation } from "../lib/PrayerTimeData";
+import { PrayerLocation, locationNames } from "../lib/PrayerTimeData";
 import supportsHanafiAsr, { AsrMethod } from "../lib/PrayerTimes";
 
 type Props = {
@@ -27,6 +27,7 @@ const LocationSelector: React.FC<Props> = ({
 }) => (
   <IonSelect
     label="Location"
+    data-testid="location-select"
     value={location}
     interface="alert"
     okText="Choose"
@@ -41,8 +42,12 @@ const LocationSelector: React.FC<Props> = ({
       );
     }}
   >
-    <IonSelectOption value="london">London</IonSelectOption>
-    <IonSelectOption value="belfast">Belfast</IonSelectOption>
+    <IonSelectOption value={PrayerLocation.London}>
+      {locationNames[PrayerLocation.London]}
+    </IonSelectOption>
+    <IonSelectOption value={PrayerLocation.Belfast}>
+      {locationNames[PrayerLocation.Belfast]}
+    </IonSelectOption>
   </IonSelect>
 );
 

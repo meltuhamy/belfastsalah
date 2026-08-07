@@ -19,7 +19,7 @@ describe("SetupPage location picker", () => {
   async function getSelect(container: HTMLElement) {
     let select: Element | null = null;
     await waitFor(() => {
-      select = container.querySelector("ion-select");
+      select = container.querySelector("[data-testid=location-select]");
       expect(select).not.toBeNull();
     });
     return select as unknown as HTMLElement & { value: string };
@@ -33,10 +33,12 @@ describe("SetupPage location picker", () => {
 
   it("Should offer both locations as options", async () => {
     const { container } = renderSetup();
-    await getSelect(container);
-    const values = Array.from(
-      container.querySelectorAll("ion-select-option")
-    ).map((o) => o.getAttribute("value"));
+    const select = await getSelect(container);
+    // Scoped to this select: the screen grows a second one when the device's
+    // clock differs from the timetable's.
+    const values = Array.from(select.querySelectorAll("ion-select-option")).map(
+      (o) => o.getAttribute("value")
+    );
     expect(values).toEqual(["london", "belfast"]);
   });
 

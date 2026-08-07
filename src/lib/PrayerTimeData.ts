@@ -116,6 +116,13 @@ export const locationTimeZones: Record<PrayerLocation, string> = {
   [PrayerLocation.London]: UK_TIME_ZONE
 };
 
+// One place to name a location, so the picker and the timezone copy can never
+// disagree about what a location is called.
+export const locationNames: Record<PrayerLocation, string> = {
+  [PrayerLocation.Belfast]: "Belfast",
+  [PrayerLocation.London]: "London"
+};
+
 export function getAvailableYears(location: PrayerLocation): Array<number> {
   return Object.keys(prayerDataLoaders[location])
     .map(Number)

@@ -132,3 +132,12 @@ export function formatDateInZone(instant: Date, timeZone: string): string {
   }
   return formatter.format(instant).replace(/,/g, "");
 }
+
+/** A short human name for a zone, e.g. "Gulf Standard Time". */
+export function describeTimeZone(timeZone: string, at: Date): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    timeZoneName: "long"
+  }).formatToParts(at);
+  return parts.find(p => p.type === "timeZoneName")?.value ?? timeZone;
+}

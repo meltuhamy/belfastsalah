@@ -1,0 +1,25 @@
+.TimeZoneNotice {
+  padding: 12px 16px 8px;
+  margin: 0 8px 8px;
+  border: 1px solid var(--ion-color-step-150, #e0e0e0);
+  border-radius: 8px;
+}
+
+.TimeZoneNotice__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.TimeZoneNotice__body {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.TimeZoneNotice__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
