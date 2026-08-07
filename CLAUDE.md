@@ -58,6 +58,20 @@ CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2
 
 CI installs its own browser and needs no override.
 
+## The once-a-second re-render
+
+`App` dispatches a tick every second for the countdown, so every screen
+re-renders that often — and `@ionic/react` re-assigns *every* prop to the
+underlying custom element on *every* render, without comparing to the previous
+value. Anything with a value that lives on the element between renders will be
+clobbered about once a second.
+
+That is why the reminder slider holds its in-flight value in `SettingsList`
+state while a drag is in progress: `ionChange` only fires on release, so
+without it the knob was being yanked back to the stored value mid-drag. It is
+also why `SetupPage` uses a functional state update. Bear it in mind before
+adding another control that has to hold state while being interacted with.
+
 ## Hidden test notification
 
 Long-pressing the timer icon on the reminder row schedules a notification a

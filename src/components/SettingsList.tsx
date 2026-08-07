@@ -57,6 +57,20 @@ const SettingsList: React.FC<Props> = ({
 }) => {
   const [testResult, setTestResult] = useState<string | null>(null);
 
+  /*
+   * Where the reminder slider is while it is being dragged, or null when it is
+   * not. It has to be held here rather than read back from settings, because
+   * ionChange only fires on release: until then `settings.notifyMinutes` is
+   * still the old value, and @ionic/react re-assigns every prop to the element
+   * on every render. The app re-renders once a second off the countdown
+   * ticker, so a drag lasting longer than a second had the knob yanked back to
+   * where it started, roughly once a second, until the next touch move caught
+   * it up. Committing on each ionInput instead would fix the display but
+   * reschedule all 64 notifications for every intermediate value.
+   */
+  const [draggingMinutes, setDraggingMinutes] = useState<number | null>(null);
+  const notifyMinutes = draggingMinutes ?? settings.notifyMinutes;
+
   // Only worth offering when the two clocks actually differ.
   const now = new Date();
   const deviceTimeZone = getDeviceTimeZone();
@@ -182,7 +196,7 @@ const SettingsList: React.FC<Props> = ({
               contrast inside shadow DOM, which is hard to read at a glance.
             */}
             <p className="settings-list__range-label">
-              {describeNotifyMinutes(settings.notifyMinutes)}
+              {describeNotifyMinutes(notifyMinutes)}
             </p>
             <IonRange
               aria-label="Minutes before prayer"
@@ -192,10 +206,15 @@ const SettingsList: React.FC<Props> = ({
               snaps={true}
               pin={true}
               pinFormatter={(value: number) => `${value}m`}
-              value={settings.notifyMinutes}
+              value={notifyMinutes}
+              onIonInput={(event) =>
+                setDraggingMinutes(event.detail.value as number)
+              }
               onIonChange={(event) => {
-                const newValue = event.detail.value;
-                onNotifyMinutesChange(newValue as number);
+                // Released. Hand the value over and stop shadowing the stored
+                // one in the same update, so the two never disagree on screen.
+                setDraggingMinutes(null);
+                onNotifyMinutesChange(event.detail.value as number);
               }}
             ></IonRange>
           </div>
