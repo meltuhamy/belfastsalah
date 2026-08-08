@@ -89,6 +89,17 @@ GitHub secrets and clean up any files they write.
 
 **Android**
 
+Set all four at once, without the key leaving your machine:
+
+```bash
+./scripts/android-signing-secrets.sh path/to/upload-keystore.jks
+```
+
+It prints the certificate fingerprint so you can check it against Play
+Console before anything is uploaded, verifies the passwords actually open the
+keystore, then pipes the base64 straight into `gh secret set` — never to a
+file or to your shell history. Or set them by hand:
+
 | Secret | How to get it |
 |---|---|
 | `ANDROID_KEYSTORE_BASE64` | `base64 -w0 upload-keystore.jks` |
