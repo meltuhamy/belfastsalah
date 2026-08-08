@@ -74,6 +74,9 @@ because it is public — including the macOS runners used for iOS.
 | `release-android.yml` | `v*` tag | signed `.aab` for the Play Console |
 | `release-ios.yml` | `v*` tag | signed `.ipa` uploaded to TestFlight |
 
+See [RELEASING.md](RELEASING.md) for the full sequence, including the
+Play Console forms and what to check before promoting to production.
+
 To cut a release, bump `versionCode`/`versionName` in
 `android/app/build.gradle` and `MARKETING_VERSION` in the Xcode project, then
 push a tag:
