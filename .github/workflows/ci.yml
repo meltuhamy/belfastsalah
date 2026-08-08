@@ -98,6 +98,14 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
+      # The Play Store takes an app bundle, not an APK, and that is a different
+      # Gradle task with its own way of failing. Building it unsigned here
+      # means a broken release build surfaces on an ordinary push rather than
+      # on the tag you were hoping to ship.
+      - name: Assemble release bundle (unsigned)
+        working-directory: android
+        run: ./gradlew bundleRelease --no-daemon
+
       - uses: actions/upload-artifact@v7
         with:
           name: app-debug.apk
