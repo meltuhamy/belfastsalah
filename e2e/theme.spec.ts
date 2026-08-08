@@ -1,4 +1,9 @@
 import { test, expect, type Page } from "@playwright/test";
+import {
+  chooseFromSelect,
+  completeSetup,
+  openSettings as openSettingsScreen,
+} from "./support/app";
 
 // The theme is one setting with four values, replacing a pair of coupled
 // booleans. What matters is that choosing one actually repaints the app, so
@@ -20,26 +25,12 @@ const backgroundColour = (page: Page) =>
  * times for that mode to follow.
  */
 async function openSettings(page: Page) {
-  await page.waitForSelector("[data-testid=theme-select]");
-  await page.getByRole("button", { name: "Done" }).click();
-  await expect(page.getByRole("button", { name: "Done" })).toHaveCount(0);
-  await page.locator("ion-button[router-link='/settings']").click();
-  await expect(page.locator("[data-testid=theme-select]")).toBeVisible();
+  await completeSetup(page);
+  await openSettingsScreen(page);
 }
 
-async function chooseTheme(page: Page, label: string) {
-  const row = page
-    .locator("ion-item")
-    .filter({ has: page.locator("[data-testid=theme-select]") });
-  const box = await row.boundingBox();
-  await row.tap({ position: { x: box!.width - 20, y: box!.height / 2 } });
-
-  const alert = page.locator("ion-alert");
-  await expect(alert).toBeVisible();
-  await alert.getByRole("radio", { name: label, exact: true }).click();
-  await alert.getByRole("button", { name: "Choose" }).click();
-  await expect(alert).toBeHidden();
-}
+const chooseTheme = (page: Page, label: string) =>
+  chooseFromSelect(page, "[data-testid=theme-select]", label);
 
 test.describe("with the device set to light", () => {
   test.use({ colorScheme: "light" });
@@ -127,7 +118,6 @@ test.describe("dark after Maghrib", () => {
     // 23:30 in London on the 7th: past Isha (21:47) and well before sunrise,
     // with the device set to light - so only the timetable can explain dark.
     await page.clock.setFixedTime(new Date("2026-08-07T22:30:00Z"));
-    await page.goto("/");
     await openSettings(page);
     await chooseTheme(page, "Dark after Maghrib");
     await expect.poll(() => paletteIsDark(page)).toBe(true);
@@ -136,7 +126,6 @@ test.describe("dark after Maghrib", () => {
   test("is light during the day", async ({ page }) => {
     // 13:00 in London, before Duhr at 13:12 and long after sunrise.
     await page.clock.setFixedTime(new Date("2026-08-07T12:00:00Z"));
-    await page.goto("/");
     await openSettings(page);
     await chooseTheme(page, "Dark after Maghrib");
     await expect.poll(() => paletteIsDark(page)).toBe(false);

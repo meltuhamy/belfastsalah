@@ -36,6 +36,26 @@ Notes:
 - `npm test` — vitest, unit tests in `src/`
 - `npm run test:e2e` — Playwright, real-browser tests in `e2e/`
 
+Behaviour is covered end-to-end; vitest is for utility functions and data
+correctness, not for screens. `e2e/support/app.ts` holds the shared driving
+(complete setup, navigate, pick from a select, read the today card or month
+table) so specs stay about behaviour.
+
+Two rules make the e2e assertions stable enough to hardcode:
+
+- **Pin the clock** with `pinDate` before the first `goto`. The times on
+  screen come from a fixed timetable, so an unpinned test is asserting against
+  whatever today happens to be and goes stale overnight. Winter dates are
+  easiest — the UK is on GMT, so the times on screen are the timetable's own
+  strings and expectations can be read straight out of `src/prayer_data`.
+- **Assert against the timetable**, not against what the app currently
+  renders. Numbers in the specs were read out of the JSON.
+
+Note `src/prayer_data` carries a 29 February row in every non-leap year,
+duplicating the 28th. It is never rendered, because `getMonth` takes its day
+count from the calendar rather than from the file — there is a test pinning
+that.
+
 Ionic renders form controls into shadow DOM, and jsdom does not realise it.
 Anything about whether a tap actually reaches a control belongs in `e2e/`, not
 in a vitest test — a jsdom test will happily pass against a control that

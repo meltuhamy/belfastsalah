@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { LOCATION_SELECT, chooseFromSelect } from "./support/app";
 
 // The setup screen's location picker broke twice while it was a hand-rolled
 // radio group separate from the settings screen's control:
@@ -14,13 +15,13 @@ import { test, expect, type Page } from "@playwright/test";
 // testing inside Ionic's shadow DOM is not something jsdom can answer.
 
 const selectValue = (page: Page) =>
-  page.$eval("[data-testid=location-select]", (s) => (s as unknown as { value: string }).value);
+  page.$eval(LOCATION_SELECT, (s) => (s as unknown as { value: string }).value);
 
 /** Taps the location row well away from the control, at its trailing edge. */
 async function tapRowAwayFromControl(page: Page) {
   const row = page
     .locator("ion-item")
-    .filter({ has: page.locator("[data-testid=location-select]") });
+    .filter({ has: page.locator(LOCATION_SELECT) });
   const box = await row.boundingBox();
   if (!box) {
     throw new Error("Could not find the location row");
@@ -28,14 +29,6 @@ async function tapRowAwayFromControl(page: Page) {
   await page.touchscreen.tap(box.x + box.width - 20, box.y + box.height / 2);
 }
 
-/** Picks an option from the dialog IonSelect opens. */
-async function chooseFromDialog(page: Page, label: string) {
-  const alert = page.locator("ion-alert");
-  await expect(alert).toBeVisible();
-  await alert.getByRole("radio", { name: label }).click();
-  await alert.getByRole("button", { name: "Choose" }).click();
-  await expect(alert).toBeHidden();
-}
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
@@ -83,18 +76,15 @@ test("opens the picker when the row is tapped away from the control", async ({
 });
 
 test("selects Belfast", async ({ page }) => {
-  await tapRowAwayFromControl(page);
-  await chooseFromDialog(page, "Belfast");
+  await chooseFromSelect(page, LOCATION_SELECT, "Belfast");
   await expect.poll(() => selectValue(page)).toBe("belfast");
 });
 
 test("can switch back to London", async ({ page }) => {
-  await tapRowAwayFromControl(page);
-  await chooseFromDialog(page, "Belfast");
+  await chooseFromSelect(page, LOCATION_SELECT, "Belfast");
   await expect.poll(() => selectValue(page)).toBe("belfast");
 
-  await tapRowAwayFromControl(page);
-  await chooseFromDialog(page, "London");
+  await chooseFromSelect(page, LOCATION_SELECT, "London");
   await expect.poll(() => selectValue(page)).toBe("london");
 });
 
@@ -107,8 +97,7 @@ test("keeps the choice across repeated changes", async ({ page }) => {
     ["Belfast", "belfast"],
   ] as const) {
     await page.waitForTimeout(450);
-    await tapRowAwayFromControl(page);
-    await chooseFromDialog(page, label);
+    await chooseFromSelect(page, LOCATION_SELECT, label);
     await expect.poll(() => selectValue(page)).toBe(want);
   }
 });
@@ -119,8 +108,7 @@ test("hides hanafi asr for locations that do not support it", async ({
   // London publishes a second asr column, Belfast does not.
   await expect(page.getByText("Use Hanafi Asr")).toBeVisible();
 
-  await tapRowAwayFromControl(page);
-  await chooseFromDialog(page, "Belfast");
+  await chooseFromSelect(page, LOCATION_SELECT, "Belfast");
   await expect.poll(() => selectValue(page)).toBe("belfast");
 
   await expect(page.getByText("Use Hanafi Asr")).toHaveCount(0);

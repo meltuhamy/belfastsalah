@@ -1,4 +1,9 @@
 import { test, expect, type Page } from "@playwright/test";
+import {
+  completeSetup,
+  openSettings as openSettingsScreen,
+  openSetup,
+} from "./support/app";
 
 // The link lives in the shared SettingsList, so it has to appear on both the
 // setup screen and the settings screen.
@@ -7,18 +12,10 @@ const POLICY_URL = "https://meltuhamy.com/privacy-policy/";
 
 const policyLink = (page: Page) => page.getByTestId("privacy-policy-link");
 
-async function openSetup(page: Page) {
-  await page.goto("/");
-  await page.waitForSelector("[data-testid=location-select]");
-}
-
 async function openSettings(page: Page) {
   // The app shows setup until settings have been saved, so get past it first.
-  await openSetup(page);
-  await page.getByRole("button", { name: "Done" }).click();
-  await expect(page.getByRole("button", { name: "Done" })).toHaveCount(0);
-  await page.goto("/settings");
-  await page.waitForSelector("[data-testid=location-select]");
+  await completeSetup(page);
+  await openSettingsScreen(page);
 }
 
 for (const [screen, open] of [
