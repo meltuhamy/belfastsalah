@@ -79,7 +79,12 @@ export function addUpdateNotifyListener(
 export function removeUpdateNotifyListener(
   callback: (notifications: Array<LocalNotificationSchema>) => void
 ) {
-  updateCallbacks.splice(updateCallbacks.indexOf(callback), 1);
+  // Guarded: indexOf returns -1 for a callback that was never added, and
+  // splice(-1, 1) would drop somebody else's listener instead of nothing.
+  const index = updateCallbacks.indexOf(callback);
+  if (index !== -1) {
+    updateCallbacks.splice(index, 1);
+  }
 }
 
 export type TestNotificationResult = "scheduled" | "denied";

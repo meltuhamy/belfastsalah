@@ -31,8 +31,11 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      # test:zones rather than test: the app reads and renders the timetable in
+      # its own zone, and a suite that only passes in the runner's zone is how
+      # the original wrong-day-abroad bug survived.
       - name: Test
-        run: npm test
+        run: npm run test:zones
 
       - name: Build
         run: npx vite build

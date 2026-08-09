@@ -55,19 +55,24 @@ fi
 
 # --- 1. Show what this keystore actually is -------------------------------
 
+# mktemp rather than /tmp/ks.$$: a predictable name in a world-writable
+# directory can be pre-created as a symlink, and the trap means the listing
+# does not survive a Ctrl-C or a "no" at the confirmation below.
+LISTING=$(mktemp "${TMPDIR:-/tmp}/ks.XXXXXXXX")
+trap 'rm -f "$LISTING"' EXIT INT TERM
+
 read -r -s -p "Keystore password: " STORE_PASSWORD; echo
-if ! keytool -list -v -keystore "$KEYSTORE" -storepass "$STORE_PASSWORD" >/tmp/ks.$$ 2>/dev/null; then
+if ! keytool -list -v -keystore "$KEYSTORE" -storepass "$STORE_PASSWORD" >"$LISTING" 2>/dev/null; then
   echo "error: that password does not open the keystore" >&2
-  rm -f /tmp/ks.$$
   exit 1
 fi
 
 echo
 echo "This keystore contains:"
 # keytool indents the fingerprint with a tab, not spaces.
-grep -E "^Alias name:|^Valid from:|[[:space:]]*SHA256:" /tmp/ks.$$ |
+grep -E "^Alias name:|^Valid from:|[[:space:]]*SHA256:" "$LISTING" |
   sed 's/^[[:space:]]*/  /'
-rm -f /tmp/ks.$$
+rm -f "$LISTING"
 echo
 echo "Check the SHA256 above against Play Console →"
 echo "  Test and release → Setup → App signing"
@@ -102,5 +107,5 @@ printf '%s' "$KEY_ALIAS"      | gh secret set ANDROID_KEY_ALIAS --repo "$REPO"
 printf '%s' "$KEY_PASSWORD"   | gh secret set ANDROID_KEY_PASSWORD --repo "$REPO"
 
 echo
-echo "Done. Four secrets set, and nothing was written to disk."
+echo "Done. Four secrets set; no key or password was written to disk."
 echo "Next: git tag v4.0.0 && git push origin v4.0.0"

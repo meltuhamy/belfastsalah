@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { completeSetup, LOCATION_SELECT } from "./support/app";
 
 // The app renders the timetable's own clock, not the device's. Away from the
 // UK those are different numbers, so there is a one-off prompt, a standing
@@ -9,13 +10,6 @@ import { test, expect, type Page } from "@playwright/test";
 /** The times as rendered on the today card, e.g. ["04:32", "06:12", ...]. */
 const shownTimes = (page: Page) =>
   page.locator(".DayPrayerTable__col--time").allInnerTexts();
-
-async function completeSetup(page: Page) {
-  await page.goto("/");
-  await page.waitForSelector("[data-testid=location-select]");
-  await page.getByRole("button", { name: "Done" }).click();
-  await expect(page.getByRole("button", { name: "Done" })).toHaveCount(0);
-}
 
 test.describe("on a device far from the timetable's clock", () => {
   // Dubai is four hours ahead of London and never shares its clock, so the
@@ -129,7 +123,7 @@ test.describe("on a device sharing the timetable's clock", () => {
 
   test("says nothing at all about timezones", async ({ page }) => {
     await page.goto("/");
-    await page.waitForSelector("[data-testid=location-select]");
+    await page.waitForSelector(LOCATION_SELECT);
     await expect(
       page.locator("[data-testid=display-zone-select]")
     ).toHaveCount(0);

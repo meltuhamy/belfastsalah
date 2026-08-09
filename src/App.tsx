@@ -111,41 +111,47 @@ const App: React.FC = () => {
 
     // clear all notifications
     async function clearAllAndSet(enabled: boolean, minutesBefore: number) {
-      if (enabled) {
-        const now = new Date();
-        let currentPrayerTime = now;
-        const notificationsToSchedule: Array<LocalNotificationSchema> = [];
-        for (let i = 0; i < MAX_NOTIFICATIONS - 1; i++) {
-          const currentPrayer = await prayerTimes.getNext(currentPrayerTime);
-          notificationsToSchedule.push({
-            // Must use the same clock the app shows, or the lock screen and
-            // the app disagree about when the prayer is.
-            title: `${prayerToString(
-              currentPrayer.prayer
-            )} is at ${formatTimeInZone(currentPrayer.time, notificationZone)}`,
-            body:
-              minutesBefore > 0
-                ? `${minutesBefore} minute reminder`
-                : "Prayer time reminder",
-            id: i,
-            schedule: { at: subMinutes(currentPrayer.time, minutesBefore) },
-            // sound: null,
-            // attachments: null,
-            actionTypeId: "",
-            extra: null,
-          });
-          currentPrayerTime = currentPrayer.time;
-        }
+      if (!enabled) {
+        // Scheduling is the only thing that ever cancelled, so turning
+        // reminders off used to leave every already-scheduled one in place and
+        // the phone kept buzzing for the next ten days. An empty list clears
+        // what is pending and schedules nothing.
+        await clearAndSetNotifications([]);
+        return;
+      }
+      const now = new Date();
+      let currentPrayerTime = now;
+      const notificationsToSchedule: Array<LocalNotificationSchema> = [];
+      for (let i = 0; i < MAX_NOTIFICATIONS - 1; i++) {
+        const currentPrayer = await prayerTimes.getNext(currentPrayerTime);
         notificationsToSchedule.push({
-          title: "Still want prayer notifications?",
-          body: "Tap here or open the Prayer Times app to enable",
-          id: MAX_NOTIFICATIONS,
-          schedule: { at: currentPrayerTime },
+          // Must use the same clock the app shows, or the lock screen and
+          // the app disagree about when the prayer is.
+          title: `${prayerToString(
+            currentPrayer.prayer
+          )} is at ${formatTimeInZone(currentPrayer.time, notificationZone)}`,
+          body:
+            minutesBefore > 0
+              ? `${minutesBefore} minute reminder`
+              : "Prayer time reminder",
+          id: i,
+          schedule: { at: subMinutes(currentPrayer.time, minutesBefore) },
+          // sound: null,
+          // attachments: null,
           actionTypeId: "",
           extra: null,
         });
-        await clearAndSetNotifications(notificationsToSchedule);
+        currentPrayerTime = currentPrayer.time;
       }
+      notificationsToSchedule.push({
+        title: "Still want prayer notifications?",
+        body: "Tap here or open the Prayer Times app to enable",
+        id: MAX_NOTIFICATIONS,
+        schedule: { at: currentPrayerTime },
+        actionTypeId: "",
+        extra: null,
+      });
+      await clearAndSetNotifications(notificationsToSchedule);
     }
     clearAllAndSet(notificationsEnabled, notificationMinutes);
     // eslint-disable-next-line react-hooks/exhaustive-deps

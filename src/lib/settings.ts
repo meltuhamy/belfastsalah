@@ -111,5 +111,10 @@ export function addSaveListener(callback: () => void) {
 }
 
 export function removeSaveListener(callback: () => void) {
-  saveCallbacks.splice(saveCallbacks.indexOf(callback), 1);
+  // Guarded: indexOf returns -1 for a callback that was never added, and
+  // splice(-1, 1) would drop somebody else's listener instead of nothing.
+  const index = saveCallbacks.indexOf(callback);
+  if (index !== -1) {
+    saveCallbacks.splice(index, 1);
+  }
 }

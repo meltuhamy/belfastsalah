@@ -48,9 +48,9 @@ Four repository secrets, set from a machine that has the upload keystore:
 
 It shows the certificate fingerprint first so you can check it against
 Play Console → Protected with Play → Play Store protection → **Manage Play app
-signing**, and refuses to continue until you confirm it matches. Nothing is
-written to disk. Set `PLAY_SERVICE_ACCOUNT_JSON` too if you want the workflow
-to upload to the internal track by itself.
+signing**, and refuses to continue until you confirm it matches. No key or
+password is written to disk. Set `PLAY_SERVICE_ACCOUNT_JSON` too if you want
+the workflow to upload to the internal track by itself.
 
 ## Cutting a release
 

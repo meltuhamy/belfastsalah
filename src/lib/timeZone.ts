@@ -133,11 +133,24 @@ export function formatDateInZone(instant: Date, timeZone: string): string {
   return formatter.format(instant).replace(/,/g, "");
 }
 
-/** A short human name for a zone, e.g. "Gulf Standard Time". */
+const zoneNameFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
+/**
+ * A short human name for a zone, e.g. "Gulf Standard Time".
+ *
+ * Cached like the other formatters here: the settings screen calls this during
+ * render and the app re-renders once a second off the countdown ticker, so an
+ * uncached call builds and throws away an ICU formatter every second.
+ */
 export function describeTimeZone(timeZone: string, at: Date): string {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    timeZoneName: "long"
-  }).formatToParts(at);
+  let formatter = zoneNameFormatterCache.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-GB", {
+      timeZone,
+      timeZoneName: "long"
+    });
+    zoneNameFormatterCache.set(timeZone, formatter);
+  }
+  const parts = formatter.formatToParts(at);
   return parts.find(p => p.type === "timeZoneName")?.value ?? timeZone;
 }

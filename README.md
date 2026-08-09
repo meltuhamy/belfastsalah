@@ -137,15 +137,18 @@ example `london-2024.json`. To add a year, drop the file in and add one line
 to `prayerDataLoaders` in `src/lib/PrayerTimeData.ts`. That map is the single
 source of truth for which years exist, so nothing else needs updating.
 
-If you're adding a new location that you want the user to be able to choose,
-modify `SetupPage.tsx` to add a new option.
+`scripts/spreadsheet-to-utc-json.js` turns a mosque CSV in `scripts/data` into
+one of those files, converting the printed UK local times to the UTC instants
+the app stores.
+
+Adding a new location the user can choose takes four edits: a loader entry in
+`prayerDataLoaders`, plus `locationTimeZones` and `locationNames` beside it in
+`src/lib/PrayerTimeData.ts`, and an `IonSelectOption` in
+`src/components/LocationSelector.tsx` — the one picker shared by the setup and
+settings screens.
 
 ## Known issues
 
-- **Prayer days are looked up by the device's local date.** The timetables
-  are UK local times, so anyone in the UK sees the right day, but a user
-  several timezones away can be shown the neighbouring day's times. The test
-  suite is pinned to `Europe/London` for this reason.
 - `useSettings` has a `useEffect` missing `dispatch` from its dependency
   array. oxlint reports it; fixing it changes render behaviour, so it has
   been left alone deliberately rather than changed blind.
