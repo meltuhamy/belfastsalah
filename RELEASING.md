@@ -6,6 +6,39 @@ an *upload* key, not the app signing key. Google holds the signing key and
 re-signs every release. If the upload key is lost or wrong, ask Google for an
 upload key reset — it is a few days, not a catastrophe.
 
+## If the upload key is lost, or its password is
+
+This is recoverable, and that is the whole point of Play App Signing being
+enrolled. The upload key only proves it is you uploading; the key that users'
+devices actually check is held by Google and never changes. Ask for a reset:
+
+1. Generate a new upload keystore, and put the password somewhere you will
+   still have it in ten years:
+
+   ```bash
+   keytool -genkeypair -v -keystore upload-keystore.jks \
+     -alias upload -keyalg RSA -keysize 2048 \
+     -validity 10000 -storetype PKCS12
+   ```
+
+2. Export its certificate:
+
+   ```bash
+   keytool -export -rfc -keystore upload-keystore.jks \
+     -alias upload -file upload_certificate.pem
+   ```
+
+3. Play Console → Protected with Play → Play Store protection → **Manage Play
+   app signing** → request an upload key reset, attaching that `.pem`.
+
+Google swaps the registered upload certificate in a couple of business days.
+Existing installs are unaffected, because the app signing key is untouched.
+
+The original 2015 keystore lives in Google Drive as
+`com.meltuhamy.londonsalah.keystore`. Its password is not recorded anywhere —
+not in this repo's history, not alongside the file — so assume a reset is the
+path unless someone turns it up.
+
 ## One-time setup
 
 Four repository secrets, set from a machine that has the upload keystore:
