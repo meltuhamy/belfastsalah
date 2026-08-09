@@ -16,7 +16,8 @@
     "sync": "npm run build && cap sync",
     "assets": "capacitor-assets generate --iconBackgroundColor '#002541' --splashBackgroundColor '#002541'",
     "test:e2e": "playwright test",
-    "test:zones": "for tz in Europe/London UTC Pacific/Auckland America/Los_Angeles Asia/Dubai; do echo \"--- TZ=$tz ---\"; TZ=$tz vitest run || exit 1; done"
+    "test:zones": "for tz in Europe/London UTC Pacific/Auckland America/Los_Angeles Asia/Dubai; do echo \"--- TZ=$tz ---\"; TZ=$tz vitest run || exit 1; done",
+    "screenshots": "STORE_SCREENSHOTS=1 playwright test store-screenshots"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",
