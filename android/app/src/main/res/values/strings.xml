@@ -4,4 +4,8 @@
     <string name="title_activity_main">Prayer Times</string>
     <string name="package_name">com.meltuhamy.londonsalah</string>
     <string name="custom_url_scheme">com.meltuhamy.londonsalah</string>
+    <string name="widget_tile_name">Next prayer</string>
+    <string name="widget_tile_description">The next prayer and how long until it</string>
+    <string name="widget_unavailable">No times</string>
+    <string name="widget_open_app">Open the app</string>
 </resources>

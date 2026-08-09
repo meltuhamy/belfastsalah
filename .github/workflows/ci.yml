@@ -101,6 +101,12 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
+      # The widget's payload parsing is the only real logic on the native side;
+      # this is what actually runs it.
+      - name: Android unit tests
+        working-directory: android
+        run: ./gradlew testDebugUnitTest --no-daemon
+
       # The Play Store takes an app bundle, not an APK, and that is a different
       # Gradle task with its own way of failing. Building it unsigned here
       # means a broken release build surfaces on an ordinary push rather than

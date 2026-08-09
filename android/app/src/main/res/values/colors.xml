@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Matches the splash background in capacitor.config.ts. -->
-    <color name="splash_background">#002541</color>
+    <!--
+      Widget colours. Widgets are drawn by the launcher, in its process, so
+      they cannot read the app's theme setting - they follow the system
+      light/dark instead, via the values-night copy of this file.
+      Values match theme/variables.css so the widget looks like the app.
+    -->
+    <color name="widget_background">#FFFFFFFF</color>
+    <color name="widget_text_primary">#FF1B1B1B</color>
+    <color name="widget_text_secondary">#FF5F6368</color>
+    <color name="widget_accent">#FF3880FF</color>
+    <color name="widget_accent_contrast">#FFFFFFFF</color>
 </resources>

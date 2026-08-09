@@ -20,6 +20,27 @@
             </intent-filter>
         </activity>
 
+        <!--
+          Widget receivers. exported="false" as the platform documentation
+          shows: the AppWidget framework delivers to these directly, and the
+          alarm below is an explicit intent from this app to itself.
+        -->
+        <receiver
+            android:name=".widget.NextPrayerTileProvider"
+            android:exported="false"
+            android:label="@string/widget_tile_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/next_prayer_tile_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.WidgetAlarmReceiver"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
