@@ -1,8 +1,10 @@
-import React, { useContext, useEffect, useLayoutEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Route } from "react-router-dom";
 import { IonApp, IonRouterOutlet, IonToast } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
-import { format, subMinutes } from "date-fns";
+import { subMinutes } from "date-fns";
+import { formatTimeInZone, getDeviceTimeZone } from "./lib/timeZone";
+import { locationTimeZones } from "./lib/PrayerTimeData";
 import HomePage from "./pages/HomePage";
 import SettingsPage from "./pages/SettingsPage";
 
@@ -22,8 +24,17 @@ import "@ionic/react/css/text-transformation.css";
 import "@ionic/react/css/flex-utils.css";
 import "@ionic/react/css/display.css";
 
-/* Theme variables */
+/* This app's own colours, which are not Ionic 8's defaults. */
 import "./theme/variables.css";
+
+/* Ionic's dark palette, applied by adding .ion-palette-dark to <html>. This
+   used to be a hand-copied fork of Ionic's pre-8 dark theme.
+
+   Imported after variables.css and not before: Ionic puts its mode class on
+   <html>, so .ion-palette-dark and the :root block above land on the same
+   element with equal specificity, and whichever comes last wins. The other
+   order silently leaves the light palette in force in dark mode. */
+import "@ionic/react/css/palettes/dark.class.css";
 import { useSettings } from "./lib/useSettings";
 import { AppContext } from "./State";
 import { usePrayerDay } from "./lib/usePrayerDay";
@@ -32,10 +43,11 @@ import { useInterval } from "./lib/useInterval";
 import {
   BelfastPrayerTimes,
   LondonPrayerTimes,
-  Prayer,
   PrayerLocation,
   prayerToString,
 } from "./lib/PrayerTimes";
+import { useTheme } from "./lib/useTheme";
+import { Theme } from "./lib/theme";
 import {
   addUpdateNotifyListener,
   clearAndSetNotifications,
@@ -63,38 +75,18 @@ const App: React.FC = () => {
     dispatch({ type: "setTick", payload: null });
   }, 1000);
 
-  const nightMode = settings !== null && settings.nightMode;
-  const nightModeMaghrib = settings !== null && settings.nightModeMaghrib;
-  const nextPrayer = next !== null && next.prayer;
-
-  useLayoutEffect(() => {
-    if (nightMode) {
-      if (nextPrayer !== false && nightModeMaghrib) {
-        switch (nextPrayer) {
-          case Prayer.Fajr:
-          case Prayer.Shuruq:
-          case Prayer.Isha:
-            document.body.classList.add("dark");
-            break;
-          case Prayer.Duhr:
-          case Prayer.Asr:
-          case Prayer.Maghrib:
-            document.body.classList.remove("dark");
-            break;
-        }
-      } else {
-        if (nightModeMaghrib) {
-          document.body.classList.remove("dark");
-        } else {
-          document.body.classList.add("dark");
-        }
-      }
-    } else {
-      document.body.classList.remove("dark");
-    }
-  }, [nightMode, nightModeMaghrib, nextPrayer]);
+  // One owner of the palette. Before setup completes there are no stored
+  // settings to read, so the setup screen reports its choice up here rather
+  // than applying it itself - two components toggling the class would fight.
+  const [setupTheme, setSetupTheme] = useState<Theme>("system");
+  useTheme(
+    settings?.theme ?? setupTheme,
+    next === null ? null : next.prayer
+  );
 
   const location = settings == null ? null : settings.location;
+  const showTimesInDeviceZone =
+    settings == null ? null : settings.showTimesInDeviceZone;
   const asrMethod = settings == null ? null : settings.asrMethod;
   const notificationsEnabled = settings == null ? null : settings.notify;
   const notificationMinutes = settings == null ? null : settings.notifyMinutes;
@@ -113,45 +105,63 @@ const App: React.FC = () => {
         ? new LondonPrayerTimes(asrMethod)
         : new BelfastPrayerTimes();
 
+    const notificationZone = showTimesInDeviceZone
+      ? getDeviceTimeZone()
+      : locationTimeZones[location];
+
     // clear all notifications
     async function clearAllAndSet(enabled: boolean, minutesBefore: number) {
-      if (enabled) {
-        const now = new Date();
-        let currentPrayerTime = now;
-        const notificationsToSchedule: Array<LocalNotificationSchema> = [];
-        for (let i = 0; i < MAX_NOTIFICATIONS - 1; i++) {
-          const currentPrayer = await prayerTimes.getNext(currentPrayerTime);
-          notificationsToSchedule.push({
-            title: `${prayerToString(currentPrayer.prayer)} is at ${format(
-              currentPrayer.time,
-              "HH:mm"
-            )}`,
-            body:
-              minutesBefore > 0
-                ? `${minutesBefore} minute reminder`
-                : "Prayer time reminder",
-            id: i,
-            schedule: { at: subMinutes(currentPrayer.time, minutesBefore) },
-            // sound: null,
-            // attachments: null,
-            actionTypeId: "",
-            extra: null,
-          });
-          currentPrayerTime = currentPrayer.time;
-        }
+      if (!enabled) {
+        // Scheduling is the only thing that ever cancelled, so turning
+        // reminders off used to leave every already-scheduled one in place and
+        // the phone kept buzzing for the next ten days. An empty list clears
+        // what is pending and schedules nothing.
+        await clearAndSetNotifications([]);
+        return;
+      }
+      const now = new Date();
+      let currentPrayerTime = now;
+      const notificationsToSchedule: Array<LocalNotificationSchema> = [];
+      for (let i = 0; i < MAX_NOTIFICATIONS - 1; i++) {
+        const currentPrayer = await prayerTimes.getNext(currentPrayerTime);
         notificationsToSchedule.push({
-          title: "Still want prayer notifications?",
-          body: "Tap here or open the Prayer Times app to enable",
-          id: MAX_NOTIFICATIONS,
-          schedule: { at: currentPrayerTime },
+          // Must use the same clock the app shows, or the lock screen and
+          // the app disagree about when the prayer is.
+          title: `${prayerToString(
+            currentPrayer.prayer
+          )} is at ${formatTimeInZone(currentPrayer.time, notificationZone)}`,
+          body:
+            minutesBefore > 0
+              ? `${minutesBefore} minute reminder`
+              : "Prayer time reminder",
+          id: i,
+          schedule: { at: subMinutes(currentPrayer.time, minutesBefore) },
+          // sound: null,
+          // attachments: null,
           actionTypeId: "",
           extra: null,
         });
-        await clearAndSetNotifications(notificationsToSchedule);
+        currentPrayerTime = currentPrayer.time;
       }
+      notificationsToSchedule.push({
+        title: "Still want prayer notifications?",
+        body: "Tap here or open the Prayer Times app to enable",
+        id: MAX_NOTIFICATIONS,
+        schedule: { at: currentPrayerTime },
+        actionTypeId: "",
+        extra: null,
+      });
+      await clearAndSetNotifications(notificationsToSchedule);
     }
     clearAllAndSet(notificationsEnabled, notificationMinutes);
-  }, [location, asrMethod, notificationsEnabled, notificationMinutes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    location,
+    asrMethod,
+    notificationsEnabled,
+    notificationMinutes,
+    showTimesInDeviceZone
+  ]);
 
   useEffect(() => {
     function handleSavedEvent() {
@@ -179,7 +189,7 @@ const App: React.FC = () => {
   if (!hydrated) {
     contents = <FullPageSpinner />;
   } else if (!settings) {
-    contents = <SetupPage />;
+    contents = <SetupPage onThemePreview={setSetupTheme} />;
   } else {
     contents = (
       <IonReactRouter>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   IonList,
   IonListHeader,
@@ -9,12 +9,33 @@ import {
   IonRange,
   IonSelect,
   IonSelectOption,
+  IonToast,
 } from "@ionic/react";
-import { alarm, timer, map, sunny, bulb, moon } from "ionicons/icons";
-import { PrayerLocation } from "../lib/PrayerTimeData";
+import {
+  alarm,
+  timer,
+  map,
+  sunny,
+  contrast,
+  globeOutline,
+  lockClosed,
+  openOutline,
+} from "ionicons/icons";
+import { PrayerLocation, locationNames } from "../lib/PrayerTimeData";
 import supportsHanafiAsr, { AsrMethod } from "../lib/PrayerTimes";
 import { AppSettings } from "../lib/settings";
+import { THEMES, Theme, themeLabels } from "../lib/theme";
+import { describeTimeZone, getDeviceTimeZone } from "../lib/timeZone";
+import { zoneChoiceApplies } from "../lib/displayZone";
+import LocationSelector from "./LocationSelector";
 import { LocalNotifications } from "@capacitor/local-notifications";
+import {
+  sendTestNotification,
+  TEST_NOTIFICATION_DELAY_SECONDS,
+} from "../lib/notifications";
+import { describeNotifyMinutes } from "../lib/notifyText";
+import { useLongPress } from "../lib/useLongPress";
+import "./SettingsList.css";
 
 type Props = {
   settings: AppSettings;
@@ -22,8 +43,8 @@ type Props = {
   onNotifyMinutesChange: (newNotifyMinutes: number) => void;
   onLocationChange: (newLocation: PrayerLocation, asrMethod: AsrMethod) => void;
   onAsrMethodChange: (newAsrMethod: AsrMethod) => void;
-  onDarkModeChange: (newDarkMode: boolean) => void;
-  onDarkModeMaghribChange: (newDarkModeMaghrib: boolean) => void;
+  onThemeChange: (newTheme: Theme) => void;
+  onShowTimesInDeviceZoneChange: (newShowTimesInDeviceZone: boolean) => void;
 };
 const SettingsList: React.FC<Props> = ({
   settings,
@@ -31,19 +52,116 @@ const SettingsList: React.FC<Props> = ({
   onNotifyMinutesChange,
   onLocationChange,
   onAsrMethodChange,
-  onDarkModeChange,
-  onDarkModeMaghribChange,
+  onThemeChange,
+  onShowTimesInDeviceZoneChange,
 }) => {
+  const [testResult, setTestResult] = useState<string | null>(null);
+
+  /*
+   * Where the reminder slider is while it is being dragged, or null when it is
+   * not. It has to be held here rather than read back from settings, because
+   * ionChange only fires on release: until then `settings.notifyMinutes` is
+   * still the old value, and @ionic/react re-assigns every prop to the element
+   * on every render. The app re-renders once a second off the countdown
+   * ticker, so a drag lasting longer than a second had the knob yanked back to
+   * where it started, roughly once a second, until the next touch move caught
+   * it up. Committing on each ionInput instead would fix the display but
+   * reschedule all 64 notifications for every intermediate value.
+   */
+  const [draggingMinutes, setDraggingMinutes] = useState<number | null>(null);
+  const notifyMinutes = draggingMinutes ?? settings.notifyMinutes;
+
+  // Only worth offering when the two clocks actually differ.
+  const now = new Date();
+  const deviceTimeZone = getDeviceTimeZone();
+  const showZoneChoice = zoneChoiceApplies(settings.location, now);
+
+  // Hidden diagnostic: long-press the timer icon to fire a notification a few
+  // seconds out, so the whole reminder path can be checked without waiting for
+  // a prayer time.
+  const testNotificationPress = useLongPress(async () => {
+    const result = await sendTestNotification();
+    setTestResult(
+      result === "scheduled"
+        ? `Test notification in ${TEST_NOTIFICATION_DELAY_SECONDS} seconds`
+        : "Notifications are blocked. Enable them in system settings."
+    );
+  });
+
   return (
     <IonList>
+      <IonListHeader>
+        <IonLabel>Prayer time settings</IonLabel>
+      </IonListHeader>
+      <IonItem>
+        <IonIcon icon={map} slot="start" />
+        <LocationSelector
+          location={settings.location}
+          asrMethod={settings.asrMethod}
+          onChange={onLocationChange}
+        />
+      </IonItem>
+      {settings.location !== null && supportsHanafiAsr(settings.location) && (
+        <IonItem>
+          <IonIcon icon={sunny} slot="start" />
+          <IonToggle
+            checked={settings.asrMethod === AsrMethod.Hanafi}
+            onIonChange={(e) => {
+              const nowChecked = e.detail.checked;
+              onAsrMethodChange(
+                nowChecked ? AsrMethod.Hanafi : AsrMethod.Shafi
+              );
+            }}
+          >
+            Use Hanafi Asr
+          </IonToggle>
+        </IonItem>
+      )}
+      {showZoneChoice && settings.location !== null && (
+        <>
+          {/*
+            IonSelect is a direct child of the item on purpose. Wrapping it in
+            a layout div takes it out of Ionic's item association, which leaves
+            only the control's own text clickable and the rest of the row dead
+            - the same Ionic 8 regression that broke the location picker twice.
+            The explanation therefore sits in its own row rather than beside it.
+          */}
+          <IonItem>
+            <IonIcon icon={globeOutline} slot="start" />
+            <IonSelect
+              label="Show times in"
+              value={settings.showTimesInDeviceZone}
+              interface="alert"
+              okText="Choose"
+              cancelText="Cancel"
+              data-testid="display-zone-select"
+              onIonChange={(event) =>
+                onShowTimesInDeviceZoneChange(event.detail.value as boolean)
+              }
+            >
+              <IonSelectOption value={false}>
+                {locationNames[settings.location]} time
+              </IonSelectOption>
+              <IonSelectOption value={true}>My clock</IonSelectOption>
+            </IonSelect>
+          </IonItem>
+          <IonItem lines="none" className="settings-list__note-item">
+            <IonLabel className="ion-text-wrap">
+              <p className="settings-list__note">
+                Your device is on {describeTimeZone(deviceTimeZone, now)}.
+                Reminders arrive at the same moment either way — this only
+                changes the clock you read them on.
+              </p>
+            </IonLabel>
+          </IonItem>
+        </>
+      )}
       <IonListHeader>
         <IonLabel>Notifications</IonLabel>
       </IonListHeader>
       <IonItem>
         <IonIcon icon={alarm} slot="start" />
-        <IonLabel>Notify before prayer</IonLabel>
         <IonToggle
-          slot="end"
           checked={settings.notify}
           onIonChange={() => {
             const newValue = !settings.notify;
@@ -57,91 +175,109 @@ const SettingsList: React.FC<Props> = ({
               onNotifyChange(newValue);
             }
           }}
-        />
+        >
+          Notify before prayer
+        </IonToggle>
       </IonItem>
       {settings.notify && (
         <IonItem>
-          <IonIcon icon={timer} slot="start" />
-          <IonLabel>
-            Notify {settings.notifyMinutes} minutes before prayer
-            <br />
+          <span
+            slot="start"
+            className="settings-list__test-target"
+            data-testid="notify-test-target"
+            {...testNotificationPress}
+          >
+            <IonIcon icon={timer} />
+          </span>
+          <div className="settings-list__range">
+            {/*
+              The label is rendered here rather than passed to IonRange so it
+              can be styled: Ionic's stacked label renders small and low
+              contrast inside shadow DOM, which is hard to read at a glance.
+            */}
+            <p className="settings-list__range-label">
+              {describeNotifyMinutes(notifyMinutes)}
+            </p>
             <IonRange
+              aria-label="Minutes before prayer"
               min={0}
               max={20}
               step={1}
-              value={settings.notifyMinutes}
+              snaps={true}
+              pin={true}
+              pinFormatter={(value: number) => `${value}m`}
+              value={notifyMinutes}
+              onIonInput={(event) =>
+                setDraggingMinutes(event.detail.value as number)
+              }
               onIonChange={(event) => {
-                const newValue = event.detail.value;
-                onNotifyMinutesChange(newValue as number);
+                // Released. Hand the value over and stop shadowing the stored
+                // one in the same update, so the two never disagree on screen.
+                setDraggingMinutes(null);
+                onNotifyMinutesChange(event.detail.value as number);
               }}
             ></IonRange>
-          </IonLabel>
+          </div>
         </IonItem>
       )}
 
       <IonListHeader>
-        <IonLabel>Prayer time settings</IonLabel>
+        <IonLabel>Appearance</IonLabel>
       </IonListHeader>
       <IonItem>
-        <IonIcon icon={map} slot="start" />
-        <IonLabel>Location</IonLabel>
+        <IonIcon icon={contrast} slot="start" />
         <IonSelect
-          value={settings.location}
-          onIonChange={(event) => {
-            const newValue = event.detail.value as PrayerLocation;
-            onLocationChange(
-              newValue,
-              supportsHanafiAsr(newValue) ? settings.asrMethod : AsrMethod.Shafi
-            );
-          }}
+          label="Theme"
+          value={settings.theme}
+          interface="alert"
+          okText="Choose"
+          cancelText="Cancel"
+          data-testid="theme-select"
+          onIonChange={(event) => onThemeChange(event.detail.value as Theme)}
         >
-          <IonSelectOption value="london">London</IonSelectOption>
-          <IonSelectOption value="belfast">Belfast</IonSelectOption>
+          {THEMES.map((theme) => (
+            <IonSelectOption key={theme} value={theme}>
+              {themeLabels[theme]}
+            </IonSelectOption>
+          ))}
         </IonSelect>
       </IonItem>
-      {settings.location !== null && supportsHanafiAsr(settings.location) && (
-        <IonItem>
-          <IonIcon icon={sunny} slot="start" />
-          <IonLabel>Use Hanafi Asr</IonLabel>
-          <IonToggle
-            checked={settings.asrMethod === AsrMethod.Hanafi}
-            slot="end"
-            onIonChange={(e) => {
-              const nowChecked = e.detail.checked;
-              onAsrMethodChange(
-                nowChecked ? AsrMethod.Hanafi : AsrMethod.Shafi
-              );
-            }}
-          />
-        </IonItem>
-      )}
       <IonListHeader>
-        <IonLabel>Dark mode</IonLabel>
+        <IonLabel>About</IonLabel>
       </IonListHeader>
-      <IonItem>
-        <IonIcon icon={bulb} slot="start" />
-        <IonLabel>Use dark mode</IonLabel>
-        <IonToggle
-          slot="end"
-          checked={settings.nightMode}
-          onIonChange={() => {
-            onDarkModeChange(!settings.nightMode);
-          }}
-        />
+      {/*
+        IonItem with href renders an anchor, so the whole row is the link.
+        target="_blank" is what tells Capacitor to hand the URL to the system
+        browser rather than navigating the app's own webview away from itself,
+        which it cannot come back from.
+      */}
+      <IonItem
+        href="https://meltuhamy.com/privacy-policy/"
+        target="_blank"
+        rel="noopener noreferrer"
+        detail={false}
+        data-testid="privacy-policy-link"
+      >
+        <IonIcon icon={lockClosed} slot="start" />
+        <IonLabel>
+          <h3>Privacy policy</h3>
+          {/*
+            Accurate as written: the app makes no network requests at all, has
+            no analytics or crash reporting, and ships its prayer data in the
+            bundle. Settings and reminders stay on the device.
+          */}
+          <p>No data leaves your device</p>
+        </IonLabel>
+        <IonIcon icon={openOutline} slot="end" size="small" />
       </IonItem>
-      {settings.nightMode && (
-        <IonItem>
-          <IonIcon icon={moon} slot="start" />
-          <IonLabel>Enable at Maghrib</IonLabel>
-          <IonToggle
-            slot="end"
-            checked={settings.nightModeMaghrib}
-            onIonChange={() => {
-              onDarkModeMaghribChange(!settings.nightModeMaghrib);
-            }}
-          />
-        </IonItem>
-      )}
+
+      <IonToast
+        data-testid="test-notification-toast"
+        isOpen={testResult !== null}
+        onDidDismiss={() => setTestResult(null)}
+        message={testResult ?? ""}
+        duration={3000}
+      />
     </IonList>
   );
 };

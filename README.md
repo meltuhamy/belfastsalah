@@ -1,6 +1,6 @@
 # Prayer times
 
-This is an Ionic app that displays prayer times from a prayer times table.
+An Ionic app that displays prayer times from a mosque prayer times table.
 
 ## Features
 
@@ -20,15 +20,107 @@ Supported locations:
 - [Android](https://play.google.com/store/apps/details?id=com.meltuhamy.londonsalah)
 - [iOS](https://itunes.apple.com/gb/app/london-prayer-times/id993461657)
 
+## Stack
+
+| | |
+|---|---|
+| Build | Vite 8 |
+| UI | Ionic 8, React 19 |
+| Routing | react-router 5 (Ionic 8 still pins v5; v6 lands in Ionic 9) |
+| Language | TypeScript 7, strict |
+| Tests | Vitest |
+| Lint | oxlint |
+| Native | Capacitor 8 (Android SDK 36, iOS 15+) |
+
 ## Development
 
-Git clone this repo, then run the following commands in the project directory:
+Requires Node 22+.
 
 ```bash
 npm install
-npm install -g ionic
-ionic serve
+npm run dev        # dev server on http://localhost:3000
 ```
+
+Other commands:
+
+```bash
+npm run build      # typecheck, then build to build/
+npm test           # run the test suite
+npm run lint       # oxlint
+npm run sync       # build and copy web assets into the native projects
+npm run assets     # regenerate app icons and splash screens from assets/
+```
+
+### Running on a device
+
+```bash
+npm run sync
+npx cap open android    # opens Android Studio
+npx cap open ios        # opens Xcode
+```
+
+Android builds need JDK 21 and Android SDK 36. iOS builds need Xcode 26 or
+newer; Capacitor 8 uses Swift Package Manager, so there is no `pod install`
+step.
+
+## Cloud builds
+
+Builds run on GitHub Actions, which is free and unmetered for this repo
+because it is public — including the macOS runners used for iOS.
+
+| Workflow | Trigger | Produces |
+|---|---|---|
+| `ci.yml` | push, PR | lint + typecheck + tests + web build, Android debug APK, unsigned iOS compile |
+| `release-android.yml` | `v*` tag | signed `.aab` for the Play Console |
+| `release-ios.yml` | `v*` tag | signed `.ipa` uploaded to TestFlight |
+
+See [RELEASING.md](RELEASING.md) for the full sequence, including the
+Play Console forms and what to check before promoting to production.
+
+To cut a release, bump `versionCode`/`versionName` in
+`android/app/build.gradle` and `MARKETING_VERSION` in the Xcode project, then
+push a tag:
+
+```bash
+git tag v4.0.0 && git push origin v4.0.0
+```
+
+### Required repository secrets
+
+Nothing below is stored in the repo; the release workflows read them from
+GitHub secrets and clean up any files they write.
+
+**Android**
+
+Set all four at once, without the key leaving your machine:
+
+```bash
+./scripts/android-signing-secrets.sh path/to/upload-keystore.jks
+```
+
+It prints the certificate fingerprint so you can check it against Play
+Console before anything is uploaded, verifies the passwords actually open the
+keystore, then pipes the base64 straight into `gh secret set` — never to a
+file or to your shell history. Or set them by hand:
+
+| Secret | How to get it |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | `base64 -w0 upload-keystore.jks` |
+| `ANDROID_KEYSTORE_PASSWORD` | keystore password |
+| `ANDROID_KEY_ALIAS` | key alias inside the keystore |
+| `ANDROID_KEY_PASSWORD` | key password |
+| `PLAY_SERVICE_ACCOUNT_JSON` | optional, only for automatic Play upload |
+
+**iOS**
+
+| Secret | How to get it |
+|---|---|
+| `APP_STORE_CONNECT_KEY_ID` | App Store Connect → Users and Access → Integrations |
+| `APP_STORE_CONNECT_ISSUER_ID` | same page |
+| `APP_STORE_CONNECT_KEY_CONTENT` | `base64 -i AuthKey_XXXX.p8` |
+| `IOS_CERTIFICATE_BASE64` | base64 of your distribution certificate `.p12` |
+| `IOS_CERTIFICATE_PASSWORD` | password for that `.p12` |
+| `IOS_PROVISIONING_PROFILE_BASE64` | base64 of the `.mobileprovision` |
 
 ## Contributing
 
@@ -40,6 +132,25 @@ You're welcome to modify the project as you wish and contribute back to this pro
 
 ### How do I add my own prayer times?
 
-The prayer data can be found in src/prayer_data. The structure is LOCATION-YEAR.json, for example, `london-2024.json`. You can add a json file for each year in each location. The latest year information will be used to look up the prayer times.
+The prayer data lives in `src/prayer_data`, named `LOCATION-YEAR.json` — for
+example `london-2024.json`. To add a year, drop the file in and add one line
+to `prayerDataLoaders` in `src/lib/PrayerTimeData.ts`. That map is the single
+source of truth for which years exist, so nothing else needs updating.
 
-If you're adding a new location that you want the user to be able to choose, you can modify the SetupPage.tsx file to add a new option.
+`scripts/spreadsheet-to-utc-json.js` turns a mosque CSV in `scripts/data` into
+one of those files, converting the printed UK local times to the UTC instants
+the app stores.
+
+Adding a new location the user can choose takes four edits: a loader entry in
+`prayerDataLoaders`, plus `locationTimeZones` and `locationNames` beside it in
+`src/lib/PrayerTimeData.ts`, and an `IonSelectOption` in
+`src/components/LocationSelector.tsx` — the one picker shared by the setup and
+settings screens.
+
+## Known issues
+
+- `useSettings` has a `useEffect` missing `dispatch` from its dependency
+  array. oxlint reports it; fixing it changes render behaviour, so it has
+  been left alone deliberately rather than changed blind.
+- `src/prayer_data/london.json` is the pre-2022 year-agnostic table and is no
+  longer read by anything.

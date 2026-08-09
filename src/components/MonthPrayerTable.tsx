@@ -1,21 +1,27 @@
 import React, { useState, useEffect, useContext } from "react";
-import { format } from "date-fns";
 import {
   PrayerTime,
   PrayerLocation,
   LondonPrayerTimes,
   BelfastPrayerTimes,
   PrayerDayTimes,
-  Prayer,
   AsrMethod,
 } from "../lib/PrayerTimes";
 import { AppContext } from "../State";
+import { getZonedDateParts, formatTimeInZone } from "../lib/timeZone";
+import { useDisplayTimeZone } from "../lib/useDisplayTimeZone";
+import { locationTimeZones } from "../lib/PrayerTimeData";
 import { IonSkeletonText } from "@ionic/react";
 import "./MonthPrayerTable.css";
 
-const MonthPrayerTableCol: React.FC<{ prayer: PrayerTime }> = ({ prayer }) => {
+const MonthPrayerTableCol: React.FC<{ prayer: PrayerTime; timeZone: string }> = ({
+  prayer,
+  timeZone
+}) => {
   return (
-    <td className="MonthPrayerTable__col">{format(prayer.time, "HH:mm")}</td>
+    <td className="MonthPrayerTable__col">
+      {formatTimeInZone(prayer.time, timeZone)}
+    </td>
   );
 };
 
@@ -23,9 +29,13 @@ type Props = { month: number; year: number };
 
 const MonthPrayerTable: React.FC<Props> = ({ month, year }) => {
   const { state } = useContext(AppContext);
+  const displayTimeZone = useDisplayTimeZone();
   const now = state.tick;
-  const nowMonth = now.getMonth();
-  const nowDate = now.getDate();
+  // Which row is "today" is a question about the timetable's calendar, not the
+  // device's, so it stays in the timetable zone whatever times are shown in.
+  const today = getZonedDateParts(now, locationTimeZones[PrayerLocation.London]);
+  const nowMonth = today.month - 1;
+  const nowDate = today.day;
   const getClassNameForRow = (i: number) => {
     return month === nowMonth && i + 1 === nowDate
       ? "MonthPrayerTable__row MonthPrayerTable__row--selected"
@@ -102,10 +112,14 @@ const MonthPrayerTable: React.FC<Props> = ({ month, year }) => {
           : monthData.map((dayData, i) => (
               <tr className={getClassNameForRow(i)} key={i}>
                 <td className="MonthPrayerTable__col MonthPrayerTable__col--day">
-                  {dayData[Prayer.Fajr].time.getDate()}
+                  {i + 1}
                 </td>
                 {dayData.map((p) => (
-                  <MonthPrayerTableCol prayer={p} key={p.time.getTime()} />
+                  <MonthPrayerTableCol
+                    prayer={p}
+                    timeZone={displayTimeZone}
+                    key={p.time.getTime()}
+                  />
                 ))}
               </tr>
             ))}

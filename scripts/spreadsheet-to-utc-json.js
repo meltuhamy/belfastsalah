@@ -1,12 +1,17 @@
-const csv = require("csvtojson");
-const path = require("path");
-const fs = require("fs");
+// ESM rather than CommonJS: package.json declares "type": "module", so a
+// `require` in here is a syntax error rather than a working script.
+import csv from "csvtojson";
+import path from "node:path";
+import fs from "node:fs";
+import { fileURLToPath } from "node:url";
+
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
 process.env.TZ = "Europe/London";
 // force london tz
 
 async function getData(location, year) {
-  const filePath = path.resolve(__dirname, "data", `${location}-${year}.csv`);
+  const filePath = path.resolve(scriptDir, "data", `${location}-${year}.csv`);
   return await csv({
     headers: [
       "date",
@@ -69,7 +74,7 @@ async function processCSV(location, year) {
 
 function writeJSONFile(data, location, year) {
   const filePath = path.resolve(
-    __dirname,
+    scriptDir,
     "..",
     "src",
     "prayer_data",

@@ -1,0 +1,100 @@
+name: Release Android
+
+# Produces a signed Android App Bundle for the Play Console.
+#
+# Required repository secrets:
+#   ANDROID_KEYSTORE_BASE64    - base64 of your upload keystore (.jks)
+#                                base64 -w0 upload-keystore.jks
+#   ANDROID_KEYSTORE_PASSWORD  - keystore password
+#   ANDROID_KEY_ALIAS          - key alias inside the keystore
+#   ANDROID_KEY_PASSWORD       - key password
+#
+# Optional, only needed for the automatic Play upload step:
+#   PLAY_SERVICE_ACCOUNT_JSON  - Google Play service account JSON
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Upload to the Play Console internal track
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    name: Signed app bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v4
+
+      - run: npm ci
+
+      - name: Build web assets and sync
+        run: |
+          npx vite build
+          npx cap sync android
+
+      - name: Decode keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 is not set; cannot produce a signed bundle."
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
+
+      - name: Bundle release
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/upload-keystore.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease --no-daemon
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload-keystore.jks"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: app-release.aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+      # The secrets context is not available in a step-level `if`, so the
+      # presence check goes through env instead.
+      - name: Check for Play credentials
+        id: play
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -n "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload to Play Console (internal track)
+        if: inputs.publish && steps.play.outputs.available == 'true'
+        uses: r0adkll/upload-google-play@v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.meltuhamy.londonsalah
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: internal

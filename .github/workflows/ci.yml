@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  # Runs on every branch, so native builds are verified before a pull request
+  # exists - this is the only place the Android and iOS toolchains are checked.
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      # test:zones rather than test: the app reads and renders the timetable in
+      # its own zone, and a suite that only passes in the runner's zone is how
+      # the original wrong-day-abroad bug survived.
+      - name: Test
+        run: npm run test:zones
+
+      - name: Build
+        run: npx vite build
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: web-build
+          path: build
+          retention-days: 30
+
+  e2e:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 30
+
+  android:
+    name: Android debug build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v4
+
+      - run: npm ci
+
+      - name: Build web assets and sync
+        run: |
+          npx vite build
+          npx cap sync android
+
+      - name: Assemble debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      # The Play Store takes an app bundle, not an APK, and that is a different
+      # Gradle task with its own way of failing. Building it unsigned here
+      # means a broken release build surfaces on an ordinary push rather than
+      # on the tag you were hoping to ship.
+      - name: Assemble release bundle (unsigned)
+        working-directory: android
+        run: ./gradlew bundleRelease --no-daemon
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: app-debug.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+  ios:
+    name: iOS build (unsigned)
+    # macOS runners are free and unmetered on public repositories.
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build web assets and sync
+        run: |
+          npx vite build
+          npx cap sync ios
+
+      # No signing here, so this only proves the project compiles. Signed
+      # builds live in release-ios.yml.
+      - name: Build without signing
+        working-directory: ios/App
+        run: |
+          xcodebuild \
+            -scheme App \
+            -project App.xcodeproj \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build

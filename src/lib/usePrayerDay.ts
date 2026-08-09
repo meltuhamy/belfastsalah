@@ -1,6 +1,7 @@
 import { AppContext } from "../State";
 import { useContext, useEffect } from "react";
 import { useSettings } from "./useSettings";
+import { getZonedDateParts, UK_TIME_ZONE } from "./timeZone";
 import {
   PrayerLocation,
   LondonPrayerTimes,
@@ -29,34 +30,36 @@ export function usePrayerDay() {
         : new BelfastPrayerTimes();
   }
 
+  const tickDate = getZonedDateParts(state.tick, UK_TIME_ZONE).day;
+
   useEffect(() => {
-    times !== null &&
+    if (times !== null) {
       times
         .getDay(state.tick)
         .then(dayTimes =>
           dispatch({ type: "setTodayTimes", payload: dayTimes })
         );
-  }, [state.tick.getDate(), location, asrMethod]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tickDate, location, asrMethod]);
 
   const nextPrayer = state.currentTimes.next;
   const hasPassedNextPrayer =
     nextPrayer !== null && nextPrayer.time.getTime() <= state.tick.getTime();
 
   useEffect(() => {
-    times !== null &&
+    if (times !== null) {
       times
         .getNext(state.tick)
-        .then(nextPrayer =>
-          dispatch({ type: "setNextPrayer", payload: nextPrayer })
-        );
+        .then(next => dispatch({ type: "setNextPrayer", payload: next }));
 
-    times !== null &&
       times
         .getPrev(state.tick)
-        .then(prevPrayer =>
-          dispatch({ type: "setPrevPrayer", payload: prevPrayer })
-        );
-  }, [hasPassedNextPrayer, location, asrMethod]); // get new stuff every time the next prayer is passed
+        .then(prev => dispatch({ type: "setPrevPrayer", payload: prev }));
+    }
+    // get new stuff every time the next prayer is passed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasPassedNextPrayer, location, asrMethod]);
 
   return [state.currentTimes];
 }

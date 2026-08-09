@@ -27,6 +27,11 @@ import TodayTimesCard from "../components/TodayTimesCard";
 import CenteredMaxWidthContainer from "../components/CenteredMaxWidthContainer";
 import { App } from "@capacitor/app";
 import { SplashScreen } from "@capacitor/splash-screen";
+import { getZonedDateParts, UK_TIME_ZONE } from "../lib/timeZone";
+import { shouldPromptForZone } from "../lib/displayZone";
+import { locationNames } from "../lib/PrayerTimeData";
+import { useSettings } from "../lib/useSettings";
+import TimeZoneNotice from "../components/TimeZoneNotice";
 
 let shouldExitApp = false;
 App.addListener("backButton", () => {
@@ -37,13 +42,17 @@ App.addListener("backButton", () => {
 
 const HomePage: React.FC = () => {
   const [{ today, next, prev }] = usePrayerDay();
+  const [appSettings, setAppSettings] = useSettings();
   const now = new Date();
   const [cardHeaderRef, inView] = useInView({
     threshold: 0,
     rootMargin: "-77px 0px 0px 0px",
   });
 
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  // Month and year come from the timetable's calendar, so the table opens on
+  // the right page for someone whose device is on a different date.
+  const ukToday = getZonedDateParts(now, UK_TIME_ZONE);
+  const [selectedMonth, setSelectedMonth] = useState(ukToday.month - 1);
   const monthName = getMonthNames()[selectedMonth];
 
   useIonViewDidEnter(() => {
@@ -54,6 +63,25 @@ const HomePage: React.FC = () => {
   useIonViewDidLeave(() => {
     shouldExitApp = false;
   });
+
+  // Asked once, and only of people it can affect: the times on screen are the
+  // timetable's, so someone whose phone is on another clock needs telling
+  // before they read them as local. Either answer settles it for good.
+  const noticeLocation =
+    shouldPromptForZone(appSettings, now) && appSettings?.location != null
+      ? appSettings.location
+      : null;
+
+  const answerNotice = (showTimesInDeviceZone: boolean) => {
+    if (appSettings == null) {
+      return;
+    }
+    setAppSettings({
+      ...appSettings,
+      showTimesInDeviceZone,
+      timeZoneNoticeSeen: true,
+    });
+  };
 
   return (
     <IonPage className="HomePage">
@@ -69,6 +97,13 @@ const HomePage: React.FC = () => {
       </IonHeader>
       <IonContent>
         <CenteredMaxWidthContainer>
+          {noticeLocation !== null && (
+            <TimeZoneNotice
+              locationName={locationNames[noticeLocation]}
+              onUseDeviceZone={() => answerNotice(true)}
+              onDismiss={() => answerNotice(false)}
+            />
+          )}
           <NextPrayerCard next={next} prev={prev} now={now} />
           <TodayTimesCard now={now} dayTimes={today} />
           <IonCard className="HomePage__month-card">
@@ -89,7 +124,7 @@ const HomePage: React.FC = () => {
             <IonCardContent className="HomePage__month-card__content">
               <MonthPrayerTable
                 month={selectedMonth}
-                year={now.getFullYear()}
+                year={ukToday.year}
               />
             </IonCardContent>
           </IonCard>

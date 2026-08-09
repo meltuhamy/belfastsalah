@@ -22,3 +22,18 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# playwright
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache
+
+# signing keys - never in a public repo. Belt and braces for when a keystore
+# is dropped into a Codespace or working copy to load the CI secrets.
+*.jks
+*.keystore
+*.p12
+*.p8
+*.mobileprovision
+*.b64

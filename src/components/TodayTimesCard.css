@@ -1,0 +1,7 @@
+/* Sits under the date as a quieter second line, not a second heading. */
+.TodayTimesCard__zone {
+  margin-top: 2px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+}
