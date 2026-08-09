@@ -33,6 +33,26 @@ for tool in keytool gh base64; do
   command -v "$tool" >/dev/null || { echo "error: $tool is not installed" >&2; exit 2; }
 done
 
+# --- 0. Check we can actually write secrets before asking for passwords ---
+
+# Codespaces sets GITHUB_TOKEN to an installation token that cannot write
+# repository secrets, and gh prefers that env var over any stored login. So
+# the failure is a 403 at the very end, after all the prompts. Check first.
+if ! gh api "repos/$REPO/actions/secrets/public-key" >/dev/null 2>&1; then
+  cat >&2 <<EOF
+error: this GitHub login cannot write secrets on $REPO.
+
+In a Codespace that is expected - GITHUB_TOKEN is an installation token
+without the scope, and gh uses it in preference to anything else. Fix:
+
+  unset GITHUB_TOKEN GH_TOKEN
+  gh auth login          # GitHub.com → HTTPS → login with a web browser
+
+then run this script again.
+EOF
+  exit 1
+fi
+
 # --- 1. Show what this keystore actually is -------------------------------
 
 read -r -s -p "Keystore password: " STORE_PASSWORD; echo
