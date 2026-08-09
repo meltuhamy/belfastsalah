@@ -7,7 +7,10 @@ import android.content.Intent
 
 /** Redraws every widget this app provides. */
 object WidgetUpdater {
-    private val PROVIDERS = listOf(NextPrayerTileProvider::class.java)
+    private val PROVIDERS = listOf(
+        NextPrayerTileProvider::class.java,
+        PrayerTimesWidgetProvider::class.java
+    )
 
     fun refreshAll(context: Context) {
         val manager = AppWidgetManager.getInstance(context)

@@ -38,6 +38,18 @@
         </receiver>
 
         <receiver
+            android:name=".widget.PrayerTimesWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_times_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/prayer_times_widget_info" />
+        </receiver>
+
+        <receiver
             android:name=".widget.WidgetAlarmReceiver"
             android:exported="false" />
 

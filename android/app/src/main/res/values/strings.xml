@@ -8,4 +8,7 @@
     <string name="widget_tile_description">The next prayer and how long until it</string>
     <string name="widget_unavailable">No times</string>
     <string name="widget_open_app">Open the app</string>
+    <string name="widget_times_name">Prayer times</string>
+    <string name="widget_times_description">Today\'s prayer times and a countdown to the next</string>
+    <string name="widget_next_in">%1$s in</string>
 </resources>
