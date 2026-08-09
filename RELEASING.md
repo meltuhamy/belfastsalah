@@ -12,27 +12,26 @@ This is recoverable, and that is the whole point of Play App Signing being
 enrolled. The upload key only proves it is you uploading; the key that users'
 devices actually check is held by Google and never changes. Ask for a reset:
 
-1. Generate a new upload keystore, and put the password somewhere you will
-   still have it in ten years:
+1. Generate the new key and its certificate:
 
    ```bash
-   keytool -genkeypair -v -keystore upload-keystore.jks \
-     -alias upload -keyalg RSA -keysize 2048 \
-     -validity 10000 -storetype PKCS12
+   ./scripts/new-upload-key.sh
    ```
 
-2. Export its certificate:
+   Put the password in a password manager as you type it, not afterwards.
+   Back up `upload-keystore.jks` before you close whatever machine or
+   Codespace you made it on — losing it means another reset request. Re-running
+   the script never regenerates over an existing key; if the export was
+   interrupted it just retries that part.
 
-   ```bash
-   keytool -export -rfc -keystore upload-keystore.jks \
-     -alias upload -file upload_certificate.pem
-   ```
-
-3. Play Console → Protected with Play → Play Store protection → **Manage Play
+2. Play Console → Protected with Play → Play Store protection → **Manage Play
    app signing** → request an upload key reset, attaching that `.pem`.
 
 Google swaps the registered upload certificate in a couple of business days.
 Existing installs are unaffected, because the app signing key is untouched.
+
+Do not tag a release until the reset has gone through. Until then Play still
+expects the old certificate and will reject a bundle signed with the new key.
 
 The original 2015 keystore lives in Google Drive as
 `com.meltuhamy.londonsalah.keystore`. Its password is not recorded anywhere —
