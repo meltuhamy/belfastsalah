@@ -22,8 +22,7 @@ import { settings } from "ionicons/icons";
 import { useInView } from "react-intersection-observer";
 import "./HomePage.css";
 import MonthPicker from "../components/MonthPicker";
-import NextPrayerCard from "../components/NextPrayerCard";
-import TodayTimesCard from "../components/TodayTimesCard";
+import PrayerDayCard from "../components/PrayerDayCard";
 import CenteredMaxWidthContainer from "../components/CenteredMaxWidthContainer";
 import { App } from "@capacitor/app";
 import { SplashScreen } from "@capacitor/splash-screen";
@@ -104,8 +103,7 @@ const HomePage: React.FC = () => {
               onDismiss={() => answerNotice(false)}
             />
           )}
-          <NextPrayerCard next={next} prev={prev} now={now} />
-          <TodayTimesCard now={now} dayTimes={today} />
+          <PrayerDayCard today={today} next={next} prev={prev} now={now} />
           <IonCard className="HomePage__month-card">
             <IonCardHeader ref={cardHeaderRef}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>

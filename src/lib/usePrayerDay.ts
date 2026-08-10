@@ -4,10 +4,9 @@ import { useSettings } from "./useSettings";
 import { getZonedDateParts, UK_TIME_ZONE } from "./timeZone";
 import {
   PrayerLocation,
-  LondonPrayerTimes,
-  BelfastPrayerTimes,
   AsrMethod,
-  PrayerTimes
+  PrayerTimes,
+  createPrayerTimes
 } from "./PrayerTimes";
 
 export function usePrayerDay() {
@@ -24,10 +23,7 @@ export function usePrayerDay() {
 
   let times: PrayerTimes | null = null;
   if (location !== null && asrMethod !== null) {
-    times =
-      location === PrayerLocation.London
-        ? new LondonPrayerTimes(asrMethod)
-        : new BelfastPrayerTimes();
+    times = createPrayerTimes(location, asrMethod);
   }
 
   const tickDate = getZonedDateParts(state.tick, UK_TIME_ZONE).day;
