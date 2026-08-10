@@ -27,7 +27,7 @@
         -->
         <activity
             android:name=".widget.WidgetConfigActivity"
-            android:exported="false"
+            android:exported="true"
             android:label="@string/config_title"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>

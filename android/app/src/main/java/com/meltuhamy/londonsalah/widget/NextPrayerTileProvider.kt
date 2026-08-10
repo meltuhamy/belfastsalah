@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.SystemClock
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import com.meltuhamy.londonsalah.MainActivity
@@ -66,14 +67,31 @@ class NextPrayerTileProvider : AppWidgetProvider() {
         views.setTextColor(R.id.tile_countdown, config.primaryTextColor(context))
         views.setTextColor(R.id.tile_location, config.secondaryTextColor(context))
 
-        // At one cell there is room for the prayer and the countdown, and
-        // nothing else. Two cells is roughly 110dp; below that, drop the
-        // location rather than let three lines collide.
+        // Scale to whatever the launcher actually gave us. A one-cell tile is
+        // around 40-70dp, and "3:27:23" at the full size simply gets clipped -
+        // RemoteViews has no auto-sizing text before API 31, so the size is
+        // chosen here. Measured on the smaller side, since the tile can be
+        // resized to a non-square.
+        val widthDp = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) ?: 0
         val heightDp = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) ?: 0
-        val compact = heightDp in 1 until 100
+        val sizeDp = listOf(widthDp, heightDp).filter { it > 0 }.minOrNull() ?: Int.MAX_VALUE
+
+        val (countdownSp, prayerSp, padDp) = when {
+            sizeDp < 80 -> Triple(13f, 9f, 4)
+            sizeDp < 120 -> Triple(18f, 12f, 8)
+            else -> Triple(22f, 14f, 12)
+        }
+        views.setTextViewTextSize(R.id.tile_countdown, TypedValue.COMPLEX_UNIT_SP, countdownSp)
+        views.setTextViewTextSize(R.id.tile_prayer, TypedValue.COMPLEX_UNIT_SP, prayerSp)
+        views.setTextViewTextSize(R.id.tile_location, TypedValue.COMPLEX_UNIT_SP, prayerSp)
+
+        val padPx = (padDp * context.resources.displayMetrics.density).toInt()
+        views.setViewPadding(R.id.tile_root, padPx, padPx, padPx, padPx)
+
+        // Below two cells there is only room for the prayer and the countdown.
         views.setViewVisibility(
             R.id.tile_location,
-            if (compact) View.GONE else View.VISIBLE
+            if (sizeDp < 120) View.GONE else View.VISIBLE
         )
 
         val payload = WidgetPayload.parse(WidgetStore.read(context))
