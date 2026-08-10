@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  The sample text below is what the widget picker shows: previewLayout renders
+  this file as it stands, and every string is overwritten the moment the widget
+  is actually drawn. Without it the picker offers five identical white boxes,
+  which is how the one-column widget became impossible to find.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/tile_root"
     android:layout_width="match_parent"
@@ -10,6 +16,7 @@
 
     <TextView
         android:id="@+id/tile_prayer"
+        android:text="Duhr"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:maxLines="1"
@@ -27,6 +34,7 @@
 
     <TextView
         android:id="@+id/tile_location"
+        android:text="London"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:maxLines="1"

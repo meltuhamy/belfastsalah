@@ -6,6 +6,10 @@
   The rows are wrap_content rather than weighted, so the row carrying the
   countdown is simply taller than the rest. Weighted rows would divide the
   height evenly and clip it.
+
+  The sample text is what the widget picker shows: previewLayout renders this
+  file as it stands, and every string is overwritten the moment the widget is
+  actually drawn.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/column_root"
@@ -29,6 +33,7 @@
 
         <TextView
             android:id="@+id/column_name_0"
+            android:text="Fajr"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -44,6 +49,7 @@
 
             <TextView
                 android:id="@+id/column_time_0"
+                android:text="05:36"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
@@ -82,6 +88,7 @@
 
         <TextView
             android:id="@+id/column_name_1"
+            android:text="Shuruq"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -97,6 +104,7 @@
 
             <TextView
                 android:id="@+id/column_time_1"
+                android:text="07:13"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
@@ -124,6 +132,7 @@
 
     <LinearLayout
         android:id="@+id/column_row_2"
+        android:background="@drawable/widget_accent_blue"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
@@ -135,11 +144,12 @@
 
         <TextView
             android:id="@+id/column_name_2"
+            android:text="Duhr"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:maxLines="1"
-            android:textColor="@color/widget_text_secondary"
+            android:textColor="@android:color/white"
             android:textSize="12sp" />
 
         <LinearLayout
@@ -150,11 +160,12 @@
 
             <TextView
                 android:id="@+id/column_time_2"
+                android:text="12:20"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
                 android:maxLines="1"
-                android:textColor="@color/widget_text_primary"
+                android:textColor="@android:color/white"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
@@ -188,6 +199,7 @@
 
         <TextView
             android:id="@+id/column_name_3"
+            android:text="Asr"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -203,6 +215,7 @@
 
             <TextView
                 android:id="@+id/column_time_3"
+                android:text="14:45"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
@@ -241,6 +254,7 @@
 
         <TextView
             android:id="@+id/column_name_4"
+            android:text="Maghrib"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -256,6 +270,7 @@
 
             <TextView
                 android:id="@+id/column_time_4"
+                android:text="17:18"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
@@ -294,6 +309,7 @@
 
         <TextView
             android:id="@+id/column_name_5"
+            android:text="Isha"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -309,6 +325,7 @@
 
             <TextView
                 android:id="@+id/column_time_5"
+                android:text="18:48"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"

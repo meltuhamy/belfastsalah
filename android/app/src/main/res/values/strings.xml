@@ -5,23 +5,27 @@
     <string name="package_name">com.meltuhamy.londonsalah</string>
     <string name="custom_url_scheme">com.meltuhamy.londonsalah</string>
     <!--
-      The size range is spelled out because Android gives no other way to say
-      it: the picker shows one size badge, taken from targetCellWidth/Height,
-      and nothing anywhere hints that a widget resizes until you long-press it
-      on the home screen. The description is the only text the picker shows.
+      Widget names are short and lead with what distinguishes them. The picker
+      shows "Prayer Times - <name>" and truncates hard in the half-width cell a
+      2x3 or 2x4 widget gets, so anything starting "Prayer times" was cut off
+      before the part that differs.
+
+      The descriptions carry the detail, including the size range: nothing in
+      Android hints that a widget resizes until you long-press it on the home
+      screen, and the description is the only text the picker shows.
     -->
     <string name="widget_tile_name">Next prayer</string>
     <string name="widget_tile_description">The next prayer and how long until it. Resizable — drag the handles for anything from 1×1 up.</string>
-    <string name="widget_compact_name">Prayer times (one row)</string>
+    <string name="widget_compact_name">One row</string>
     <string name="widget_compact_description">All six times on a single row, with the countdown inside the next prayer. Resizable.</string>
-    <string name="widget_column_name">Prayer times (one column)</string>
+    <string name="widget_column_name">One column</string>
     <string name="widget_column_description">All six times down a single column, with the countdown inside the next prayer. Resizable.</string>
     <string name="widget_unavailable">No times</string>
     <string name="widget_open_app">Open the app</string>
-    <string name="widget_times_name">Prayer times</string>
+    <string name="widget_times_name">Wide</string>
     <string name="widget_times_description">Today\'s prayer times and a countdown to the next</string>
     <string name="widget_next_in">%1$s in</string>
-    <string name="widget_vertical_name">Prayer times (tall)</string>
+    <string name="widget_vertical_name">Tall</string>
     <string name="widget_vertical_description">Today\'s prayer times stacked, with a countdown</string>
     <string name="config_title">Widget appearance</string>
     <string name="config_background">Background</string>
