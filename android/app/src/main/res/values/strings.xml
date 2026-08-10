@@ -19,7 +19,7 @@
     <string name="widget_compact_name">One row</string>
     <string name="widget_compact_description">All six times on a single row, with the countdown inside the next prayer. Resizable.</string>
     <string name="widget_column_name">One column</string>
-    <string name="widget_column_description">All six times down a single column, with the countdown inside the next prayer. Resizable.</string>
+    <string name="widget_column_description">All six times down a column one cell wide, with the countdown inside the next prayer. Resizable.</string>
     <string name="widget_unavailable">No times</string>
     <string name="widget_open_app">Open the app</string>
     <string name="widget_times_name">Wide</string>

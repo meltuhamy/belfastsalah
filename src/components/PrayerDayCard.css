@@ -11,6 +11,20 @@
 }
 
 /*
+  Ionic's dark palette pairs its lighter primary with black contrast text,
+  which is right for a small button and wrong for this: a large flat block of
+  blue, where it reads as low contrast and looks nothing like the light theme's
+  white-on-blue. Pinned to white here, which reaches the card, the tail and the
+  strip's highlight - custom properties cross the shadow boundary, so the value
+  is inherited by ion-card's own colour rules. Scoped to this component so the
+  rest of the palette is untouched.
+*/
+.ion-palette-dark .PrayerDayCard {
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+}
+
+/*
   The tail hangs into the gap between the two cards, so the bubble must not
   clip it. ion-card sets both overflow: hidden and contain: content on its own
   host, and the second is the one that catches you out - paint containment
