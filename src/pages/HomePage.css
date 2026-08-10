@@ -13,6 +13,9 @@
 .HomePage .HomePage__month-card {
   margin-left: 0;
   margin-right: 0;
+  /* Sets the month table apart from the day above it. Collapses with the day
+     card's own bottom margin rather than adding to it, so this is the gap. */
+  margin-top: 26px;
 }
 
 .HomePage .HomePage__month-card__content {
