@@ -14,6 +14,8 @@
     <string name="widget_tile_description">The next prayer and how long until it. Resizable — drag the handles for anything from 1×1 up.</string>
     <string name="widget_compact_name">Prayer times (one row)</string>
     <string name="widget_compact_description">All six times on a single row, with the countdown inside the next prayer. Resizable.</string>
+    <string name="widget_column_name">Prayer times (one column)</string>
+    <string name="widget_column_description">All six times down a single column, with the countdown inside the next prayer. Resizable.</string>
     <string name="widget_unavailable">No times</string>
     <string name="widget_open_app">Open the app</string>
     <string name="widget_times_name">Prayer times</string>

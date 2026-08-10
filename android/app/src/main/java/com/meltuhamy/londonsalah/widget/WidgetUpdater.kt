@@ -10,6 +10,7 @@ object WidgetUpdater {
     private val PROVIDERS = listOf(
         NextPrayerTileProvider::class.java,
         PrayerTimesCompactWidgetProvider::class.java,
+        PrayerTimesColumnWidgetProvider::class.java,
         PrayerTimesWidgetProvider::class.java,
         PrayerTimesVerticalWidgetProvider::class.java
     )

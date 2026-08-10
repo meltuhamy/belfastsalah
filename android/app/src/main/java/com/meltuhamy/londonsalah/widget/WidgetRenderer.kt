@@ -10,10 +10,17 @@ import android.widget.RemoteViews
 import com.meltuhamy.londonsalah.MainActivity
 import com.meltuhamy.londonsalah.R
 
-/** The four arrangements, and the layout each draws into. */
+/**
+ * The five arrangements, and the layout each draws into.
+ *
+ * WIDE and TALL give the countdown a heading of its own; COMPACT (one row) and
+ * COLUMN (one column) have no room for one and put it inside the next prayer's
+ * cell instead. TILE is the square next-prayer widget.
+ */
 enum class WidgetKind(val layoutId: Int) {
     TILE(R.layout.widget_next_prayer_tile),
     COMPACT(R.layout.widget_prayer_times_compact),
+    COLUMN(R.layout.widget_prayer_times_column),
     WIDE(R.layout.widget_prayer_times),
     TALL(R.layout.widget_prayer_times_vertical);
 
@@ -21,6 +28,7 @@ enum class WidgetKind(val layoutId: Int) {
         fun forProvider(className: String): WidgetKind = when {
             className.endsWith("NextPrayerTileProvider") -> TILE
             className.endsWith("PrayerTimesCompactWidgetProvider") -> COMPACT
+            className.endsWith("PrayerTimesColumnWidgetProvider") -> COLUMN
             className.endsWith("PrayerTimesVerticalWidgetProvider") -> TALL
             else -> WIDE
         }
@@ -50,21 +58,57 @@ object WidgetRenderer {
         R.id.prayer_col_3, R.id.prayer_col_4, R.id.prayer_col_5
     )
 
-    private val COMPACT_NAME_IDS = intArrayOf(
-        R.id.compact_name_0, R.id.compact_name_1, R.id.compact_name_2,
-        R.id.compact_name_3, R.id.compact_name_4, R.id.compact_name_5
+    /**
+     * The views the two inline-countdown layouts are drawn through. They differ
+     * only in which way the six cells run, so they share a renderer and this
+     * says which ids that renderer should reach for.
+     */
+    private class InlineIds(
+        val root: Int,
+        val cells: IntArray,
+        val names: IntArray,
+        val times: IntArray,
+        val countdowns: IntArray
     )
-    private val COMPACT_TIME_IDS = intArrayOf(
-        R.id.compact_time_0, R.id.compact_time_1, R.id.compact_time_2,
-        R.id.compact_time_3, R.id.compact_time_4, R.id.compact_time_5
+
+    private val COMPACT_IDS = InlineIds(
+        root = R.id.compact_root,
+        cells = intArrayOf(
+            R.id.compact_col_0, R.id.compact_col_1, R.id.compact_col_2,
+            R.id.compact_col_3, R.id.compact_col_4, R.id.compact_col_5
+        ),
+        names = intArrayOf(
+            R.id.compact_name_0, R.id.compact_name_1, R.id.compact_name_2,
+            R.id.compact_name_3, R.id.compact_name_4, R.id.compact_name_5
+        ),
+        times = intArrayOf(
+            R.id.compact_time_0, R.id.compact_time_1, R.id.compact_time_2,
+            R.id.compact_time_3, R.id.compact_time_4, R.id.compact_time_5
+        ),
+        countdowns = intArrayOf(
+            R.id.compact_countdown_0, R.id.compact_countdown_1, R.id.compact_countdown_2,
+            R.id.compact_countdown_3, R.id.compact_countdown_4, R.id.compact_countdown_5
+        )
     )
-    private val COMPACT_COLUMN_IDS = intArrayOf(
-        R.id.compact_col_0, R.id.compact_col_1, R.id.compact_col_2,
-        R.id.compact_col_3, R.id.compact_col_4, R.id.compact_col_5
-    )
-    private val COMPACT_COUNTDOWN_IDS = intArrayOf(
-        R.id.compact_countdown_0, R.id.compact_countdown_1, R.id.compact_countdown_2,
-        R.id.compact_countdown_3, R.id.compact_countdown_4, R.id.compact_countdown_5
+
+    private val COLUMN_IDS_INLINE = InlineIds(
+        root = R.id.column_root,
+        cells = intArrayOf(
+            R.id.column_row_0, R.id.column_row_1, R.id.column_row_2,
+            R.id.column_row_3, R.id.column_row_4, R.id.column_row_5
+        ),
+        names = intArrayOf(
+            R.id.column_name_0, R.id.column_name_1, R.id.column_name_2,
+            R.id.column_name_3, R.id.column_name_4, R.id.column_name_5
+        ),
+        times = intArrayOf(
+            R.id.column_time_0, R.id.column_time_1, R.id.column_time_2,
+            R.id.column_time_3, R.id.column_time_4, R.id.column_time_5
+        ),
+        countdowns = intArrayOf(
+            R.id.column_countdown_0, R.id.column_countdown_1, R.id.column_countdown_2,
+            R.id.column_countdown_3, R.id.column_countdown_4, R.id.column_countdown_5
+        )
     )
 
     /** Size in dp of the widget's smaller side, or null when it is not known. */
@@ -80,71 +124,75 @@ object WidgetRenderer {
 
         return when (kind) {
             WidgetKind.TILE -> renderTile(context, views, config, payload, next, sizeDp)
-            WidgetKind.COMPACT -> renderCompact(context, views, config, payload, next)
+            WidgetKind.COMPACT ->
+                renderInline(context, views, config, payload, next, COMPACT_IDS)
+            WidgetKind.COLUMN ->
+                renderInline(context, views, config, payload, next, COLUMN_IDS_INLINE)
             else -> renderTimetable(context, views, config, payload, next)
         }
     }
 
     /**
-     * The whole timetable on one row.
+     * The whole timetable, with no room for a countdown of its own.
      *
-     * The countdown gets no line of its own - that is what a row one cell high
-     * cannot afford - so it goes inside the next prayer's box, under its time
-     * and within the highlight. Only in the ticking mode: showing the prayer's
-     * clock time there would repeat the number directly above it, and the row
-     * is too tight to spend a line saying something twice.
+     * One row one cell high, or one narrow column - either way there is no
+     * header to spare, so the countdown goes inside the next prayer's cell,
+     * beneath its time and within the highlight. Only in the ticking mode:
+     * showing the prayer's clock time there would repeat the number directly
+     * above it, and neither shape can spend a line saying something twice.
      */
-    private fun renderCompact(
+    private fun renderInline(
         context: Context,
         views: RemoteViews,
         config: WidgetConfig,
         payload: WidgetPayload?,
-        next: WidgetUpcoming?
+        next: WidgetUpcoming?,
+        ids: InlineIds
     ): RemoteViews {
-        views.setOnClickPendingIntent(R.id.compact_root, openApp(context))
-        views.setInt(R.id.compact_root, "setBackgroundColor", config.backgroundColor(context))
+        views.setOnClickPendingIntent(ids.root, openApp(context))
+        views.setInt(ids.root, "setBackgroundColor", config.backgroundColor(context))
 
         val primary = config.primaryTextColor(context)
         val secondary = config.secondaryTextColor(context)
 
-        for (i in COMPACT_COLUMN_IDS.indices) {
-            WidgetCountdown.stopTicking(views, COMPACT_COUNTDOWN_IDS[i])
-            views.setViewVisibility(COMPACT_COUNTDOWN_IDS[i], View.GONE)
+        for (i in ids.cells.indices) {
+            WidgetCountdown.stopTicking(views, ids.countdowns[i])
+            views.setViewVisibility(ids.countdowns[i], View.GONE)
 
-            val prayer = if (payload == null) null else payload.prayers.getOrNull(i)
+            val prayer = payload?.prayers?.getOrNull(i)
             if (prayer == null) {
-                views.setTextViewText(COMPACT_NAME_IDS[i], "")
-                views.setTextViewText(COMPACT_TIME_IDS[i], "")
-                views.setInt(COMPACT_COLUMN_IDS[i], "setBackgroundResource", 0)
+                views.setTextViewText(ids.names[i], "")
+                views.setTextViewText(ids.times[i], "")
+                views.setInt(ids.cells[i], "setBackgroundResource", 0)
                 continue
             }
 
-            views.setTextViewText(COMPACT_NAME_IDS[i], prayer.name)
-            views.setTextViewText(COMPACT_TIME_IDS[i], prayer.time)
+            views.setTextViewText(ids.names[i], prayer.name)
+            views.setTextViewText(ids.times[i], prayer.time)
 
             // Matched by name because that is what both sides agree on: the
             // upcoming list and today's rows come from the same source.
             val isNext = next != null && prayer.name == next.name
             val highlight = if (isNext) config.accentDrawable() else 0
-            views.setInt(COMPACT_COLUMN_IDS[i], "setBackgroundResource", highlight)
+            views.setInt(ids.cells[i], "setBackgroundResource", highlight)
 
             val onHighlight = highlight != 0
             views.setTextColor(
-                COMPACT_NAME_IDS[i],
+                ids.names[i],
                 if (onHighlight) config.accentTextColor(context) else secondary
             )
             views.setTextColor(
-                COMPACT_TIME_IDS[i],
+                ids.times[i],
                 if (onHighlight) config.accentTextColor(context) else primary
             )
 
             if (isNext && next != null && config.countdown == CountdownMode.SECONDS) {
                 views.setTextColor(
-                    COMPACT_COUNTDOWN_IDS[i],
+                    ids.countdowns[i],
                     if (onHighlight) config.accentTextColor(context) else secondary
                 )
-                views.setViewVisibility(COMPACT_COUNTDOWN_IDS[i], View.VISIBLE)
-                WidgetCountdown.startTicking(views, next, COMPACT_COUNTDOWN_IDS[i])
+                views.setViewVisibility(ids.countdowns[i], View.VISIBLE)
+                WidgetCountdown.startTicking(views, next, ids.countdowns[i])
             }
         }
 
