@@ -124,6 +124,21 @@ test("carries the day over at midnight", async ({ page }) => {
   await expect.poll(async () => (await todayTimes(page)).Fajr).toBe("05:34");
 });
 
+test("keeps the toolbar flat until something is under it", async ({ page }) => {
+  const shadow = () =>
+    page.locator("ion-header").evaluate((h) => getComputedStyle(h).boxShadow);
+
+  // The shadow is there to separate the toolbar from content passing beneath
+  // it, so at rest it has nothing to separate.
+  expect(await shadow()).toBe("none");
+
+  await page.mouse.wheel(0, 400);
+  await expect.poll(shadow).not.toBe("none");
+
+  await page.mouse.wheel(0, -800);
+  await expect.poll(shadow).toBe("none");
+});
+
 test("opens the month table on the current month", async ({ page }) => {
   await expect(page.getByText("February", { exact: true })).toBeVisible();
   await waitForMonthTable(page);

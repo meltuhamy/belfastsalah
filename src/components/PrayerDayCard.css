@@ -1,5 +1,13 @@
+/*
+  The wrapper owns the margins, and the card inside it owns none. That is what
+  makes the tail's arithmetic below hold: the bubble and the strip are both
+  exactly this element's width, by construction rather than by two separate
+  elements happening to agree. 10px is ion-card's own margin, so the card and
+  the month card below it still line up.
+*/
 .PrayerDayCard {
   --strip-columns: 6;
+  margin: 26px 10px 10px;
 }
 
 /*
@@ -14,13 +22,15 @@
   position: relative;
   overflow: visible;
   contain: none;
+  margin: 0;
+  border-radius: 18px;
 }
 
 /*
   Where the tail sits is a fraction of the card's width, set from the index of
-  the next prayer. The strip's columns are sixths of a card that is exactly as
-  wide - both are ion-cards with the same margins - so the arithmetic lands on
-  a column centre without measuring anything, and survives a resize.
+  the next prayer. The strip's columns are sixths of the same width, so the
+  arithmetic lands on a column centre without measuring anything, and survives
+  a resize.
 */
 .PrayerDayCard__tail {
   position: absolute;
@@ -64,9 +74,35 @@
   opacity: 0.85;
 }
 
+/*
+  The prayer's name is set at the countdown's size, so the line reads as one
+  phrase rather than a caption stuck to a number - weight and opacity carry the
+  hierarchy instead. Both are a couple of points down on the countdown alone,
+  which is what keeps the longest pairing ("Maghrib in 23h 59m") on one line on
+  a 320dp screen.
+*/
+.PrayerDayCard .PrayerDayCard__line .PrayerDayCard__label {
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  opacity: 0.8;
+}
+
+/*
+  The prayer's name and the time left read as one sentence, so they sit on one
+  line - aligned on the baseline rather than centred, or the small text floats
+  in the middle of the big text's height.
+*/
+.PrayerDayCard .PrayerDayCard__line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 0 2px;
+  flex-wrap: wrap;
+}
+
 .PrayerDayCard .PrayerDayCard__remaining {
-  margin: 2px 0;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.02em;
@@ -108,18 +144,18 @@
 }
 
 /*
-  No horizontal padding: the columns have to be sixths of the whole card for
-  the tail above to line up with them, so the breathing room goes inside the
-  cells instead.
+  No card behind the times, and no horizontal padding: the columns have to be
+  sixths of the wrapper's full width for the tail above to line up with them,
+  so the breathing room goes inside the cells instead.
 */
 .PrayerDayCard__strip {
   display: grid;
   grid-template-columns: repeat(var(--strip-columns), 1fr);
-  padding: 6px 0;
+  margin-top: 13px;
 }
 
 .PrayerDayCard__strip-loading {
-  padding: 22px 16px;
+  padding: 26px 6px 12px;
 }
 
 .PrayerDayCard__cell {

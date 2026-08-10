@@ -94,18 +94,19 @@ adding another control that has to hold state while being interacted with.
 
 ## The card that points at the next prayer
 
-`PrayerDayCard` is one component holding two `IonCard`s: the blue countdown
-card, and the strip of the day's six times below it. The blue one has a tail
-that points at whichever column is next.
+`PrayerDayCard` is the blue countdown card, and below it the strip of the
+day's six times on the page background. The card has a tail that points at
+whichever column is next.
 
 The tail is placed by arithmetic, not by measuring: `--next-column` is the
 `Prayer` enum value of the next prayer — the enum is ordered as the strip is,
 so it *is* the column index — and the tail sits at
 `(column + 0.5) × (100% / 6)` of the card's width. That only lands on a column
-centre because the two cards are exactly as wide as each other and the strip's
-grid spans the whole card. So: the strip's own container gets no horizontal
-padding (it goes inside the cells instead), and nothing may change one card's
-margins without changing the other's.
+centre because the card and the strip are the same width and the strip's grid
+spans all of it. The wrapper owns the margins and the `IonCard` inside it has
+none, so that is true by construction rather than by two elements agreeing;
+keep it that way, and keep horizontal padding out of the strip itself (it goes
+inside the cells instead).
 
 Two Ionic details cost an afternoon each, and both are undone in
 `PrayerDayCard.css`:

@@ -77,17 +77,19 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
               </>
             ) : (
               <>
-                <p className="PrayerDayCard__label">
-                  {prayerToString(next.prayer)} in
-                </p>
-                <p
-                  className="PrayerDayCard__remaining"
-                  data-testid="countdown"
-                >
-                  {timeDurationString(
-                    (next.time.getTime() - now.getTime()) / 1000,
-                    "short"
-                  )}
+                <p className="PrayerDayCard__line">
+                  <span className="PrayerDayCard__label">
+                    {prayerToString(next.prayer)} in
+                  </span>
+                  <span
+                    className="PrayerDayCard__remaining"
+                    data-testid="countdown"
+                  >
+                    {timeDurationString(
+                      (next.time.getTime() - now.getTime()) / 1000,
+                      "short"
+                    )}
+                  </span>
                 </p>
                 <p className="PrayerDayCard__label">
                   {prayerToString(prev.prayer)} was{" "}
@@ -127,31 +129,29 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
         <span className="PrayerDayCard__tail" aria-hidden="true" />
       </IonCard>
 
-      <IonCard className="PrayerDayCard__strip-card">
-        {strip == null ? (
-          <div className="PrayerDayCard__strip-loading">
-            <IonSkeletonText animated />
-          </div>
-        ) : (
-          <div className="PrayerDayCard__strip" data-testid="prayer-strip">
-            {strip.map((prayerTime) => (
-              <div
-                key={prayerTime.prayer}
-                className="PrayerDayCard__cell"
-                data-testid="strip-cell"
-                data-next={prayerTime.prayer === nextColumn ? "true" : "false"}
-              >
-                <span className="PrayerDayCard__cell-name">
-                  {prayerToString(prayerTime.prayer)}
-                </span>
-                <span className="PrayerDayCard__cell-time">
-                  {formatTimeInZone(prayerTime.time, timeZone)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </IonCard>
+      {strip == null ? (
+        <div className="PrayerDayCard__strip-loading">
+          <IonSkeletonText animated />
+        </div>
+      ) : (
+        <div className="PrayerDayCard__strip" data-testid="prayer-strip">
+          {strip.map((prayerTime) => (
+            <div
+              key={prayerTime.prayer}
+              className="PrayerDayCard__cell"
+              data-testid="strip-cell"
+              data-next={prayerTime.prayer === nextColumn ? "true" : "false"}
+            >
+              <span className="PrayerDayCard__cell-name">
+                {prayerToString(prayerTime.prayer)}
+              </span>
+              <span className="PrayerDayCard__cell-time">
+                {formatTimeInZone(prayerTime.time, timeZone)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
