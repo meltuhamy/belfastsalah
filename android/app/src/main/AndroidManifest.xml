@@ -50,6 +50,18 @@
         </receiver>
 
         <receiver
+            android:name=".widget.PrayerTimesVerticalWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_vertical_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/prayer_times_vertical_widget_info" />
+        </receiver>
+
+        <receiver
             android:name=".widget.WidgetAlarmReceiver"
             android:exported="false" />
 

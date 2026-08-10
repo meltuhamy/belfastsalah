@@ -11,4 +11,6 @@
     <string name="widget_times_name">Prayer times</string>
     <string name="widget_times_description">Today\'s prayer times and a countdown to the next</string>
     <string name="widget_next_in">%1$s in</string>
+    <string name="widget_vertical_name">Prayer times (tall)</string>
+    <string name="widget_vertical_description">Today\'s prayer times stacked, with a countdown</string>
 </resources>

@@ -11,15 +11,19 @@ import com.meltuhamy.londonsalah.MainActivity
 import com.meltuhamy.londonsalah.R
 
 /**
- * The wide widget: a countdown to the next prayer, and the day's six times
- * with the next one picked out.
+ * A countdown to the next prayer, and the day's six times with the next one
+ * picked out. Subclasses only choose a layout: the wide and vertical
+ * arrangements declare the same view ids, so this binds either.
  *
- * The six columns are fixed views addressed by id rather than a collection.
+ * The six prayers are fixed views addressed by id rather than a collection.
  * A RemoteViewsService-backed list would be the general answer, but there are
  * always exactly six prayers, and a fixed layout avoids a whole service, an
  * adapter, and their lifecycles for no benefit.
  */
-class PrayerTimesWidgetProvider : AppWidgetProvider() {
+abstract class PrayerTimesWidgetBase : AppWidgetProvider() {
+
+    /** The arrangement this provider draws. */
+    protected abstract val layoutId: Int
 
     private val nameIds = intArrayOf(
         R.id.prayer_name_0, R.id.prayer_name_1, R.id.prayer_name_2,
@@ -50,7 +54,7 @@ class PrayerTimesWidgetProvider : AppWidgetProvider() {
     }
 
     private fun buildViews(context: Context): RemoteViews {
-        val views = RemoteViews(context.packageName, R.layout.widget_prayer_times)
+        val views = RemoteViews(context.packageName, layoutId)
         views.setOnClickPendingIntent(R.id.widget_root, openApp(context))
 
         val payload = WidgetPayload.parse(WidgetStore.read(context))
@@ -138,4 +142,14 @@ class PrayerTimesWidgetProvider : AppWidgetProvider() {
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+}
+
+/** Four cells wide: the six prayers in a row under the countdown. */
+class PrayerTimesWidgetProvider : PrayerTimesWidgetBase() {
+    override val layoutId = R.layout.widget_prayer_times
+}
+
+/** Two cells wide and tall: the same information stacked. */
+class PrayerTimesVerticalWidgetProvider : PrayerTimesWidgetBase() {
+    override val layoutId = R.layout.widget_prayer_times_vertical
 }
