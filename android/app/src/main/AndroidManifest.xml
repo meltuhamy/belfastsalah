@@ -35,6 +35,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".widget.WidgetPickerActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <!--
           Widget receivers. exported="false" as the platform documentation
           shows: the AppWidget framework delivers to these directly, and the

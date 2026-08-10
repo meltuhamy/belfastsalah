@@ -35,4 +35,9 @@
     <string name="config_countdown_none">Hide the countdown</string>
     <string name="config_save">Save</string>
     <string name="widget_next_at">%1$s at</string>
+    <string name="config_preview">Preview</string>
+    <string name="config_widgets_none">No widgets on your home screen yet</string>
+    <string name="config_pick_widget">Which widget?</string>
+    <string name="widget_settings_row">Widget appearance</string>
+    <string name="widget_settings_hint">Colours and countdown for each home screen widget</string>
 </resources>
