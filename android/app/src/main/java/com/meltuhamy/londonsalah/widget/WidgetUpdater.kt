@@ -9,7 +9,7 @@ import android.content.Intent
 object WidgetUpdater {
     private val PROVIDERS = listOf(
         NextPrayerTileProvider::class.java,
-        NextPrayerBannerProvider::class.java,
+        PrayerTimesCompactWidgetProvider::class.java,
         PrayerTimesWidgetProvider::class.java,
         PrayerTimesVerticalWidgetProvider::class.java
     )

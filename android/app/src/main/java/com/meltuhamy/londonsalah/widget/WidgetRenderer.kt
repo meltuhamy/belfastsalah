@@ -13,14 +13,14 @@ import com.meltuhamy.londonsalah.R
 /** The four arrangements, and the layout each draws into. */
 enum class WidgetKind(val layoutId: Int) {
     TILE(R.layout.widget_next_prayer_tile),
-    BANNER(R.layout.widget_next_prayer_banner),
+    COMPACT(R.layout.widget_prayer_times_compact),
     WIDE(R.layout.widget_prayer_times),
     TALL(R.layout.widget_prayer_times_vertical);
 
     companion object {
         fun forProvider(className: String): WidgetKind = when {
             className.endsWith("NextPrayerTileProvider") -> TILE
-            className.endsWith("NextPrayerBannerProvider") -> BANNER
+            className.endsWith("PrayerTimesCompactWidgetProvider") -> COMPACT
             className.endsWith("PrayerTimesVerticalWidgetProvider") -> TALL
             else -> WIDE
         }
@@ -50,6 +50,23 @@ object WidgetRenderer {
         R.id.prayer_col_3, R.id.prayer_col_4, R.id.prayer_col_5
     )
 
+    private val COMPACT_NAME_IDS = intArrayOf(
+        R.id.compact_name_0, R.id.compact_name_1, R.id.compact_name_2,
+        R.id.compact_name_3, R.id.compact_name_4, R.id.compact_name_5
+    )
+    private val COMPACT_TIME_IDS = intArrayOf(
+        R.id.compact_time_0, R.id.compact_time_1, R.id.compact_time_2,
+        R.id.compact_time_3, R.id.compact_time_4, R.id.compact_time_5
+    )
+    private val COMPACT_COLUMN_IDS = intArrayOf(
+        R.id.compact_col_0, R.id.compact_col_1, R.id.compact_col_2,
+        R.id.compact_col_3, R.id.compact_col_4, R.id.compact_col_5
+    )
+    private val COMPACT_COUNTDOWN_IDS = intArrayOf(
+        R.id.compact_countdown_0, R.id.compact_countdown_1, R.id.compact_countdown_2,
+        R.id.compact_countdown_3, R.id.compact_countdown_4, R.id.compact_countdown_5
+    )
+
     /** Size in dp of the widget's smaller side, or null when it is not known. */
     fun render(
         context: Context,
@@ -63,56 +80,74 @@ object WidgetRenderer {
 
         return when (kind) {
             WidgetKind.TILE -> renderTile(context, views, config, payload, next, sizeDp)
-            WidgetKind.BANNER -> renderBanner(context, views, config, payload, next)
+            WidgetKind.COMPACT -> renderCompact(context, views, config, payload, next)
             else -> renderTimetable(context, views, config, payload, next)
         }
     }
 
     /**
-     * One row: the next prayer, with the countdown small above it.
+     * The whole timetable on one row.
      *
-     * Inverted from the tile on purpose - what is being waited for is the
-     * headline here, and the countdown is the detail. Nothing is sized to fit,
-     * because a row this shape has no small end worth defending: shrunk
-     * horizontally the text simply ellipsises.
+     * The countdown gets no line of its own - that is what a row one cell high
+     * cannot afford - so it goes inside the next prayer's box, under its time
+     * and within the highlight. Only in the ticking mode: showing the prayer's
+     * clock time there would repeat the number directly above it, and the row
+     * is too tight to spend a line saying something twice.
      */
-    private fun renderBanner(
+    private fun renderCompact(
         context: Context,
         views: RemoteViews,
         config: WidgetConfig,
         payload: WidgetPayload?,
         next: WidgetUpcoming?
     ): RemoteViews {
-        views.setOnClickPendingIntent(R.id.banner_root, openApp(context))
-        views.setInt(R.id.banner_root, "setBackgroundColor", config.backgroundColor(context))
-        views.setTextColor(R.id.banner_countdown, config.secondaryTextColor(context))
-        views.setTextColor(R.id.banner_prayer, config.primaryTextColor(context))
+        views.setOnClickPendingIntent(R.id.compact_root, openApp(context))
+        views.setInt(R.id.compact_root, "setBackgroundColor", config.backgroundColor(context))
 
-        if (payload == null || next == null) {
-            views.setTextViewText(
-                R.id.banner_prayer, context.getString(R.string.widget_unavailable)
+        val primary = config.primaryTextColor(context)
+        val secondary = config.secondaryTextColor(context)
+
+        for (i in COMPACT_COLUMN_IDS.indices) {
+            WidgetCountdown.stopTicking(views, COMPACT_COUNTDOWN_IDS[i])
+            views.setViewVisibility(COMPACT_COUNTDOWN_IDS[i], View.GONE)
+
+            val prayer = if (payload == null) null else payload.prayers.getOrNull(i)
+            if (prayer == null) {
+                views.setTextViewText(COMPACT_NAME_IDS[i], "")
+                views.setTextViewText(COMPACT_TIME_IDS[i], "")
+                views.setInt(COMPACT_COLUMN_IDS[i], "setBackgroundResource", 0)
+                continue
+            }
+
+            views.setTextViewText(COMPACT_NAME_IDS[i], prayer.name)
+            views.setTextViewText(COMPACT_TIME_IDS[i], prayer.time)
+
+            // Matched by name because that is what both sides agree on: the
+            // upcoming list and today's rows come from the same source.
+            val isNext = next != null && prayer.name == next.name
+            val highlight = if (isNext) config.accentDrawable() else 0
+            views.setInt(COMPACT_COLUMN_IDS[i], "setBackgroundResource", highlight)
+
+            val onHighlight = highlight != 0
+            views.setTextColor(
+                COMPACT_NAME_IDS[i],
+                if (onHighlight) config.accentTextColor(context) else secondary
             )
-            views.setChronometer(
-                R.id.banner_countdown, SystemClock.elapsedRealtime(), null, false
+            views.setTextColor(
+                COMPACT_TIME_IDS[i],
+                if (onHighlight) config.accentTextColor(context) else primary
             )
-            views.setViewVisibility(R.id.banner_countdown, View.VISIBLE)
-            views.setTextViewText(
-                R.id.banner_countdown, context.getString(R.string.widget_open_app)
-            )
-            return views
+
+            if (isNext && next != null && config.countdown == CountdownMode.SECONDS) {
+                views.setTextColor(
+                    COMPACT_COUNTDOWN_IDS[i],
+                    if (onHighlight) config.accentTextColor(context) else secondary
+                )
+                views.setViewVisibility(COMPACT_COUNTDOWN_IDS[i], View.VISIBLE)
+                WidgetCountdown.startTicking(views, next, COMPACT_COUNTDOWN_IDS[i])
+            }
         }
 
-        // The prayer's name stands alone as the headline, so no "in" or "at" -
-        // the line below it already says which it is.
-        WidgetCountdown.bind(
-            views,
-            context,
-            config,
-            next,
-            R.id.banner_countdown,
-            R.id.banner_prayer,
-            labelWithVerb = false
-        )
         return views
     }
 

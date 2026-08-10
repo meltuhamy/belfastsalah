@@ -19,64 +19,59 @@ import com.meltuhamy.londonsalah.R
  */
 object WidgetCountdown {
 
-    /**
-     * `labelWithVerb` reads "Duhr in" / "Duhr at", which is right when the
-     * label introduces the countdown below it. Off, the label is the prayer's
-     * name alone - for layouts where the name is the headline and the countdown
-     * is the small print above it.
-     */
     fun bind(
         views: RemoteViews,
         context: Context,
         config: WidgetConfig,
         next: WidgetUpcoming,
         countdownViewId: Int,
-        labelViewId: Int,
-        labelWithVerb: Boolean = true
+        labelViewId: Int
     ) {
         when (config.countdown) {
             CountdownMode.SECONDS -> {
                 views.setViewVisibility(countdownViewId, View.VISIBLE)
                 views.setTextViewText(
                     labelViewId,
-                    if (labelWithVerb) {
-                        context.getString(R.string.widget_next_in, next.name)
-                    } else {
-                        next.name
-                    }
+                    context.getString(R.string.widget_next_in, next.name)
                 )
-                // Chronometer counts in the elapsedRealtime timebase, not wall
-                // clock, so the instant has to be converted into it.
-                val base =
-                    SystemClock.elapsedRealtime() + (next.at - System.currentTimeMillis())
-                views.setChronometer(countdownViewId, base, null, true)
-                views.setChronometerCountDown(countdownViewId, true)
+                startTicking(views, next, countdownViewId)
             }
 
             CountdownMode.TIME -> {
                 views.setViewVisibility(countdownViewId, View.VISIBLE)
                 views.setTextViewText(
                     labelViewId,
-                    if (labelWithVerb) {
-                        context.getString(R.string.widget_next_at, next.name)
-                    } else {
-                        next.name
-                    }
+                    context.getString(R.string.widget_next_at, next.name)
                 )
-                // Stop it first: a running Chronometer would overwrite the text.
-                views.setChronometer(
-                    countdownViewId, SystemClock.elapsedRealtime(), null, false
-                )
+                stopTicking(views, countdownViewId)
                 views.setTextViewText(countdownViewId, next.time)
             }
 
             CountdownMode.NONE -> {
-                views.setChronometer(
-                    countdownViewId, SystemClock.elapsedRealtime(), null, false
-                )
+                stopTicking(views, countdownViewId)
                 views.setViewVisibility(countdownViewId, View.GONE)
                 views.setTextViewText(labelViewId, next.name)
             }
         }
+    }
+
+    /**
+     * Starts a live count down to `next`.
+     *
+     * Chronometer counts in the elapsedRealtime timebase rather than the wall
+     * clock, so the instant has to be converted into it.
+     */
+    fun startTicking(views: RemoteViews, next: WidgetUpcoming, countdownViewId: Int) {
+        val base = SystemClock.elapsedRealtime() + (next.at - System.currentTimeMillis())
+        views.setChronometer(countdownViewId, base, null, true)
+        views.setChronometerCountDown(countdownViewId, true)
+    }
+
+    /**
+     * Stops it. Always needed before setTextViewText on a Chronometer, and
+     * before hiding one: a running tick overwrites whatever was set.
+     */
+    fun stopTicking(views: RemoteViews, countdownViewId: Int) {
+        views.setChronometer(countdownViewId, SystemClock.elapsedRealtime(), null, false)
     }
 }
