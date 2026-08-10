@@ -44,6 +44,7 @@ class WidgetPickerActivity : Activity() {
         val manager = AppWidgetManager.getInstance(this)
         val providers = listOf(
             NextPrayerTileProvider::class.java to R.string.widget_tile_name,
+            NextPrayerBannerProvider::class.java to R.string.widget_banner_name,
             PrayerTimesWidgetProvider::class.java to R.string.widget_times_name,
             PrayerTimesVerticalWidgetProvider::class.java to R.string.widget_vertical_name
         )

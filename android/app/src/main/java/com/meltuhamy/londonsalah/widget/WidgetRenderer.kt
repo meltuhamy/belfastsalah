@@ -10,15 +10,17 @@ import android.widget.RemoteViews
 import com.meltuhamy.londonsalah.MainActivity
 import com.meltuhamy.londonsalah.R
 
-/** The three arrangements, and the layout each draws into. */
+/** The four arrangements, and the layout each draws into. */
 enum class WidgetKind(val layoutId: Int) {
     TILE(R.layout.widget_next_prayer_tile),
+    BANNER(R.layout.widget_next_prayer_banner),
     WIDE(R.layout.widget_prayer_times),
     TALL(R.layout.widget_prayer_times_vertical);
 
     companion object {
         fun forProvider(className: String): WidgetKind = when {
             className.endsWith("NextPrayerTileProvider") -> TILE
+            className.endsWith("NextPrayerBannerProvider") -> BANNER
             className.endsWith("PrayerTimesVerticalWidgetProvider") -> TALL
             else -> WIDE
         }
@@ -59,11 +61,59 @@ object WidgetRenderer {
         val payload = WidgetPayload.parse(WidgetStore.read(context))
         val next = payload?.nextAfter(System.currentTimeMillis())
 
-        return if (kind == WidgetKind.TILE) {
-            renderTile(context, views, config, payload, next, sizeDp)
-        } else {
-            renderTimetable(context, views, config, payload, next)
+        return when (kind) {
+            WidgetKind.TILE -> renderTile(context, views, config, payload, next, sizeDp)
+            WidgetKind.BANNER -> renderBanner(context, views, config, payload, next)
+            else -> renderTimetable(context, views, config, payload, next)
         }
+    }
+
+    /**
+     * One row: the next prayer, with the countdown small above it.
+     *
+     * Inverted from the tile on purpose - what is being waited for is the
+     * headline here, and the countdown is the detail. Nothing is sized to fit,
+     * because a row this shape has no small end worth defending: shrunk
+     * horizontally the text simply ellipsises.
+     */
+    private fun renderBanner(
+        context: Context,
+        views: RemoteViews,
+        config: WidgetConfig,
+        payload: WidgetPayload?,
+        next: WidgetUpcoming?
+    ): RemoteViews {
+        views.setOnClickPendingIntent(R.id.banner_root, openApp(context))
+        views.setInt(R.id.banner_root, "setBackgroundColor", config.backgroundColor(context))
+        views.setTextColor(R.id.banner_countdown, config.secondaryTextColor(context))
+        views.setTextColor(R.id.banner_prayer, config.primaryTextColor(context))
+
+        if (payload == null || next == null) {
+            views.setTextViewText(
+                R.id.banner_prayer, context.getString(R.string.widget_unavailable)
+            )
+            views.setChronometer(
+                R.id.banner_countdown, SystemClock.elapsedRealtime(), null, false
+            )
+            views.setViewVisibility(R.id.banner_countdown, View.VISIBLE)
+            views.setTextViewText(
+                R.id.banner_countdown, context.getString(R.string.widget_open_app)
+            )
+            return views
+        }
+
+        // The prayer's name stands alone as the headline, so no "in" or "at" -
+        // the line below it already says which it is.
+        WidgetCountdown.bind(
+            views,
+            context,
+            config,
+            next,
+            R.id.banner_countdown,
+            R.id.banner_prayer,
+            labelWithVerb = false
+        )
+        return views
     }
 
     private fun renderTile(

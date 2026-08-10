@@ -4,8 +4,16 @@
     <string name="title_activity_main">Prayer Times</string>
     <string name="package_name">com.meltuhamy.londonsalah</string>
     <string name="custom_url_scheme">com.meltuhamy.londonsalah</string>
-    <string name="widget_tile_name">Next prayer</string>
-    <string name="widget_tile_description">The next prayer and how long until it</string>
+    <!--
+      The size range is spelled out because Android gives no other way to say
+      it: the picker shows one size badge, taken from targetCellWidth/Height,
+      and nothing anywhere hints that a widget resizes until you long-press it
+      on the home screen. The description is the only text the picker shows.
+    -->
+    <string name="widget_tile_name">Next prayer (square)</string>
+    <string name="widget_tile_description">The next prayer and how long until it. Resizable — drag the handles for anything from 1×1 up.</string>
+    <string name="widget_banner_name">Next prayer (row)</string>
+    <string name="widget_banner_description">The next prayer across one row, with a small countdown above it. Resizable.</string>
     <string name="widget_unavailable">No times</string>
     <string name="widget_open_app">Open the app</string>
     <string name="widget_times_name">Prayer times</string>

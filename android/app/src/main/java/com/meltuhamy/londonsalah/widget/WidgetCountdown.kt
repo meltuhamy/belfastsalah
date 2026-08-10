@@ -19,20 +19,31 @@ import com.meltuhamy.londonsalah.R
  */
 object WidgetCountdown {
 
+    /**
+     * `labelWithVerb` reads "Duhr in" / "Duhr at", which is right when the
+     * label introduces the countdown below it. Off, the label is the prayer's
+     * name alone - for layouts where the name is the headline and the countdown
+     * is the small print above it.
+     */
     fun bind(
         views: RemoteViews,
         context: Context,
         config: WidgetConfig,
         next: WidgetUpcoming,
         countdownViewId: Int,
-        labelViewId: Int
+        labelViewId: Int,
+        labelWithVerb: Boolean = true
     ) {
         when (config.countdown) {
             CountdownMode.SECONDS -> {
                 views.setViewVisibility(countdownViewId, View.VISIBLE)
                 views.setTextViewText(
                     labelViewId,
-                    context.getString(R.string.widget_next_in, next.name)
+                    if (labelWithVerb) {
+                        context.getString(R.string.widget_next_in, next.name)
+                    } else {
+                        next.name
+                    }
                 )
                 // Chronometer counts in the elapsedRealtime timebase, not wall
                 // clock, so the instant has to be converted into it.
@@ -46,7 +57,11 @@ object WidgetCountdown {
                 views.setViewVisibility(countdownViewId, View.VISIBLE)
                 views.setTextViewText(
                     labelViewId,
-                    context.getString(R.string.widget_next_at, next.name)
+                    if (labelWithVerb) {
+                        context.getString(R.string.widget_next_at, next.name)
+                    } else {
+                        next.name
+                    }
                 )
                 // Stop it first: a running Chronometer would overwrite the text.
                 views.setChronometer(
