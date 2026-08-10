@@ -21,6 +21,21 @@
         </activity>
 
         <!--
+          Per-widget appearance. configuration_optional in the provider XML
+          means Android 12+ places the widget with defaults and offers this
+          later; older versions show it when the widget is added.
+        -->
+        <activity
+            android:name=".widget.WidgetConfigActivity"
+            android:exported="false"
+            android:label="@string/config_title"
+            android:theme="@style/AppTheme.NoActionBar">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <!--
           Widget receivers. exported="false" as the platform documentation
           shows: the AppWidget framework delivers to these directly, and the
           alarm below is an explicit intent from this app to itself.

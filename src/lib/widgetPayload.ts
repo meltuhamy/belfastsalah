@@ -30,7 +30,7 @@ import {
 } from "./timeZone";
 
 /** Bump when the shape changes, so an old widget ignores a payload it cannot read. */
-export const WIDGET_PAYLOAD_VERSION = 1;
+export const WIDGET_PAYLOAD_VERSION = 2;
 
 /** How far ahead to write, so the widget survives the app going unopened. */
 export const DEFAULT_HORIZON_DAYS = 90;
@@ -45,6 +45,12 @@ export type WidgetUpcoming = {
   name: string;
   /** Epoch milliseconds. The countdown's base. */
   at: number;
+  /**
+   * The same instant as a display string. Carried per entry, not just for
+   * today, because a widget set to show the time rather than a countdown
+   * still needs it when the next prayer is tomorrow's Fajr.
+   */
+  time: string;
 };
 
 export type WidgetPayload = {
@@ -127,7 +133,11 @@ export async function buildWidgetPayload(
       for (const prayerTime of dayTimes) {
         const at = prayerTime.time.getTime();
         if (at > now.getTime() && at <= horizonEnd) {
-          upcoming.push({ name: prayerToString(prayerTime.prayer), at });
+          upcoming.push({
+            name: prayerToString(prayerTime.prayer),
+            at,
+            time: formatTimeInZone(prayerTime.time, displayZone),
+          });
         }
       }
     }

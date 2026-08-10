@@ -108,6 +108,7 @@ describe("the upcoming list", () => {
 
     // 10:00, so Duhr at 12:20 is next.
     expect(payload.upcoming[0].name).toEqual("Duhr");
+    expect(payload.upcoming[0].time).toEqual("12:20");
     expect(new Date(payload.upcoming[0].at).toISOString()).toEqual(
       "2026-02-15T12:20:00.000Z"
     );
@@ -115,6 +116,16 @@ describe("the upcoming list", () => {
     const times = payload.upcoming.map((u) => u.at);
     expect(times).toEqual([...times].sort((a, b) => a - b));
     expect(times.every((t) => t > MORNING.getTime())).toBe(true);
+  });
+
+  it("Should carry a display time for prayers beyond today", async () => {
+    // The "show the time instead of a countdown" mode needs this when the
+    // next prayer is tomorrow's, which today's rows cannot supply.
+    const lateEvening = new Date("2026-02-15T20:00:00Z");
+    const payload = (await buildWidgetPayload(settingsWith(), lateEvening))!;
+    expect(payload.upcoming[0].name).toEqual("Fajr");
+    // london-2026.json, 16 February.
+    expect(payload.upcoming[0].time).toEqual("05:34");
   });
 
   it("Should not include prayers that have already passed today", async () => {

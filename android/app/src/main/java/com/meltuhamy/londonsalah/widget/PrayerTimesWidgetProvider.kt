@@ -44,7 +44,7 @@ abstract class PrayerTimesWidgetBase : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         for (id in appWidgetIds) {
-            appWidgetManager.updateAppWidget(id, buildViews(context))
+            appWidgetManager.updateAppWidget(id, buildViews(context, id))
         }
         WidgetAlarms.scheduleNextBoundary(context)
     }
@@ -53,9 +53,22 @@ abstract class PrayerTimesWidgetBase : AppWidgetProvider() {
         WidgetAlarms.scheduleNextBoundary(context)
     }
 
-    private fun buildViews(context: Context): RemoteViews {
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
+        WidgetConfig.delete(context, appWidgetIds)
+    }
+
+    private fun buildViews(context: Context, appWidgetId: Int): RemoteViews {
         val views = RemoteViews(context.packageName, layoutId)
         views.setOnClickPendingIntent(R.id.widget_root, openApp(context))
+
+        val config = WidgetConfig.load(context, appWidgetId)
+        val primary = config.primaryTextColor(context)
+        val secondary = config.secondaryTextColor(context)
+        views.setInt(R.id.widget_root, "setBackgroundColor", config.backgroundColor(context))
+        views.setTextColor(R.id.widget_next_label, secondary)
+        views.setTextColor(R.id.widget_countdown, primary)
+        views.setTextColor(R.id.widget_location, secondary)
+        views.setTextColor(R.id.widget_date, secondary)
 
         val payload = WidgetPayload.parse(WidgetStore.read(context))
         val next = payload?.nextAfter(System.currentTimeMillis())
@@ -82,17 +95,11 @@ abstract class PrayerTimesWidgetBase : AppWidgetProvider() {
             return views
         }
 
-        views.setTextViewText(
-            R.id.widget_next_label,
-            context.getString(R.string.widget_next_in, next.name)
-        )
         views.setTextViewText(R.id.widget_location, payload.locationLabel)
         views.setTextViewText(R.id.widget_date, payload.dateLabel)
-
-        // elapsedRealtime timebase, not wall clock.
-        val base = SystemClock.elapsedRealtime() + (next.at - System.currentTimeMillis())
-        views.setChronometer(R.id.widget_countdown, base, null, true)
-        views.setChronometerCountDown(R.id.widget_countdown, true)
+        WidgetCountdown.bind(
+            views, context, config, next, R.id.widget_countdown, R.id.widget_next_label
+        )
 
         for (i in columnIds.indices) {
             val prayer = payload.prayers.getOrNull(i)
@@ -109,24 +116,16 @@ abstract class PrayerTimesWidgetBase : AppWidgetProvider() {
             // Matched by name because that is what both sides agree on; the
             // upcoming list and today's rows are built from the same source.
             val isNext = prayer.name == next.name
-            views.setInt(
-                columnIds[i],
-                "setBackgroundResource",
-                if (isNext) R.drawable.widget_next_highlight else 0
-            )
+            val highlight = if (isNext) config.accentDrawable() else 0
+            views.setInt(columnIds[i], "setBackgroundResource", highlight)
+            val onHighlight = highlight != 0
             views.setTextColor(
                 nameIds[i],
-                context.getColor(
-                    if (isNext) R.color.widget_accent_contrast
-                    else R.color.widget_text_secondary
-                )
+                if (onHighlight) config.accentTextColor(context) else secondary
             )
             views.setTextColor(
                 timeIds[i],
-                context.getColor(
-                    if (isNext) R.color.widget_accent_contrast
-                    else R.color.widget_text_primary
-                )
+                if (onHighlight) config.accentTextColor(context) else primary
             )
         }
 

@@ -11,7 +11,7 @@ import org.junit.Test
  */
 class WidgetPayloadTest {
 
-    private fun payloadJson(version: Int = 1, upcoming: String) = """
+    private fun payloadJson(version: Int = 2, upcoming: String) = """
         {
           "version": $version,
           "generatedAt": 0,
@@ -34,13 +34,14 @@ class WidgetPayloadTest {
     @Test
     fun `reads a payload the app wrote`() {
         val payload = WidgetPayload.parse(
-            payloadJson(upcoming = """[{ "name": "Duhr", "at": 2000 }]""")
+            payloadJson(upcoming = """[{ "name": "Duhr", "at": 2000, "time": "12:20" }]""")
         )!!
 
         assertEquals("London", payload.locationLabel)
         assertEquals("Sun 15 Feb", payload.dateLabel)
         assertEquals(6, payload.prayers.size)
         assertEquals("12:20", payload.prayers[2].time)
+        assertEquals("12:20", payload.upcoming[0].time)
     }
 
     @Test
@@ -48,9 +49,9 @@ class WidgetPayloadTest {
         val payload = WidgetPayload.parse(
             payloadJson(
                 upcoming = """
-                    [{ "name": "Fajr", "at": 1000 },
-                     { "name": "Duhr", "at": 2000 },
-                     { "name": "Asr",  "at": 3000 }]
+                    [{ "name": "Fajr", "at": 1000, "time": "05:36" },
+                     { "name": "Duhr", "at": 2000, "time": "12:20" },
+                     { "name": "Asr",  "at": 3000, "time": "14:45" }]
                 """.trimIndent()
             )
         )!!
@@ -65,7 +66,7 @@ class WidgetPayloadTest {
     @Test
     fun `reports nothing once the written window runs out`() {
         val payload = WidgetPayload.parse(
-            payloadJson(upcoming = """[{ "name": "Fajr", "at": 1000 }]""")
+            payloadJson(upcoming = """[{ "name": "Fajr", "at": 1000, "time": "05:36" }]""")
         )!!
         assertNull(payload.nextAfter(5000))
     }

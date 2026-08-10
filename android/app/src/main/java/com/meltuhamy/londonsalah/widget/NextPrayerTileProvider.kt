@@ -29,7 +29,7 @@ class NextPrayerTileProvider : AppWidgetProvider() {
     ) {
         for (id in appWidgetIds) {
             val options = appWidgetManager.getAppWidgetOptions(id)
-            appWidgetManager.updateAppWidget(id, buildViews(context, options))
+            appWidgetManager.updateAppWidget(id, buildViews(context, id, options))
         }
         WidgetAlarms.scheduleNextBoundary(context)
     }
@@ -41,16 +41,30 @@ class NextPrayerTileProvider : AppWidgetProvider() {
         appWidgetId: Int,
         newOptions: Bundle
     ) {
-        appWidgetManager.updateAppWidget(appWidgetId, buildViews(context, newOptions))
+        appWidgetManager.updateAppWidget(appWidgetId, buildViews(context, appWidgetId, newOptions))
     }
 
     override fun onEnabled(context: Context) {
         WidgetAlarms.scheduleNextBoundary(context)
     }
 
-    private fun buildViews(context: Context, options: Bundle?): RemoteViews {
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
+        WidgetConfig.delete(context, appWidgetIds)
+    }
+
+    private fun buildViews(
+        context: Context,
+        appWidgetId: Int,
+        options: Bundle?
+    ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_next_prayer_tile)
         views.setOnClickPendingIntent(R.id.tile_root, openApp(context))
+
+        val config = WidgetConfig.load(context, appWidgetId)
+        views.setInt(R.id.tile_root, "setBackgroundColor", config.backgroundColor(context))
+        views.setTextColor(R.id.tile_prayer, config.secondaryTextColor(context))
+        views.setTextColor(R.id.tile_countdown, config.primaryTextColor(context))
+        views.setTextColor(R.id.tile_location, config.secondaryTextColor(context))
 
         // At one cell there is room for the prayer and the countdown, and
         // nothing else. Two cells is roughly 110dp; below that, drop the
@@ -75,14 +89,10 @@ class NextPrayerTileProvider : AppWidgetProvider() {
             return views
         }
 
-        views.setTextViewText(R.id.tile_prayer, next.name)
         views.setTextViewText(R.id.tile_location, payload.locationLabel)
-
-        // Chronometer counts in the elapsedRealtime timebase, not wall clock,
-        // so the target instant has to be converted into it.
-        val base = SystemClock.elapsedRealtime() + (next.at - System.currentTimeMillis())
-        views.setChronometer(R.id.tile_countdown, base, null, true)
-        views.setChronometerCountDown(R.id.tile_countdown, true)
+        WidgetCountdown.bind(
+            views, context, config, next, R.id.tile_countdown, R.id.tile_prayer
+        )
 
         return views
     }

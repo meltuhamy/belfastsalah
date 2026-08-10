@@ -14,7 +14,7 @@ import org.json.JSONObject
  */
 data class WidgetPrayer(val name: String, val time: String)
 
-data class WidgetUpcoming(val name: String, val at: Long)
+data class WidgetUpcoming(val name: String, val at: Long, val time: String)
 
 data class WidgetPayload(
     val locationLabel: String,
@@ -28,7 +28,7 @@ data class WidgetPayload(
 
     companion object {
         /** Must match WIDGET_PAYLOAD_VERSION in src/lib/widgetPayload.ts. */
-        const val SUPPORTED_VERSION = 1
+        const val SUPPORTED_VERSION = 2
 
         /**
          * Returns null for anything unusable - absent, malformed, or written
@@ -51,7 +51,11 @@ data class WidgetPayload(
                 val upcomingJson = root.getJSONArray("upcoming")
                 val upcoming = (0 until upcomingJson.length()).map { i ->
                     val u = upcomingJson.getJSONObject(i)
-                    WidgetUpcoming(u.getString("name"), u.getLong("at"))
+                    WidgetUpcoming(
+                        u.getString("name"),
+                        u.getLong("at"),
+                        u.getString("time")
+                    )
                 }
 
                 WidgetPayload(

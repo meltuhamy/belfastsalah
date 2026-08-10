@@ -13,4 +13,26 @@
     <string name="widget_next_in">%1$s in</string>
     <string name="widget_vertical_name">Prayer times (tall)</string>
     <string name="widget_vertical_description">Today\'s prayer times stacked, with a countdown</string>
+    <string name="config_title">Widget appearance</string>
+    <string name="config_background">Background</string>
+    <string name="config_bg_system">Match system</string>
+    <string name="config_bg_light">Light</string>
+    <string name="config_bg_dark">Dark</string>
+    <string name="config_opacity">Opacity</string>
+    <string name="config_text_colour">Text</string>
+    <string name="config_text_auto">Automatic</string>
+    <string name="config_text_light">Light</string>
+    <string name="config_text_dark">Dark</string>
+    <string name="config_highlight">Highlight the next prayer</string>
+    <string name="widget_accent_blue">Blue</string>
+    <string name="widget_accent_green">Green</string>
+    <string name="widget_accent_amber">Amber</string>
+    <string name="widget_accent_violet">Violet</string>
+    <string name="config_accent_none">No highlight</string>
+    <string name="config_countdown">Countdown</string>
+    <string name="config_countdown_seconds">Count down, with seconds</string>
+    <string name="config_countdown_time">Show the prayer time instead</string>
+    <string name="config_countdown_none">Hide the countdown</string>
+    <string name="config_save">Save</string>
+    <string name="widget_next_at">%1$s at</string>
 </resources>
