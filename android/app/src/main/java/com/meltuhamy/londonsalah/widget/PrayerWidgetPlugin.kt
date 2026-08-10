@@ -2,9 +2,7 @@ package com.meltuhamy.londonsalah.widget
 
 import android.content.Intent
 import com.getcapacitor.Plugin
-import android.content.Intent
 import com.getcapacitor.PluginCall
-import android.content.Intent
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 
