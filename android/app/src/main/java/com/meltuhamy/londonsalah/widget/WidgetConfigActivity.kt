@@ -4,6 +4,7 @@ import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.os.Bundle
+import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.CheckBox
@@ -27,6 +28,13 @@ class WidgetConfigActivity : Activity() {
     companion object {
         /** Set when opened from the app rather than by the widget host. */
         const val EXTRA_FROM_APP = "from_app"
+
+        /** Roughly one home screen cell. Only the ratio between them matters. */
+        private const val CELL_WIDTH_DP = 76f
+        private const val CELL_HEIGHT_DP = 92f
+
+        /** How much of the screen a preview may take before it is scaled down. */
+        private const val MAX_PREVIEW_HEIGHT_DP = 240f
     }
 
     private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
@@ -95,7 +103,9 @@ class WidgetConfigActivity : Activity() {
             override fun onStopTrackingTouch(bar: SeekBar) = Unit
         })
 
-        refreshPreview()
+        // Posted rather than called: the preview has no width until it has
+        // been laid out, and its width is the scale everything is drawn to.
+        preview.post { refreshPreview() }
 
         findViewById<Button>(R.id.config_save).setOnClickListener { save() }
     }
@@ -106,13 +116,58 @@ class WidgetConfigActivity : Activity() {
      * cannot drift from what actually lands on the home screen.
      */
     private fun refreshPreview() {
-        val views = WidgetRenderer.render(this, kind, read(), previewSizeDp())
+        // Nothing to scale to yet. Only reachable if something asks for a
+        // preview before the first layout; the posted call below will follow.
+        if (preview.width == 0) {
+            return
+        }
+
+        val (widthPx, heightPx) = previewSizePx()
+        val sizeDp = (minOf(widthPx, heightPx) / resources.displayMetrics.density).toInt()
+
+        val views = WidgetRenderer.render(this, kind, read(), sizeDp)
         preview.removeAllViews()
-        preview.addView(views.apply(this, preview))
+        preview.addView(
+            views.apply(this, preview),
+            FrameLayout.LayoutParams(widthPx, heightPx, Gravity.CENTER)
+        )
     }
 
-    /** The tile scales its text to its size; preview it as a placed 2x2. */
-    private fun previewSizeDp(): Int? = if (kind == WidgetKind.TILE) 140 else null
+    /**
+     * How big to draw the preview, in the proportions the widget will actually
+     * have on a home screen.
+     *
+     * Left to itself the inflated layout is match_parent in both directions and
+     * fills the backdrop, so every widget previewed as the same wide bar - a
+     * one-cell tile included, which is the shape it is least like. Four cells
+     * across is the widest widget there is, so that is what the backdrop's
+     * width has to hold, and every other widget is drawn to the same scale.
+     *
+     * The tall ones are then scaled down to fit a sensible slice of the screen.
+     * That keeps the shape honest, which is the whole point, at the cost of
+     * showing a 2x4 smaller than life.
+     */
+    private fun previewSizePx(): Pair<Int, Int> {
+        val (columns, rows) = when (kind) {
+            WidgetKind.TILE -> 1 to 1
+            WidgetKind.COMPACT -> 4 to 1
+            WidgetKind.COLUMN -> 1 to 4
+            WidgetKind.WIDE -> 4 to 2
+            WidgetKind.TALL -> 2 to 4
+        }
+
+        val available = preview.width - preview.paddingLeft - preview.paddingRight
+        val cellWidth = available / 4f
+        // Home screen cells are a little taller than they are wide.
+        val cellHeight = cellWidth * (CELL_HEIGHT_DP / CELL_WIDTH_DP)
+
+        val width = columns * cellWidth
+        val height = rows * cellHeight
+        val maxHeight = MAX_PREVIEW_HEIGHT_DP * resources.displayMetrics.density
+        val scale = minOf(1f, maxHeight / height)
+
+        return (width * scale).toInt() to (height * scale).toInt()
+    }
 
     private fun show(config: WidgetConfig) {
         palette.check(
