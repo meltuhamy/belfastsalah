@@ -4,4 +4,57 @@
     <string name="title_activity_main">Prayer Times</string>
     <string name="package_name">com.meltuhamy.londonsalah</string>
     <string name="custom_url_scheme">com.meltuhamy.londonsalah</string>
+    <!--
+      These name the widgets in the app's own "widget appearance" list. They no
+      longer label the receivers: Android would then caption every placed
+      widget with them, and the manifest explains why that is not wanted.
+
+      The descriptions do reach the system picker, and are what tells the
+      widgets apart there now, alongside their previews. They carry the size
+      range too - nothing in Android hints that a widget resizes until you
+      long-press it on the home screen.
+    -->
+    <string name="widget_tile_name">Next prayer</string>
+    <string name="widget_tile_description">The next prayer and how long until it. Resizable — drag the handles for anything from 1×1 up.</string>
+    <string name="widget_compact_name">One row</string>
+    <string name="widget_compact_description">All six times on a single row, with the countdown inside the next prayer. Resizable.</string>
+    <string name="widget_column_name">One column</string>
+    <string name="widget_column_description">All six times down a column one cell wide, with the countdown inside the next prayer. Resizable.</string>
+    <string name="widget_unavailable">No times</string>
+    <string name="widget_open_app">Open the app</string>
+    <string name="widget_times_name">Wide</string>
+    <string name="widget_times_description">All six times in a row, under a large countdown to the next. Resizable.</string>
+    <string name="widget_next_in">%1$s in</string>
+    <string name="widget_vertical_name">Tall</string>
+    <string name="widget_vertical_description">All six times stacked, under a large countdown to the next. Resizable.</string>
+    <string name="config_title">Widget appearance</string>
+    <string name="config_background">Background</string>
+    <string name="config_bg_system">Match system</string>
+    <string name="config_bg_light">Light</string>
+    <string name="config_bg_dark">Dark</string>
+    <string name="config_opacity">Opacity</string>
+    <string name="config_text_colour">Text</string>
+    <string name="config_text_auto">Automatic</string>
+    <string name="config_text_light">Light</string>
+    <string name="config_text_dark">Dark</string>
+    <string name="config_highlight">Highlight the next prayer</string>
+    <string name="widget_accent_blue">Blue</string>
+    <string name="widget_accent_green">Green</string>
+    <string name="widget_accent_amber">Amber</string>
+    <string name="widget_accent_violet">Violet</string>
+    <string name="config_accent_none">No highlight</string>
+    <string name="config_countdown">Countdown</string>
+    <string name="config_countdown_seconds">Count down, with seconds</string>
+    <string name="config_countdown_time">Show the prayer time instead</string>
+    <string name="config_countdown_none">Hide the countdown</string>
+    <string name="config_show">Show</string>
+    <string name="config_show_location">City name</string>
+    <string name="config_show_date">Date</string>
+    <string name="config_save">Save</string>
+    <string name="widget_next_at">%1$s at</string>
+    <string name="config_preview">Preview</string>
+    <string name="config_widgets_none">No widgets on your home screen yet</string>
+    <string name="config_pick_widget">Which widget?</string>
+    <string name="widget_settings_row">Widget appearance</string>
+    <string name="widget_settings_hint">Colours and countdown for each home screen widget</string>
 </resources>

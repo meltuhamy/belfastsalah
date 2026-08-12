@@ -1,9 +1,12 @@
 import { test, expect } from "@playwright/test";
 import {
+  PRAYER_STRIP,
   completeSetup,
   highlightedDays,
+  highlightedPrayer,
   monthRows,
   pinDate,
+  tailTarget,
   todayTimes,
   waitForMonthTable,
 } from "./support/app";
@@ -39,36 +42,101 @@ test("lists today's six prayers, as printed on the timetable", async ({
 });
 
 test("dates the card in the timetable's calendar", async ({ page }) => {
-  await expect(page.getByText("Today: Sun 15 Feb")).toBeVisible();
+  await expect(page.getByTestId("day-date")).toHaveText("Sun 15 Feb");
+  // The strip is the day the reader is on, so nothing to flag.
+  await expect(page.getByTestId("tomorrow-badge")).toHaveCount(0);
 });
 
 test("names the next prayer and counts down to it", async ({ page }) => {
   // 10:00, so Duhr at 12:20 is next and Shuruq at 07:13 has been and gone.
-  await expect(page.getByText("Next: Duhr")).toBeVisible();
-  await expect(page.getByText("Duhr is in 2 hours 20 minutes")).toBeVisible();
-  await expect(
-    page.getByText("Shuruq was 2 hours 47 minutes ago")
-  ).toBeVisible();
+  await expect(page.getByText("Duhr in")).toBeVisible();
+  await expect(page.getByTestId("countdown")).toHaveText("2h 20m");
+  await expect(page.getByText("Shuruq was 2h 47m ago")).toBeVisible();
+});
+
+test("points the card at the prayer it is counting down to", async ({
+  page,
+}) => {
+  expect(await highlightedPrayer(page)).toBe("Duhr");
+  await expect
+    .poll(() => tailTarget(page))
+    .toEqual({ painted: true, column: "Duhr" });
+});
+
+test("points at the columns on either end without losing the tail", async ({
+  page,
+}) => {
+  // The two positions where the tail sits closest to the card's own corner
+  // radius, and the ones a fractional width most easily rounds off the end of.
+  // Walked forwards, because that is the only direction the app expects the
+  // clock to move: it refetches when a prayer passes, not when one un-passes.
+  await page.clock.setFixedTime(new Date("2026-02-15T18:00:00Z"));
+  await expect.poll(() => highlightedPrayer(page)).toBe("Isha");
+  await expect
+    .poll(() => tailTarget(page))
+    .toEqual({ painted: true, column: "Isha" });
+
+  await page.clock.setFixedTime(new Date("2026-02-16T03:00:00Z"));
+  await expect.poll(() => highlightedPrayer(page)).toBe("Fajr");
+  await expect
+    .poll(() => tailTarget(page))
+    .toEqual({ painted: true, column: "Fajr" });
 });
 
 test("rolls the countdown onto the next prayer once one passes", async ({
   page,
 }) => {
-  await expect(page.getByText("Next: Duhr")).toBeVisible();
+  await expect(page.getByText("Duhr in")).toBeVisible();
 
   // Straight past Duhr. The card should move on rather than count backwards.
   await page.clock.setFixedTime(new Date("2026-02-15T12:30:00Z"));
-  await expect(page.getByText("Next: Asr")).toBeVisible();
-  await expect(page.getByText("Duhr was 10 minutes ago")).toBeVisible();
+  await expect(page.getByText("Asr in")).toBeVisible();
+  await expect(page.getByText("Duhr was 10m ago")).toBeVisible();
+  await expect.poll(() => highlightedPrayer(page)).toBe("Asr");
+  await expect
+    .poll(() => tailTarget(page))
+    .toEqual({ painted: true, column: "Asr" });
+});
+
+test("moves the strip onto tomorrow once the last prayer has passed", async ({
+  page,
+}) => {
+  // Isha is at 18:48 on the 15th, so at 20:00 there is nothing left today.
+  await page.clock.setFixedTime(new Date("2026-02-15T20:00:00Z"));
+
+  await expect(page.getByTestId("tomorrow-badge")).toHaveText("Tomorrow");
+  await expect(page.getByTestId("day-date")).toHaveText("Mon 16 Feb");
+  // 16 Feb's own Fajr, not the 15th's.
+  await expect.poll(async () => (await todayTimes(page)).Fajr).toBe("05:34");
+  await expect.poll(() => highlightedPrayer(page)).toBe("Fajr");
+  await expect
+    .poll(() => tailTarget(page))
+    .toEqual({ painted: true, column: "Fajr" });
 });
 
 test("carries the day over at midnight", async ({ page }) => {
-  await expect(page.getByText("Today: Sun 15 Feb")).toBeVisible();
+  await expect(page.getByTestId("day-date")).toHaveText("Sun 15 Feb");
 
   await page.clock.setFixedTime(new Date("2026-02-16T00:30:00Z"));
-  await expect(page.getByText("Today: Mon 16 Feb")).toBeVisible();
-  // 16 Feb's own Fajr, not the 15th's.
+  await expect(page.getByTestId("day-date")).toHaveText("Mon 16 Feb");
+  // Past midnight the reader is on that day themselves, so the badge goes.
+  await expect(page.getByTestId("tomorrow-badge")).toHaveCount(0);
   await expect.poll(async () => (await todayTimes(page)).Fajr).toBe("05:34");
+});
+
+test("keeps the toolbar flat until something is under it", async ({ page }) => {
+  const shadow = () =>
+    page.locator("ion-header").evaluate((h) => getComputedStyle(h).boxShadow);
+
+  // The shadow is there to separate the toolbar from content passing beneath
+  // it, so at rest it has nothing to separate.
+  expect(await shadow()).toBe("none");
+
+  await page.mouse.wheel(0, 400);
+  await expect.poll(shadow).not.toBe("none");
+
+  await page.mouse.wheel(0, -800);
+  await expect.poll(shadow).toBe("none");
 });
 
 test("opens the month table on the current month", async ({ page }) => {
@@ -101,5 +169,5 @@ test("puts the settings screen one tap away and comes back", async ({
   await page.locator("ion-button[router-link='/settings']").click();
   await expect(page.locator("ion-title", { hasText: "Settings" })).toBeVisible();
   await page.locator("ion-button[router-link='/']").click();
-  await expect(page.locator(".DayPrayerTable")).toBeVisible();
+  await expect(page.locator(PRAYER_STRIP)).toBeVisible();
 });

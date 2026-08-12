@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { completeSetup, LOCATION_SELECT } from "./support/app";
+import { completeSetup, LOCATION_SELECT, todayTimes } from "./support/app";
 
 // The app renders the timetable's own clock, not the device's. Away from the
 // UK those are different numbers, so there is a one-off prompt, a standing
@@ -7,9 +7,9 @@ import { completeSetup, LOCATION_SELECT } from "./support/app";
 // DOM, and the prompt only exists on a device whose zone disagrees - neither
 // is something a jsdom test can answer, so the behaviour is covered here.
 
-/** The times as rendered on the today card, e.g. ["04:32", "06:12", ...]. */
-const shownTimes = (page: Page) =>
-  page.locator(".DayPrayerTable__col--time").allInnerTexts();
+/** The times as rendered on the day strip, e.g. ["04:32", "06:12", ...]. */
+const shownTimes = async (page: Page) =>
+  Object.values(await todayTimes(page));
 
 test.describe("on a device far from the timetable's clock", () => {
   // Dubai is four hours ahead of London and never shares its clock, so the

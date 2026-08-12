@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:configure="com.meltuhamy.londonsalah.widget.WidgetConfigActivity"
+    android:description="@string/widget_times_description"
+    android:initialLayout="@layout/widget_prayer_times"
+    android:minHeight="110dp"
+    android:minWidth="250dp"
+    android:previewLayout="@layout/widget_prayer_times"
+    android:resizeMode="horizontal"
+    android:targetCellHeight="2"
+    android:targetCellWidth="4"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen"
+    android:widgetFeatures="reconfigurable" />

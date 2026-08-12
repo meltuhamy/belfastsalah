@@ -46,6 +46,11 @@ test.skip(
  * visible ones rather than all of them.
  */
 async function settle(page: Page) {
+  // Settings are written through a 500ms debounce, and the toast follows that.
+  // Polling straight away finds nothing, returns immediately, and the toast
+  // then slides in over the screenshot - which is how it ended up in the
+  // listing images once already.
+  await page.waitForTimeout(700);
   await expect
     .poll(() => page.locator("ion-toast").filter({ visible: true }).count(), {
       timeout: 5000,

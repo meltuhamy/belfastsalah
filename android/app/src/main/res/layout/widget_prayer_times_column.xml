@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The whole timetable in a column one cell wide. Like the one-row widget, the
+  countdown has no line of its own: it goes inside the next prayer's row, under
+  its time.
+
+  Each row stacks its name over its time rather than setting them side by side.
+  One cell is around 55dp, and "Maghrib" beside "20:35" needs half as much
+  again - side by side is what the two-cell-wide version could afford.
+
+  The rows are wrap_content rather than weighted, so the row carrying the
+  countdown is simply taller than the rest. Weighted rows would divide the
+  height evenly and clip it.
+
+  The sample text is what the widget picker shows: previewLayout renders this
+  file as it stands, and every string and background in it is reassigned the
+  moment the widget is actually drawn.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/column_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:gravity="center_vertical"
+    android:orientation="vertical"
+    android:paddingStart="4dp"
+    android:paddingTop="6dp"
+    android:paddingEnd="4dp"
+    android:paddingBottom="6dp">
+
+    <LinearLayout
+        android:id="@+id/column_row_0"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingStart="2dp"
+        android:paddingTop="3dp"
+        android:paddingEnd="2dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:id="@+id/column_name_0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="Fajr"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="9sp" />
+
+        <TextView
+            android:id="@+id/column_time_0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="03:58"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <!--
+          Only ever visible in the next prayer's row, which is what keeps the
+          countdown inside the highlight instead of costing the widget a
+          heading of its own.
+        -->
+        <Chronometer
+            android:id="@+id/column_countdown_0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="9sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/column_row_1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingStart="2dp"
+        android:paddingTop="3dp"
+        android:paddingEnd="2dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:id="@+id/column_name_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="Shuruq"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="9sp" />
+
+        <TextView
+            android:id="@+id/column_time_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="05:36"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <!--
+          Only ever visible in the next prayer's row, which is what keeps the
+          countdown inside the highlight instead of costing the widget a
+          heading of its own.
+        -->
+        <Chronometer
+            android:id="@+id/column_countdown_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="9sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/column_row_2"
+        android:background="@drawable/widget_accent_blue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingStart="2dp"
+        android:paddingTop="3dp"
+        android:paddingEnd="2dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:id="@+id/column_name_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="Duhr"
+            android:textColor="@android:color/white"
+            android:textSize="9sp" />
+
+        <TextView
+            android:id="@+id/column_time_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="13:11"
+            android:textColor="@android:color/white"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <!--
+          Only ever visible in the next prayer's row, which is what keeps the
+          countdown inside the highlight instead of costing the widget a
+          heading of its own.
+        -->
+        <Chronometer
+            android:id="@+id/column_countdown_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="9sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/column_row_3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingStart="2dp"
+        android:paddingTop="3dp"
+        android:paddingEnd="2dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:id="@+id/column_name_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="Asr"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="9sp" />
+
+        <TextView
+            android:id="@+id/column_time_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="17:09"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <!--
+          Only ever visible in the next prayer's row, which is what keeps the
+          countdown inside the highlight instead of costing the widget a
+          heading of its own.
+        -->
+        <Chronometer
+            android:id="@+id/column_countdown_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="9sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/column_row_4"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingStart="2dp"
+        android:paddingTop="3dp"
+        android:paddingEnd="2dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:id="@+id/column_name_4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="Maghrib"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="9sp" />
+
+        <TextView
+            android:id="@+id/column_time_4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="20:35"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <!--
+          Only ever visible in the next prayer's row, which is what keeps the
+          countdown inside the highlight instead of costing the widget a
+          heading of its own.
+        -->
+        <Chronometer
+            android:id="@+id/column_countdown_4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="9sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/column_row_5"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingStart="2dp"
+        android:paddingTop="3dp"
+        android:paddingEnd="2dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:id="@+id/column_name_5"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="Isha"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="9sp" />
+
+        <TextView
+            android:id="@+id/column_time_5"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="21:41"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <!--
+          Only ever visible in the next prayer's row, which is what keeps the
+          countdown inside the highlight instead of costing the widget a
+          heading of its own.
+        -->
+        <Chronometer
+            android:id="@+id/column_countdown_5"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="9sp"
+            android:visibility="gone" />
+    </LinearLayout>
+</LinearLayout>

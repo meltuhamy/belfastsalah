@@ -92,6 +92,46 @@ without it the knob was being yanked back to the stored value mid-drag. It is
 also why `SetupPage` uses a functional state update. Bear it in mind before
 adding another control that has to hold state while being interacted with.
 
+## The card that points at the next prayer
+
+`PrayerDayCard` is the blue countdown card, and below it the strip of the
+day's six times on the page background. The card has a tail that points at
+whichever column is next.
+
+The tail is placed by arithmetic, not by measuring: `--next-column` is the
+`Prayer` enum value of the next prayer — the enum is ordered as the strip is,
+so it *is* the column index — and the tail sits at
+`(column + 0.5) × (100% / 6)` of the card's width. That only lands on a column
+centre because the card and the strip are the same width and the strip's grid
+spans all of it. The wrapper owns the margins and the `IonCard` inside it has
+none, so that is true by construction rather than by two elements agreeing;
+keep it that way, and keep horizontal padding out of the strip itself (it goes
+inside the cells instead).
+
+Two Ionic details cost an afternoon each, and both are undone in
+`PrayerDayCard.css`:
+
+- **`ion-card` sets `contain: content` as well as `overflow: hidden`.** Paint
+  containment clips to the border box by itself, whatever `overflow` says, so
+  overriding only `overflow` leaves the tail invisible with nothing in the DOM
+  to show for it. `e2e/support/app.ts`'s `tailTarget` asks the page what is
+  actually painted in the gap below the card, via `elementFromPoint`, because
+  a clipped tail keeps its box and its position — a geometry assertion passes
+  straight through this bug.
+- **`ion-card` is a shadow host**, so `::before`/`::after` on it are never
+  rendered; its box children come from the shadow tree. The tail is a real
+  `<span>`.
+
+Text inside a card needs its class doubled up (`.PrayerDayCard .X`): Ionic
+styles it as `.card-content-md p`, which outweighs a single class of ours and
+flattens every line to the same size.
+
+After the last prayer of the day the strip shows *tomorrow's* times, since
+that is what the card is counting down to — `usePrayerStrip`. The "Tomorrow"
+badge is a separate question from that, and is asked in the display zone
+(`isLaterDay`): someone in Dubai reading London times at 23:30 London is
+already on that day themselves, so the badge would be a lie.
+
 ## Hidden test notification
 
 Long-pressing the timer icon on the reminder row schedules a notification a

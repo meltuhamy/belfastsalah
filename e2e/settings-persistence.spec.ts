@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import {
   LOCATION_SELECT,
+  PRAYER_STRIP,
   chooseFromSelect,
   completeSetup,
   goHome,
@@ -41,7 +42,7 @@ test("goes straight past setup once it has been completed", async ({
   await completeSetup(page);
   await reload(page);
 
-  await expect(page.locator(".DayPrayerTable")).toBeVisible();
+  await expect(page.locator(PRAYER_STRIP)).toBeVisible();
   await expect(page.getByRole("button", { name: "Done" })).toHaveCount(0);
 });
 
@@ -122,7 +123,7 @@ test("carries every setup answer across at once", async ({ page }) => {
 
   await reload(page);
 
-  await expect(page.locator(".DayPrayerTable")).toBeVisible();
+  await expect(page.locator(PRAYER_STRIP)).toBeVisible();
   await expect.poll(async () => (await todayTimes(page)).Fajr).toBe("06:01");
   await expect(
     page.evaluate(() =>
