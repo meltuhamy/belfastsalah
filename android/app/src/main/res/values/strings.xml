@@ -5,14 +5,14 @@
     <string name="package_name">com.meltuhamy.londonsalah</string>
     <string name="custom_url_scheme">com.meltuhamy.londonsalah</string>
     <!--
-      Widget names are short and lead with what distinguishes them. The picker
-      shows "Prayer Times - <name>" and truncates hard in the half-width cell a
-      2x3 or 2x4 widget gets, so anything starting "Prayer times" was cut off
-      before the part that differs.
+      These name the widgets in the app's own "widget appearance" list. They no
+      longer label the receivers: Android would then caption every placed
+      widget with them, and the manifest explains why that is not wanted.
 
-      The descriptions carry the detail, including the size range: nothing in
-      Android hints that a widget resizes until you long-press it on the home
-      screen, and the description is the only text the picker shows.
+      The descriptions do reach the system picker, and are what tells the
+      widgets apart there now, alongside their previews. They carry the size
+      range too - nothing in Android hints that a widget resizes until you
+      long-press it on the home screen.
     -->
     <string name="widget_tile_name">Next prayer</string>
     <string name="widget_tile_description">The next prayer and how long until it. Resizable — drag the handles for anything from 1×1 up.</string>
@@ -23,10 +23,10 @@
     <string name="widget_unavailable">No times</string>
     <string name="widget_open_app">Open the app</string>
     <string name="widget_times_name">Wide</string>
-    <string name="widget_times_description">Today\'s prayer times and a countdown to the next</string>
+    <string name="widget_times_description">All six times in a row, under a large countdown to the next. Resizable.</string>
     <string name="widget_next_in">%1$s in</string>
     <string name="widget_vertical_name">Tall</string>
-    <string name="widget_vertical_description">Today\'s prayer times stacked, with a countdown</string>
+    <string name="widget_vertical_description">All six times stacked, under a large countdown to the next. Resizable.</string>
     <string name="config_title">Widget appearance</string>
     <string name="config_background">Background</string>
     <string name="config_bg_system">Match system</string>

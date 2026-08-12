@@ -44,11 +44,20 @@
           Widget receivers. exported="false" as the platform documentation
           shows: the AppWidget framework delivers to these directly, and the
           alarm below is an explicit intent from this app to itself.
+
+          Every one is labelled with the app's own name. A receiver's label is
+          a single string that Android shows in two places - beside the preview
+          in the widget picker, and beneath the widget once it is on the home
+          screen - with no way to distinguish the two. Names per widget read
+          well in the picker and turn into a row of captions across the home
+          screen, so the picker leans on its previews and descriptions instead.
+          The per-widget names live on in strings.xml for the app's own
+          "widget appearance" list, which is ours to lay out.
         -->
         <receiver
             android:name=".widget.NextPrayerTileProvider"
             android:exported="false"
-            android:label="@string/widget_tile_name">
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -60,7 +69,7 @@
         <receiver
             android:name=".widget.PrayerTimesCompactWidgetProvider"
             android:exported="false"
-            android:label="@string/widget_compact_name">
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -72,7 +81,7 @@
         <receiver
             android:name=".widget.PrayerTimesColumnWidgetProvider"
             android:exported="false"
-            android:label="@string/widget_column_name">
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -84,7 +93,7 @@
         <receiver
             android:name=".widget.PrayerTimesWidgetProvider"
             android:exported="false"
-            android:label="@string/widget_times_name">
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -96,7 +105,7 @@
         <receiver
             android:name=".widget.PrayerTimesVerticalWidgetProvider"
             android:exported="false"
-            android:label="@string/widget_vertical_name">
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
