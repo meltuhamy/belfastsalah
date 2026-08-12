@@ -47,6 +47,9 @@
     <string name="config_countdown_seconds">Count down, with seconds</string>
     <string name="config_countdown_time">Show the prayer time instead</string>
     <string name="config_countdown_none">Hide the countdown</string>
+    <string name="config_show">Show</string>
+    <string name="config_show_location">City name</string>
+    <string name="config_show_date">Date</string>
     <string name="config_save">Save</string>
     <string name="widget_next_at">%1$s at</string>
     <string name="config_preview">Preview</string>

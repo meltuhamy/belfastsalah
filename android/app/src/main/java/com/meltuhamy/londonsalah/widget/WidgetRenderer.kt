@@ -230,11 +230,14 @@ object WidgetRenderer {
         views.setViewPadding(R.id.tile_root, padPx, padPx, padPx, padPx)
         views.setViewVisibility(
             R.id.tile_location,
-            if (size < 120) View.GONE else View.VISIBLE
+            if (size < 120 || !config.showLocation) View.GONE else View.VISIBLE
         )
 
         if (payload == null || next == null) {
             views.setTextViewText(R.id.tile_prayer, context.getString(R.string.widget_unavailable))
+            // Shown whatever the setting says: this line is carrying the only
+            // instruction on how to fix an empty widget, not the location.
+            views.setViewVisibility(R.id.tile_location, View.VISIBLE)
             views.setTextViewText(R.id.tile_location, context.getString(R.string.widget_open_app))
             views.setChronometer(R.id.tile_countdown, SystemClock.elapsedRealtime(), null, false)
             views.setTextViewText(R.id.tile_countdown, "")
@@ -267,9 +270,13 @@ object WidgetRenderer {
             views.setTextViewText(
                 R.id.widget_next_label, context.getString(R.string.widget_unavailable)
             )
+            // Shown whatever the setting says: this line is carrying the only
+            // instruction on how to fix an empty widget, not the location.
+            views.setViewVisibility(R.id.widget_location, View.VISIBLE)
             views.setTextViewText(
                 R.id.widget_location, context.getString(R.string.widget_open_app)
             )
+            views.setViewVisibility(R.id.widget_date, View.GONE)
             views.setTextViewText(R.id.widget_date, "")
             views.setChronometer(
                 R.id.widget_countdown, SystemClock.elapsedRealtime(), null, false
@@ -283,6 +290,14 @@ object WidgetRenderer {
             return views
         }
 
+        views.setViewVisibility(
+            R.id.widget_location,
+            if (config.showLocation) View.VISIBLE else View.GONE
+        )
+        views.setViewVisibility(
+            R.id.widget_date,
+            if (config.showDate) View.VISIBLE else View.GONE
+        )
         views.setTextViewText(R.id.widget_location, payload.locationLabel)
         views.setTextViewText(R.id.widget_date, payload.dateLabel)
         WidgetCountdown.bind(

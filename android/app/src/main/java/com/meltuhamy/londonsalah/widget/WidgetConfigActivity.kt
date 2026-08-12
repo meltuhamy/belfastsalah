@@ -4,7 +4,9 @@ import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.FrameLayout
 import android.widget.RadioGroup
 import android.widget.SeekBar
@@ -35,6 +37,9 @@ class WidgetConfigActivity : Activity() {
     private lateinit var accent: RadioGroup
     private lateinit var countdown: RadioGroup
     private lateinit var opacity: SeekBar
+    private lateinit var showSection: View
+    private lateinit var showLocation: CheckBox
+    private lateinit var showDate: CheckBox
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,6 +67,16 @@ class WidgetConfigActivity : Activity() {
         accent = findViewById(R.id.config_accent)
         countdown = findViewById(R.id.config_countdown)
         opacity = findViewById(R.id.config_opacity)
+        showSection = findViewById(R.id.config_show_section)
+        showLocation = findViewById(R.id.show_location)
+        showDate = findViewById(R.id.show_date)
+
+        // Only offer what this widget actually draws. The one-row and
+        // one-column layouts have room for neither line; the tile has no date.
+        showSection.visibility =
+            if (kind == WidgetKind.COMPACT || kind == WidgetKind.COLUMN) View.GONE
+            else View.VISIBLE
+        showDate.visibility = if (kind == WidgetKind.TILE) View.GONE else View.VISIBLE
 
         show(WidgetConfig.load(this, appWidgetId))
 
@@ -70,6 +85,8 @@ class WidgetConfigActivity : Activity() {
         text.setOnCheckedChangeListener(onChange)
         accent.setOnCheckedChangeListener(onChange)
         countdown.setOnCheckedChangeListener(onChange)
+        showLocation.setOnCheckedChangeListener { _, _ -> refreshPreview() }
+        showDate.setOnCheckedChangeListener { _, _ -> refreshPreview() }
         opacity.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(bar: SeekBar, value: Int, fromUser: Boolean) =
                 refreshPreview()
@@ -129,6 +146,8 @@ class WidgetConfigActivity : Activity() {
             }
         )
         opacity.progress = config.opacity
+        showLocation.isChecked = config.showLocation
+        showDate.isChecked = config.showDate
     }
 
     private fun read() = WidgetConfig(
@@ -154,7 +173,9 @@ class WidgetConfigActivity : Activity() {
             R.id.countdown_time -> CountdownMode.TIME
             R.id.countdown_none -> CountdownMode.NONE
             else -> CountdownMode.SECONDS
-        }
+        },
+        showLocation = showLocation.isChecked,
+        showDate = showDate.isChecked
     )
 
     private fun save() {

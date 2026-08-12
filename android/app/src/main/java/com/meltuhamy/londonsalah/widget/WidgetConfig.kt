@@ -40,7 +40,15 @@ data class WidgetConfig(
     val textTone: WidgetTextTone = WidgetTextTone.AUTO,
     /** Index into ACCENTS, or NO_ACCENT. */
     val accent: Int = 0,
-    val countdown: CountdownMode = CountdownMode.SECONDS
+    val countdown: CountdownMode = CountdownMode.SECONDS,
+    /**
+     * Whether to name the city and date the times belong to. Both are worth
+     * having by default and both are the first thing to go on a home screen
+     * that already answers them - the widget is a glance at the times, not a
+     * statement of where you are.
+     */
+    val showLocation: Boolean = true,
+    val showDate: Boolean = true
 ) {
 
     private fun dark(context: Context): Boolean = when (palette) {
@@ -129,7 +137,11 @@ data class WidgetConfig(
                     CountdownMode.valueOf(
                         prefs.getString(key(appWidgetId, "countdown"), default.countdown.name)!!
                     )
-                }.getOrDefault(default.countdown)
+                }.getOrDefault(default.countdown),
+                showLocation = prefs.getBoolean(
+                    key(appWidgetId, "location"), default.showLocation
+                ),
+                showDate = prefs.getBoolean(key(appWidgetId, "date"), default.showDate)
             )
         }
 
@@ -140,6 +152,8 @@ data class WidgetConfig(
                 .putString(key(appWidgetId, "text"), config.textTone.name)
                 .putInt(key(appWidgetId, "accent"), config.accent)
                 .putString(key(appWidgetId, "countdown"), config.countdown.name)
+                .putBoolean(key(appWidgetId, "location"), config.showLocation)
+                .putBoolean(key(appWidgetId, "date"), config.showDate)
                 .apply()
         }
 
@@ -147,12 +161,15 @@ data class WidgetConfig(
         fun delete(context: Context, appWidgetIds: IntArray) {
             val editor = context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
             for (id in appWidgetIds) {
-                for (field in listOf("palette", "opacity", "text", "accent", "countdown")) {
+                for (field in FIELDS) {
                     editor.remove(key(id, field))
                 }
             }
             editor.apply()
         }
+
+        private val FIELDS =
+            listOf("palette", "opacity", "text", "accent", "countdown", "location", "date")
 
         private fun key(appWidgetId: Int, field: String) = "w${appWidgetId}_$field"
     }

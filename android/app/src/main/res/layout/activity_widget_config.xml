@@ -162,6 +162,32 @@
             android:text="@string/config_countdown_none" />
     </RadioGroup>
 
+    <LinearLayout
+        android:id="@+id/config_show_section"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/config_show"
+            android:textStyle="bold" />
+
+        <CheckBox
+            android:id="@+id/show_location"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/config_show_location" />
+
+        <CheckBox
+            android:id="@+id/show_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/config_show_date" />
+    </LinearLayout>
+
         <Button
             android:id="@+id/config_save"
             android:layout_width="match_parent"
