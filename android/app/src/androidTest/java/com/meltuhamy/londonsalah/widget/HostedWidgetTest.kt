@@ -63,6 +63,14 @@ class HostedWidgetTest {
 
     @Before
     fun hostWidgets() {
+        // Installing the app does not register its widgets on the spot: the
+        // widget service picks the package up when the install broadcast
+        // reaches it, which on a slow emulator can be a few seconds behind.
+        // Asking before then finds none - one run did - so wait for them.
+        waitUntil("the system to register the widgets", timeoutMs = 30_000) {
+            installedProviders().size == 5
+        }
+
         // "current" is what the documentation gives for --user; the explicit
         // id is the same user on a test device, and is there in case a
         // system image reads the flag differently.
@@ -96,7 +104,7 @@ class HostedWidgetTest {
 
     @Test
     fun theSystemAcceptsAllFiveWidgets() {
-        val providers = manager.getInstalledProvidersForPackage(context.packageName, null)
+        val providers = installedProviders()
         assertEquals(
             listOf(
                 "NextPrayerTileProvider",
@@ -201,6 +209,9 @@ class HostedWidgetTest {
     }
 
     // --- Hosting -------------------------------------------------------------
+
+    private fun installedProviders(): List<AppWidgetProviderInfo> =
+        manager.getInstalledProvidersForPackage(context.packageName, null)
 
     private inner class Hosted(val id: Int, val view: AppWidgetHostView) {
         /** The widget's own layout, inside the host's frame. */
