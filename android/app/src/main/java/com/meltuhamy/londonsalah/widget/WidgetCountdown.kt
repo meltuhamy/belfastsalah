@@ -25,7 +25,8 @@ object WidgetCountdown {
         config: WidgetConfig,
         next: WidgetUpcoming,
         countdownViewId: Int,
-        labelViewId: Int
+        labelViewId: Int,
+        nowMillis: Long = System.currentTimeMillis()
     ) {
         when (config.countdown) {
             CountdownMode.SECONDS -> {
@@ -34,7 +35,7 @@ object WidgetCountdown {
                     labelViewId,
                     context.getString(R.string.widget_next_in, next.name)
                 )
-                startTicking(views, next, countdownViewId)
+                startTicking(views, next, countdownViewId, nowMillis)
             }
 
             CountdownMode.TIME -> {
@@ -59,10 +60,17 @@ object WidgetCountdown {
      * Starts a live count down to `next`.
      *
      * Chronometer counts in the elapsedRealtime timebase rather than the wall
-     * clock, so the instant has to be converted into it.
+     * clock, so the instant has to be converted into it. `nowMillis` is the
+     * wall clock that conversion is made against - the real one, except in
+     * tests, which pin it so the countdown on screen is the same every run.
      */
-    fun startTicking(views: RemoteViews, next: WidgetUpcoming, countdownViewId: Int) {
-        val base = SystemClock.elapsedRealtime() + (next.at - System.currentTimeMillis())
+    fun startTicking(
+        views: RemoteViews,
+        next: WidgetUpcoming,
+        countdownViewId: Int,
+        nowMillis: Long = System.currentTimeMillis()
+    ) {
+        val base = SystemClock.elapsedRealtime() + (next.at - nowMillis)
         views.setChronometer(countdownViewId, base, null, true)
         views.setChronometerCountDown(countdownViewId, true)
     }

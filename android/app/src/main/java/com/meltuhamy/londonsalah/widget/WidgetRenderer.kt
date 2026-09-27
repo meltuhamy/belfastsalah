@@ -111,24 +111,32 @@ object WidgetRenderer {
         )
     )
 
-    /** Size in dp of the widget's smaller side, or null when it is not known. */
+    /**
+     * `sizeDp` is the widget's smaller side, or null when it is not known.
+     *
+     * `nowMillis` decides which prayer is next and what the countdown reads.
+     * Everything in the app passes nothing and gets the real clock; tests pin
+     * it, which is what makes a rendered widget the same on every run.
+     */
     fun render(
         context: Context,
         kind: WidgetKind,
         config: WidgetConfig,
-        sizeDp: Int? = null
+        sizeDp: Int? = null,
+        nowMillis: Long = System.currentTimeMillis()
     ): RemoteViews {
         val views = RemoteViews(context.packageName, kind.layoutId)
         val payload = WidgetPayload.parse(WidgetStore.read(context))
-        val next = payload?.nextAfter(System.currentTimeMillis())
+        val next = payload?.nextAfter(nowMillis)
 
         return when (kind) {
-            WidgetKind.TILE -> renderTile(context, views, config, payload, next, sizeDp)
+            WidgetKind.TILE ->
+                renderTile(context, views, config, payload, next, sizeDp, nowMillis)
             WidgetKind.COMPACT ->
-                renderInline(context, views, config, payload, next, COMPACT_IDS)
+                renderInline(context, views, config, payload, next, COMPACT_IDS, nowMillis)
             WidgetKind.COLUMN ->
-                renderInline(context, views, config, payload, next, COLUMN_IDS_INLINE)
-            else -> renderTimetable(context, views, config, payload, next)
+                renderInline(context, views, config, payload, next, COLUMN_IDS_INLINE, nowMillis)
+            else -> renderTimetable(context, views, config, payload, next, nowMillis)
         }
     }
 
@@ -147,7 +155,8 @@ object WidgetRenderer {
         config: WidgetConfig,
         payload: WidgetPayload?,
         next: WidgetUpcoming?,
-        ids: InlineIds
+        ids: InlineIds,
+        nowMillis: Long
     ): RemoteViews {
         views.setOnClickPendingIntent(ids.root, openApp(context))
         views.setInt(ids.root, "setBackgroundColor", config.backgroundColor(context))
@@ -192,7 +201,7 @@ object WidgetRenderer {
                     if (onHighlight) config.accentTextColor(context) else secondary
                 )
                 views.setViewVisibility(ids.countdowns[i], View.VISIBLE)
-                WidgetCountdown.startTicking(views, next, ids.countdowns[i])
+                WidgetCountdown.startTicking(views, next, ids.countdowns[i], nowMillis)
             }
         }
 
@@ -205,7 +214,8 @@ object WidgetRenderer {
         config: WidgetConfig,
         payload: WidgetPayload?,
         next: WidgetUpcoming?,
-        sizeDp: Int?
+        sizeDp: Int?,
+        nowMillis: Long
     ): RemoteViews {
         views.setOnClickPendingIntent(R.id.tile_root, openApp(context))
         views.setInt(R.id.tile_root, "setBackgroundColor", config.backgroundColor(context))
@@ -245,7 +255,9 @@ object WidgetRenderer {
         }
 
         views.setTextViewText(R.id.tile_location, payload.locationLabel)
-        WidgetCountdown.bind(views, context, config, next, R.id.tile_countdown, R.id.tile_prayer)
+        WidgetCountdown.bind(
+            views, context, config, next, R.id.tile_countdown, R.id.tile_prayer, nowMillis
+        )
         return views
     }
 
@@ -254,7 +266,8 @@ object WidgetRenderer {
         views: RemoteViews,
         config: WidgetConfig,
         payload: WidgetPayload?,
-        next: WidgetUpcoming?
+        next: WidgetUpcoming?,
+        nowMillis: Long
     ): RemoteViews {
         views.setOnClickPendingIntent(R.id.widget_root, openApp(context))
 
@@ -301,7 +314,13 @@ object WidgetRenderer {
         views.setTextViewText(R.id.widget_location, payload.locationLabel)
         views.setTextViewText(R.id.widget_date, payload.dateLabel)
         WidgetCountdown.bind(
-            views, context, config, next, R.id.widget_countdown, R.id.widget_next_label
+            views,
+            context,
+            config,
+            next,
+            R.id.widget_countdown,
+            R.id.widget_next_label,
+            nowMillis
         )
 
         for (i in COLUMN_IDS.indices) {

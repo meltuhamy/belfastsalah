@@ -72,6 +72,36 @@ class WidgetPayloadTest {
     }
 
     @Test
+    fun `reports nothing when nothing was written ahead`() {
+        val payload = WidgetPayload.parse(payloadJson(upcoming = "[]"))!!
+        assertNull(payload.nextAfter(0))
+    }
+
+    @Test
+    fun `refuses an entry with a field missing`() {
+        // No "time": the widget would have nothing to show in the TIME mode,
+        // and half a payload is not one to trust.
+        assertNull(
+            WidgetPayload.parse(payloadJson(upcoming = """[{ "name": "Fajr", "at": 1000 }]"""))
+        )
+    }
+
+    @Test
+    fun `reads the fixture the render tests draw from`() {
+        // If this fails, every render test fails with it for a reason that
+        // has nothing to do with drawing - so it is worth saying so here.
+        val payload = WidgetPayload.parse(PayloadFixture.forJan15())!!
+
+        assertEquals(PayloadFixture.NAMES, payload.prayers.map { it.name })
+        assertEquals("Asr", payload.nextAfter(PayloadFixture.ONE_PM)!!.name)
+        assertEquals("Maghrib", payload.nextAfter(PayloadFixture.THREE_PM)!!.name)
+
+        val tomorrow = payload.nextAfter(PayloadFixture.AFTER_ISHA)!!
+        assertEquals("Fajr", tomorrow.name)
+        assertEquals("06:19", tomorrow.time)
+    }
+
+    @Test
     fun `refuses anything it cannot trust`() {
         assertNull(WidgetPayload.parse(null))
         assertNull(WidgetPayload.parse(""))

@@ -1,5 +1,9 @@
 apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
+// Adds recordRoborazziDebug and verifyRoborazziDebug, which run the unit tests
+// with the widget screenshots being written or compared. The plugin's version
+// is pinned in the root build.gradle and has to match roborazziVersion below.
+apply plugin: 'io.github.takahirom.roborazzi'
 
 android {
     namespace = "com.meltuhamy.londonsalah"
@@ -41,6 +45,35 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    // The widget payload fixture is used by both the JVM tests and the ones
+    // that run on a device, so it lives in a directory both source sets read.
+    sourceSets {
+        test.java.srcDir 'src/sharedTest/java'
+        androidTest.java.srcDir 'src/sharedTest/java'
+    }
+
+    testOptions {
+        unitTests {
+            // Robolectric inflates the real widget layouts, which it can only
+            // do with the app's resources on the test classpath.
+            includeAndroidResources = true
+            all {
+                // Native graphics measures and draws text for real, which is
+                // what the clipping checks and the screenshots depend on, and
+                // it wants more than Gradle's default half a gigabyte.
+                maxHeapSize = "2g"
+                // The failure message is the useful part - which widget, at
+                // what size, clipped by how much - and Gradle hides it by
+                // default. CI logs are the only place these tests are read.
+                testLogging {
+                    events "failed", "skipped"
+                    exceptionFormat = "full"
+                    showStandardStreams = false
+                }
+            }
+        }
+    }
 }
 
 // Top-level extension, not part of the android block. Capacitor's generated
@@ -68,8 +101,17 @@ dependencies {
     // org.json ships as stubs in android.jar that throw when called, so a JVM
     // unit test touching JSON needs a real implementation.
     testImplementation "org.json:json:20250107"
+    testImplementation "org.robolectric:robolectric:$robolectricVersion"
+    testImplementation "androidx.test:core:$androidxTestVersion"
+    testImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    testImplementation "io.github.takahirom.roborazzi:roborazzi:$roborazziVersion"
+
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test:core:$androidxTestVersion"
+    androidTestImplementation "androidx.test:runner:$androidxTestVersion"
+    androidTestImplementation "androidx.test:rules:$androidxTestVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    androidTestImplementation "androidx.test.uiautomator:uiautomator:$uiAutomatorVersion"
     implementation project(':capacitor-cordova-android-plugins')
 }
 
