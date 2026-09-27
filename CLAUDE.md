@@ -78,6 +78,56 @@ CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2
 
 CI installs its own browser and needs no override.
 
+## Widget tests
+
+The home screen widgets are native (Kotlin, in `android/app/src/main/java/.../widget`)
+and have three layers of tests of their own. None of them run in this sandbox —
+Gradle cannot reach Google's Maven here — so CI is the only place they run.
+
+1. **JVM, every push** (`android/app/src/test`, the Android job in `ci.yml`).
+   Robolectric with native graphics renders each widget the way a launcher
+   does: `WidgetRenderer`'s RemoteViews, applied into real Views.
+   - `WidgetRenderTest` — what each widget shows: the highlight, the countdown
+     in each mode, city and date, the tile's text sizes, the no-times state.
+   - `WidgetFitTest` — no text is cut off, at every size in
+     `WidgetHarness.SIZES`, measured from real text layout. This is the check
+     that matters most: clipping is the bug these widgets have actually had,
+     and it never shows as an error. It found the one-column widget losing
+     its Isha row on its first run.
+   - `WidgetScreenshotTest` — Roborazzi images compared against the
+     references in `android/app/src/test/screenshots`.
+2. **Emulator, pull requests and nightly** (`android/app/src/androidTest`,
+   `android-device-tests.yml`). `HostedWidgetTest` is its own widget host,
+   granted binding with `appwidget grantbind`: the system accepts all five
+   widgets, binding runs the provider, a resize reaches
+   `onAppWidgetOptionsChanged`, and saving the appearance screen redraws the
+   widget. `LauncherPinTest` then has the emulator's launcher add the tile
+   through its own dialog; it drives another app's UI, so it retries and a
+   failure is only a warning.
+3. `PayloadFixture` and `TextFit` in `android/app/src/sharedTest` are shared by
+   both.
+
+Things that will bite:
+
+- **The renderer takes `nowMillis`.** Tests pin it; the app passes nothing and
+  gets the real clock. The fixture's moments sit half a second before the
+  minute, because Chronometer truncates and reads the clock when drawn — aim
+  at the second exactly and the text, and every screenshot, flickers between
+  runs.
+- **The fixture is 15 January, not February.** The layouts carry February's
+  times as sample text for the widget picker, so a test on that date can pass
+  on placeholders the renderer never touched. The device tests likewise wait
+  for text that is not in any layout before believing a widget was drawn.
+- **Changing how a widget looks means new reference screenshots.** Push with
+  `[record screenshots]` in the commit message (or run
+  `record-widget-screenshots.yml` by hand): it re-records them on the CI
+  runner and commits them back, and that commit's images are the review of
+  the change. They have to come from the runner — another machine draws
+  different pixels. CI skips the comparison on the commit that asks for it.
+- **The emulator job builds `:app` only.** The root project's test APKs
+  include Capacitor's own modules, and the Cordova plugins module does not
+  assemble.
+
 ## The once-a-second re-render
 
 `App` dispatches a tick every second for the countdown, so every screen
