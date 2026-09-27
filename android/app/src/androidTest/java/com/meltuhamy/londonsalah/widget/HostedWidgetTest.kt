@@ -60,9 +60,18 @@ class HostedWidgetTest {
     private lateinit var host: AppWidgetHost
     private val bound = mutableListOf<Int>()
 
+    /** What the shell said to the grant, for when binding is refused anyway. */
+    private var grantOutput = ""
+
     @Before
     fun hostWidgets() {
-        shell("appwidget grantbind --package ${context.packageName} --user current")
+        // "current" is what the documentation gives for --user; the explicit
+        // id is the same user on a test device, and is there in case a
+        // system image reads the flag differently.
+        grantOutput = listOf("current", "0").joinToString("\n") { user ->
+            val command = "appwidget grantbind --package ${context.packageName} --user $user"
+            "$ $command\n" + shell(command).ifBlank { "(no output)" }
+        }
 
         // The device's real clock drives these widgets, so the times are
         // placed relative to it: Asr, at "14:01", due in two hours.
@@ -84,6 +93,7 @@ class HostedWidgetTest {
             host.stopListening()
         }
         shell("appwidget revokebind --package ${context.packageName} --user current")
+        shell("appwidget revokebind --package ${context.packageName} --user 0")
     }
 
     @Test
@@ -213,7 +223,7 @@ class HostedWidgetTest {
         val id = host.allocateAppWidgetId()
         bound += id
         assertTrue(
-            "could not bind ${provider.simpleName} - is the grant in place?",
+            "could not bind ${provider.simpleName}. The grant said:\n$grantOutput",
             manager.bindAppWidgetIdIfAllowed(
                 id, ComponentName(context, provider), sizeOptions(widthDp, heightDp)
             )
@@ -259,10 +269,13 @@ class HostedWidgetTest {
         fail("Timed out after ${timeoutMs}ms waiting for $what")
     }
 
-    private fun shell(command: String) {
+    /** Runs a shell command as the shell user, and returns what it printed. */
+    private fun shell(command: String): String {
         val output: ParcelFileDescriptor = instrumentation.uiAutomation.executeShellCommand(command)
-        // Reading to the end is what waits for the command to finish.
-        ParcelFileDescriptor.AutoCloseInputStream(output).use { it.readBytes() }
+        // Reading to the end is also what waits for the command to finish.
+        return ParcelFileDescriptor.AutoCloseInputStream(output).use {
+            it.readBytes().toString(Charsets.UTF_8).trim()
+        }
     }
 
     private fun px(dp: Int): Int = TypedValue.applyDimension(

@@ -40,14 +40,26 @@ object PayloadFixture {
         return JAN_15 + h * HOUR + m * MINUTE
     }
 
-    /** 13:00 - Duhr has gone, Asr is next at 14:01. */
-    val ONE_PM = on15th("13:00")
+    /**
+     * Half a second before each moment below, so a countdown to a whole
+     * minute has half a second to spare.
+     *
+     * Chronometer truncates: it shows 1:00:59 the instant a hair less than
+     * 1:01:00 remains. Its reading is taken when the view is drawn, a moment
+     * after the renderer worked out the time left, so aiming exactly at the
+     * second made the text - and every screenshot with a countdown in it -
+     * depend on how long that moment happened to be.
+     */
+    private const val SPARE = 500L
+
+    /** 13:00 - Duhr has gone, Asr is next at 14:01, "1:01:00" away. */
+    val ONE_PM = on15th("13:00") - SPARE
 
     /** 15:00 - Maghrib is next: the longest name, in "Maghrib in". */
-    val THREE_PM = on15th("15:00")
+    val THREE_PM = on15th("15:00") - SPARE
 
-    /** 18:01 - after Isha, so the next prayer is tomorrow's Fajr, 12h18m away. */
-    val AFTER_ISHA = on15th("18:01")
+    /** 18:01 - after Isha, so the next prayer is tomorrow's Fajr, "12:18:00" away. */
+    val AFTER_ISHA = on15th("18:01") - SPARE
 
     /** The payload for the 15th, with tomorrow's Fajr as the last upcoming prayer. */
     fun forJan15(): String {
