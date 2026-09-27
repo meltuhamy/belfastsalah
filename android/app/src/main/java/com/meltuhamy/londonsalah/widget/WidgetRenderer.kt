@@ -181,7 +181,7 @@ object WidgetRenderer {
 
             // Matched by name because that is what both sides agree on: the
             // upcoming list and today's rows come from the same source.
-            val isNext = next != null && i == 2
+            val isNext = next != null && prayer.name == next.name
             val highlight = if (isNext) config.accentDrawable() else 0
             views.setInt(ids.cells[i], "setBackgroundResource", highlight)
 
@@ -227,7 +227,11 @@ object WidgetRenderer {
         // tile would simply clip "3:27:23". Sized here instead, from whichever
         // side is smaller.
         val size = sizeDp ?: Int.MAX_VALUE
-        val (countdownSp, prayerSp, padDp) = Triple(22f, 14f, 12)
+        val (countdownSp, prayerSp, padDp) = when {
+            size < 80 -> Triple(13f, 9f, 4)
+            size < 120 -> Triple(18f, 12f, 8)
+            else -> Triple(22f, 14f, 12)
+        }
         views.setTextViewTextSize(R.id.tile_countdown, TypedValue.COMPLEX_UNIT_SP, countdownSp)
         views.setTextViewTextSize(R.id.tile_prayer, TypedValue.COMPLEX_UNIT_SP, prayerSp)
         views.setTextViewTextSize(R.id.tile_location, TypedValue.COMPLEX_UNIT_SP, prayerSp)
