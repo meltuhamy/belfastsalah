@@ -13,12 +13,10 @@ import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.util.TypedValue
 import android.view.View
+import android.widget.Button
+import android.widget.CheckBox
 import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
-import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.action.ViewActions.click
-import androidx.test.espresso.action.ViewActions.scrollTo
-import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry
@@ -183,11 +181,18 @@ class HostedWidgetTest {
         waitUntil("the widget to draw") { wide.text(R.id.prayer_time_3) == "14:01" }
         assertTrue(onMain { wide.isShown(R.id.widget_location) })
 
+        // The real screen, with its real listeners - clicked through its own
+        // views rather than through Espresso. Espresso waits for the window
+        // to take focus first, and on an emulator with software rendering it
+        // can sit unfocused indefinitely; whether a tap reaches a checkbox is
+        // Android's business, and what happens after it is ours.
         val intent = Intent(context, WidgetConfigActivity::class.java)
             .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, wide.id)
-        ActivityScenario.launch<WidgetConfigActivity>(intent).use {
-            onView(withId(R.id.show_location)).perform(scrollTo(), click())
-            onView(withId(R.id.config_save)).perform(scrollTo(), click())
+        ActivityScenario.launch<WidgetConfigActivity>(intent).use { scenario ->
+            scenario.onActivity { screen ->
+                screen.findViewById<CheckBox>(R.id.show_location).performClick()
+                screen.findViewById<Button>(R.id.config_save).performClick()
+            }
         }
 
         assertFalse(WidgetConfig.load(context, wide.id).showLocation)
