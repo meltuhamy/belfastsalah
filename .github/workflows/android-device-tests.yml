@@ -49,10 +49,12 @@ jobs:
           npx cap sync android
 
       # Built before the emulator starts, so a compile error fails in a
-      # minute rather than after the emulator has booted.
+      # minute rather than after the emulator has booted. Scoped to :app -
+      # the tests live there, and asking the root project would also build
+      # test APKs for Capacitor's own modules, which do not assemble.
       - name: Build the app and its device tests
         working-directory: android
-        run: ./gradlew assembleDebug assembleDebugAndroidTest --no-daemon
+        run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon
 
       # Hardware acceleration for the emulator. Linux runners have KVM, but
       # only root can use it until this opens it up.
@@ -78,8 +80,8 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
           working-directory: android
           script: |
-            ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.size=medium --no-daemon
-            ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.size=large --no-daemon || echo "::warning title=Launcher smoke test::LauncherPinTest failed after its retries. It drives the emulator's own launcher and is allowed to be flaky; its report is in the device-test-results artifact."
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.size=medium --no-daemon
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.size=large --no-daemon || echo "::warning title=Launcher smoke test::LauncherPinTest failed after its retries. It drives the emulator's own launcher and is allowed to be flaky; its report is in the device-test-results artifact."
 
       - uses: actions/upload-artifact@v7
         if: always()
