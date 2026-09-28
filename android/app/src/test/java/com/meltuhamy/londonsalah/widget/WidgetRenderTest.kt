@@ -61,6 +61,22 @@ class WidgetRenderTest {
     }
 
     @Test
+    fun `after Isha the timetables show tomorrow`() {
+        // The day shown is the one the countdown is heading into. Before this,
+        // it was whichever day the app was last opened on: a widget left alone
+        // kept that date, and times up to a few minutes out, indefinitely.
+        for (kind in timetables) {
+            val widget = draw(kind, homeScreenSize(kind), nowMillis = AFTER_ISHA)
+            val times = WidgetHarness.TIME_VIEWS.getValue(kind).map { widget.text(it) }
+            assertEquals("$kind times", PayloadFixture.TOMORROW_TIMES, times)
+        }
+        for (kind in listOf(WidgetKind.WIDE, WidgetKind.TALL)) {
+            val widget = draw(kind, homeScreenSize(kind), nowMillis = AFTER_ISHA)
+            assertEquals("$kind date", PayloadFixture.TOMORROW_DATE, widget.text(R.id.widget_date))
+        }
+    }
+
+    @Test
     fun `timetables highlight the next prayer, and only it`() {
         // Three different cells, including the first: a highlight stuck on the
         // one the layout's sample text marks would pass any one of these.

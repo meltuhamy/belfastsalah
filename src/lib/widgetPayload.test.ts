@@ -35,9 +35,9 @@ describe("buildWidgetPayload", () => {
 
     expect(payload.version).toEqual(WIDGET_PAYLOAD_VERSION);
     expect(payload.locationLabel).toEqual("London");
-    expect(payload.today.dateLabel).toEqual("Sun 15 Feb");
-    expect(payload.today.prayers.map((p) => p.time)).toEqual(LONDON_15_FEB);
-    expect(payload.today.prayers.map((p) => p.name)).toEqual([
+    expect(payload.days[0].dateLabel).toEqual("Sun 15 Feb");
+    expect(payload.days[0].prayers.map((p) => p.time)).toEqual(LONDON_15_FEB);
+    expect(payload.days[0].prayers.map((p) => p.name)).toEqual([
       "Fajr",
       "Shuruq",
       "Duhr",
@@ -54,7 +54,7 @@ describe("buildWidgetPayload", () => {
     ))!;
     expect(payload.locationLabel).toEqual("Belfast");
     // belfast-2019.json, 15 February.
-    expect(payload.today.prayers.map((p) => p.time)).toEqual([
+    expect(payload.days[0].prayers.map((p) => p.time)).toEqual([
       "06:01",
       "07:43",
       "12:39",
@@ -69,7 +69,7 @@ describe("buildWidgetPayload", () => {
       settingsWith({ asrMethod: AsrMethod.Hanafi }),
       MORNING
     ))!;
-    expect(payload.today.prayers[3]).toEqual({ name: "Asr", time: "15:25" });
+    expect(payload.days[0].prayers[3]).toEqual({ name: "Asr", time: "15:25" });
   });
 
   it("Should follow the clock the user reads times in", async () => {
@@ -84,14 +84,14 @@ describe("buildWidgetPayload", () => {
       MORNING
     ))!;
 
-    expect(onTimetableClock.today.prayers.map((p) => p.time)).toEqual(
+    expect(onTimetableClock.days[0].prayers.map((p) => p.time)).toEqual(
       LONDON_15_FEB
     );
 
     // Compared by offset rather than by zone name, because the suite runs
     // under five zones and in February UTC shows the same clock as London -
     // a name comparison here would call that a difference and fail.
-    const shown = onDeviceClock.today.prayers.map((p) => p.time);
+    const shown = onDeviceClock.days[0].prayers.map((p) => p.time);
     if (zonesAgree(UK_TIME_ZONE, getDeviceTimeZone(), MORNING)) {
       expect(shown).toEqual(LONDON_15_FEB);
     } else {
@@ -99,6 +99,57 @@ describe("buildWidgetPayload", () => {
     }
     // Either way the instants are identical - only the rendering differs.
     expect(onDeviceClock.upcoming[0].at).toEqual(onTimetableClock.upcoming[0].at);
+  });
+});
+
+describe("the days", () => {
+  // The widget shows the day of the prayer it counts down to, so the payload
+  // has to carry days beyond today - otherwise a widget left alone shows the
+  // day the app was last opened on, date and all.
+
+  it("Should carry each day's own date and times", async () => {
+    const payload = (await buildWidgetPayload(settingsWith(), MORNING, 7))!;
+
+    expect(payload.days[1].dateLabel).toEqual("Mon 16 Feb");
+    // london-2026.json, 16 February.
+    expect(payload.days[1].prayers.map((p) => p.time)).toEqual([
+      "05:34",
+      "07:11",
+      "12:20",
+      "14:47",
+      "17:20",
+      "18:50",
+    ]);
+    expect(payload.days.length).toBeGreaterThanOrEqual(7);
+  });
+
+  it("Should point each upcoming prayer at its own day", async () => {
+    const payload = (await buildWidgetPayload(settingsWith(), MORNING, 7))!;
+
+    for (const u of payload.upcoming) {
+      const day = payload.days[u.day];
+      expect(day.prayers.find((p) => p.name === u.name)!.time).toEqual(u.time);
+    }
+    // 10:00, so today's Duhr is next, and tomorrow's Fajr is on the next day.
+    expect(payload.upcoming[0].day).toEqual(0);
+    const fajr = payload.upcoming.find((u) => u.name === "Fajr")!;
+    expect(fajr.day).toEqual(1);
+  });
+
+  it("Should put tomorrow's Fajr on tomorrow once today's prayers are done", async () => {
+    const lateEvening = new Date("2026-02-15T20:00:00Z");
+    const payload = (await buildWidgetPayload(settingsWith(), lateEvening))!;
+
+    // Today is still carried, but nothing ahead belongs to it.
+    expect(payload.days[0].dateLabel).toEqual("Sun 15 Feb");
+    expect(payload.upcoming[0].day).toEqual(1);
+    expect(payload.days[1].dateLabel).toEqual("Mon 16 Feb");
+  });
+
+  it("Should not carry days past the horizon", async () => {
+    const payload = (await buildWidgetPayload(settingsWith(), MORNING, 7))!;
+    const last = payload.upcoming[payload.upcoming.length - 1];
+    expect(last.day).toEqual(payload.days.length - 1);
   });
 });
 

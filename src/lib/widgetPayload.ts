@@ -16,6 +16,7 @@
 import {
   BelfastPrayerTimes,
   LondonPrayerTimes,
+  Prayer,
   PrayerLocation,
   PrayerTimes,
   prayerToString,
@@ -30,7 +31,7 @@ import {
 } from "./timeZone";
 
 /** Bump when the shape changes, so an old widget ignores a payload it cannot read. */
-export const WIDGET_PAYLOAD_VERSION = 2;
+export const WIDGET_PAYLOAD_VERSION = 3;
 
 /** How far ahead to write, so the widget survives the app going unopened. */
 export const DEFAULT_HORIZON_DAYS = 90;
@@ -51,17 +52,29 @@ export type WidgetUpcoming = {
    * still needs it when the next prayer is tomorrow's Fajr.
    */
   time: string;
+  /** Index into `days` of the day this prayer belongs to. */
+  day: number;
+};
+
+export type WidgetDay = {
+  /** e.g. "Sun 15 Feb", in the display zone. */
+  dateLabel: string;
+  prayers: Array<WidgetPrayer>;
 };
 
 export type WidgetPayload = {
   version: number;
   generatedAt: number;
   locationLabel: string;
-  today: {
-    /** e.g. "Sun 15 Feb", in the display zone. */
-    dateLabel: string;
-    prayers: Array<WidgetPrayer>;
-  };
+  /**
+   * Today and every day after it that `upcoming` reaches into.
+   *
+   * A widget shows the day of the prayer it is counting down to, so it moves
+   * on by itself at each prayer boundary - after Isha to tomorrow, just as the
+   * app's strip does - rather than showing whichever day the app was last
+   * opened on.
+   */
+  days: Array<WidgetDay>;
   /** Every prayer still to come within the horizon, earliest first. */
   upcoming: Array<WidgetUpcoming>;
 };
@@ -101,7 +114,8 @@ export async function buildWidgetPayload(
   const horizonEnd = now.getTime() + horizonDays * 24 * 60 * 60 * 1000;
 
   const upcoming: Array<WidgetUpcoming> = [];
-  let today: Array<WidgetPrayer> = [];
+  const days: Array<WidgetDay> = [];
+  let reachedToday = false;
 
   // Walk whole months from today's. getMonth already takes its day count from
   // the calendar rather than the data file, which is what keeps a non-leap
@@ -124,21 +138,38 @@ export async function buildWidgetPayload(
         month === todayParts.month - 1 &&
         day === todayParts.day
       ) {
-        today = dayTimes.map((p) => ({
-          name: prayerToString(p.prayer),
-          time: formatTimeInZone(p.time, displayZone),
-        }));
+        reachedToday = true;
+      }
+      if (!reachedToday) {
+        continue;
       }
 
-      for (const prayerTime of dayTimes) {
-        const at = prayerTime.time.getTime();
-        if (at > now.getTime() && at <= horizonEnd) {
-          upcoming.push({
-            name: prayerToString(prayerTime.prayer),
-            at,
-            time: formatTimeInZone(prayerTime.time, displayZone),
-          });
-        }
+      const ahead = dayTimes.filter((p) => {
+        const at = p.time.getTime();
+        return at > now.getTime() && at <= horizonEnd;
+      });
+      // Today is always carried; a later day only if a prayer in it is.
+      if (days.length > 0 && ahead.length === 0) {
+        continue;
+      }
+
+      const index = days.length;
+      days.push({
+        // Dated by its midday prayer: the instant least likely to fall on a
+        // different date in the zone the user reads times in.
+        dateLabel: formatDateInZone(dayTimes[Prayer.Duhr].time, displayZone),
+        prayers: dayTimes.map((p) => ({
+          name: prayerToString(p.prayer),
+          time: formatTimeInZone(p.time, displayZone),
+        })),
+      });
+      for (const prayerTime of ahead) {
+        upcoming.push({
+          name: prayerToString(prayerTime.prayer),
+          at: prayerTime.time.getTime(),
+          time: formatTimeInZone(prayerTime.time, displayZone),
+          day: index,
+        });
       }
     }
 
@@ -153,10 +184,7 @@ export async function buildWidgetPayload(
     version: WIDGET_PAYLOAD_VERSION,
     generatedAt: now.getTime(),
     locationLabel: locationNames[settings.location],
-    today: {
-      dateLabel: formatDateInZone(now, displayZone),
-      prayers: today,
-    },
+    days,
     upcoming,
   };
 }

@@ -128,15 +128,16 @@ object WidgetRenderer {
         val views = RemoteViews(context.packageName, kind.layoutId)
         val payload = WidgetPayload.parse(WidgetStore.read(context))
         val next = payload?.nextAfter(nowMillis)
+        val day = if (payload != null && next != null) payload.dayOf(next) else null
 
         return when (kind) {
             WidgetKind.TILE ->
                 renderTile(context, views, config, payload, next, sizeDp, nowMillis)
             WidgetKind.COMPACT ->
-                renderInline(context, views, config, payload, next, COMPACT_IDS, nowMillis)
+                renderInline(context, views, config, day, next, COMPACT_IDS, nowMillis)
             WidgetKind.COLUMN ->
-                renderInline(context, views, config, payload, next, COLUMN_IDS_INLINE, nowMillis)
-            else -> renderTimetable(context, views, config, payload, next, nowMillis)
+                renderInline(context, views, config, day, next, COLUMN_IDS_INLINE, nowMillis)
+            else -> renderTimetable(context, views, config, payload, day, next, nowMillis)
         }
     }
 
@@ -153,7 +154,7 @@ object WidgetRenderer {
         context: Context,
         views: RemoteViews,
         config: WidgetConfig,
-        payload: WidgetPayload?,
+        day: WidgetDay?,
         next: WidgetUpcoming?,
         ids: InlineIds,
         nowMillis: Long
@@ -168,7 +169,7 @@ object WidgetRenderer {
             WidgetCountdown.stopTicking(views, ids.countdowns[i])
             views.setViewVisibility(ids.countdowns[i], View.GONE)
 
-            val prayer = payload?.prayers?.getOrNull(i)
+            val prayer = day?.prayers?.getOrNull(i)
             if (prayer == null) {
                 views.setTextViewText(ids.names[i], "")
                 views.setTextViewText(ids.times[i], "")
@@ -266,6 +267,7 @@ object WidgetRenderer {
         views: RemoteViews,
         config: WidgetConfig,
         payload: WidgetPayload?,
+        day: WidgetDay?,
         next: WidgetUpcoming?,
         nowMillis: Long
     ): RemoteViews {
@@ -279,7 +281,7 @@ object WidgetRenderer {
         views.setTextColor(R.id.widget_location, secondary)
         views.setTextColor(R.id.widget_date, secondary)
 
-        if (payload == null || next == null) {
+        if (payload == null || day == null || next == null) {
             views.setTextViewText(
                 R.id.widget_next_label, context.getString(R.string.widget_unavailable)
             )
@@ -312,7 +314,7 @@ object WidgetRenderer {
             if (config.showDate) View.VISIBLE else View.GONE
         )
         views.setTextViewText(R.id.widget_location, payload.locationLabel)
-        views.setTextViewText(R.id.widget_date, payload.dateLabel)
+        views.setTextViewText(R.id.widget_date, day.dateLabel)
         WidgetCountdown.bind(
             views,
             context,
@@ -324,7 +326,7 @@ object WidgetRenderer {
         )
 
         for (i in COLUMN_IDS.indices) {
-            val prayer = payload.prayers.getOrNull(i)
+            val prayer = day.prayers.getOrNull(i)
             if (prayer == null) {
                 views.setTextViewText(NAME_IDS[i], "")
                 views.setTextViewText(TIME_IDS[i], "")

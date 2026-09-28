@@ -25,6 +25,10 @@ object PayloadFixture {
     const val LOCATION = "London"
     const val DATE = "Thu 15 Jan"
 
+    /** The 16th, which a widget shows once the 15th's Isha has gone. */
+    val TOMORROW_TIMES = listOf("06:19", "07:56", "12:15", "14:03", "16:25", "18:02")
+    const val TOMORROW_DATE = "Fri 16 Jan"
+
     private const val MINUTE = 60_000L
     private const val HOUR = 60 * MINUTE
 
@@ -64,9 +68,9 @@ object PayloadFixture {
     /** The payload for the 15th, with tomorrow's Fajr as the last upcoming prayer. */
     fun forJan15(): String {
         val upcoming = NAMES.indices.map { i ->
-            Triple(NAMES[i], on15th(TIMES[i]), TIMES[i])
-        } + Triple("Fajr", JAN_16_FAJR, "06:19")
-        return json(upcoming)
+            Upcoming(NAMES[i], on15th(TIMES[i]), TIMES[i], day = 0)
+        } + Upcoming("Fajr", JAN_16_FAJR, TOMORROW_TIMES[FAJR], day = 1)
+        return json(listOf(DATE to TIMES, TOMORROW_DATE to TOMORROW_TIMES), upcoming)
     }
 
     /**
@@ -78,24 +82,29 @@ object PayloadFixture {
      */
     fun relativeTo(now: Long, next: Int, inMillis: Long = 2 * HOUR): String {
         val upcoming = (next until NAMES.size).map { i ->
-            Triple(NAMES[i], now + inMillis + (i - next) * HOUR, TIMES[i])
+            Upcoming(NAMES[i], now + inMillis + (i - next) * HOUR, TIMES[i], day = 0)
         }
-        return json(upcoming)
+        return json(listOf(DATE to TIMES), upcoming)
     }
 
-    private fun json(upcoming: List<Triple<String, Long, String>>): String {
-        val prayers = NAMES.indices.joinToString(",") { i ->
-            """{"name":"${NAMES[i]}","time":"${TIMES[i]}"}"""
+    private data class Upcoming(val name: String, val at: Long, val time: String, val day: Int)
+
+    private fun json(days: List<Pair<String, List<String>>>, upcoming: List<Upcoming>): String {
+        val dayJson = days.joinToString(",") { (date, times) ->
+            val prayers = NAMES.indices.joinToString(",") { i ->
+                """{"name":"${NAMES[i]}","time":"${times[i]}"}"""
+            }
+            """{"dateLabel":"$date","prayers":[$prayers]}"""
         }
-        val next = upcoming.joinToString(",") { (name, at, time) ->
-            """{"name":"$name","at":$at,"time":"$time"}"""
+        val next = upcoming.joinToString(",") { (name, at, time, day) ->
+            """{"name":"$name","at":$at,"time":"$time","day":$day}"""
         }
         return """
             {
               "version": ${WidgetPayload.SUPPORTED_VERSION},
               "generatedAt": 0,
               "locationLabel": "$LOCATION",
-              "today": { "dateLabel": "$DATE", "prayers": [$prayers] },
+              "days": [$dayJson],
               "upcoming": [$next]
             }
         """.trimIndent()
