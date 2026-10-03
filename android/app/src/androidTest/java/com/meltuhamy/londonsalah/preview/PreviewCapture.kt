@@ -130,14 +130,18 @@ class PreviewCapture {
             }
         }
 
-        // The whole home screen, a page at a time, as far as our widgets go.
+        // Every home screen page with one of ours on it, numbered in the
+        // order they were found. The launcher fills the first page's gaps
+        // first and then adds pages, so ours can start on any of them.
+        device.pressHome()
         device.pressHome()
         settle()
-        var page = 1
-        while (page <= 3) {
-            if (ROOTS.none { device.hasObject(By.res(context.packageName, it)) }) break
-            capture("home-screen-$page")
-            page++
+        var captured = 0
+        repeat(4) {
+            if (ROOTS.any { device.hasObject(By.res(context.packageName, it)) }) {
+                captured++
+                capture("home-screen-$captured")
+            }
             device.swipe(
                 device.displayWidth * 9 / 10, device.displayHeight / 2,
                 device.displayWidth / 10, device.displayHeight / 2, 20
@@ -157,9 +161,11 @@ class PreviewCapture {
                 .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, ids.last())
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         )
+        // The preview, at the top: Save is below the fold, and UiAutomator
+        // only sees what is on screen.
         assertTrue(
             "the appearance screen never opened",
-            device.wait(Until.hasObject(By.res(context.packageName, "config_save")), 10_000)
+            device.wait(Until.hasObject(By.res(context.packageName, "config_preview")), 10_000)
         )
         settle()
         capture("widget-settings")
