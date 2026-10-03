@@ -31,8 +31,10 @@ struct PrayerEntry: TimelineEntry {
         /** What the seconds countdown counts down to. */
         let nextAt: Date
         /**
-         * Whole minutes left, rounded up, for the minutes countdown. Fixed per
-         * entry - that countdown is redrawn by having an entry every minute.
+         * Whole minutes left, rounded down as a timer does - so it reads
+         * "1h 1m" beside the seconds countdown's "1:01:00", and 0 in the last
+         * minute. Fixed per entry: that countdown is redrawn by having an
+         * entry every minute.
          */
         let minutesLeft: Int
     }
@@ -89,8 +91,8 @@ enum PrayerTimeline {
                     let left = minutesLeft(from: moment, to: upcoming.date)
                     entries.append(entry(moment, settings, payload, day, upcoming, left))
                     if entries.count >= limit { return (entries, .atEnd) }
-                    // The instant the rounded-up count drops by one.
-                    moment = upcoming.date.addingTimeInterval(-Double(left - 1) * 60)
+                    // The instant the count drops by one; at 0, the prayer.
+                    moment = upcoming.date.addingTimeInterval(-Double(left) * 60)
                 }
             } else {
                 let left = minutesLeft(from: start, to: upcoming.date)
@@ -105,8 +107,14 @@ enum PrayerTimeline {
         return (entries, .never)
     }
 
+    /**
+     * The whole minutes that remain from `moment` until the next change -
+     * one less than the rounded-up count, so that an entry made exactly on a
+     * minute boundary shows what the following minute will read, not the
+     * single instant of the boundary itself.
+     */
     static func minutesLeft(from moment: Date, to target: Date) -> Int {
-        max(1, Int((target.timeIntervalSince(moment) / 60).rounded(.up)))
+        max(0, Int((target.timeIntervalSince(moment) / 60).rounded(.up)) - 1)
     }
 
     private static func entry(
@@ -153,7 +161,7 @@ extension PrayerEntry {
                 nextName: "Duhr",
                 nextTime: "12:20",
                 nextAt: date.addingTimeInterval(2 * 3600 + 20 * 60),
-                minutesLeft: 140
+                minutesLeft: 139
             ))
         )
     }

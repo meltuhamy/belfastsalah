@@ -33,7 +33,8 @@ final class PreviewCapture: XCTestCase {
     func test1Setup() {
         // An empty string reads as no settings at all, so this is first launch.
         let app = launch(settings: "")
-        XCTAssertTrue(app.webViews.buttons["Done"].waitForExistence(timeout: 30))
+        // Longer than the rest: this is the first launch on a fresh simulator.
+        XCTAssertTrue(app.webViews.buttons["Done"].waitForExistence(timeout: 60))
         settle()
         capture("app-setup")
     }
@@ -63,18 +64,12 @@ final class PreviewCapture: XCTestCase {
             try addWidget(page: index, size: size)
         }
         tapIfPresent(springboard.buttons["Done"])
-        XCUIDevice.shared.press(.home)
-        settle()
+        try require(showOurWidgets(), "our widgets on any home screen page")
         capture("home-widgets")
     }
 
     func test5EditWidget() throws {
-        XCUIDevice.shared.press(.home)
-        settle()
-        // A widget's label is what it says, and only ours says London.
-        let widget = springboard.descendants(matching: .any)
-            .matching(NSPredicate(format: "label CONTAINS 'London'")).firstMatch
-        try require(widget, "a widget of ours on the home screen")
+        let widget = try require(showOurWidgets(), "a widget of ours on the home screen")
         widget.press(forDuration: 1.5)
         try require(springboard.buttons["Edit Widget"], "Edit Widget in the menu").tap()
         Thread.sleep(forTimeInterval: 2)
@@ -135,6 +130,29 @@ final class PreviewCapture: XCTestCase {
             .matching(NSPredicate(format: "label ENDSWITH 'Add Widget'")).firstMatch
         try require(add, "Add Widget for the \(size) size").tap()
         Thread.sleep(forTimeInterval: 2)
+    }
+
+    /**
+     * Goes to the home screen page our widgets are on and returns one of
+     * them. SpringBoard lists every page's icons at once, the off-screen ones
+     * with empty frames, and a placed widget is an icon carrying the app's
+     * name with the value "Widget" - so swipe until one is on screen.
+     */
+    private func showOurWidgets() -> XCUIElement {
+        XCUIDevice.shared.press(.home)
+        settle()
+        let ours = springboard.icons.matching(NSPredicate(
+            format: "identifier == 'Prayer Times' AND value BEGINSWITH 'Widget'"
+        ))
+        for _ in 0..<4 {
+            if let onScreen = ours.allElementsBoundByIndex.first(where: { $0.isHittable }) {
+                return onScreen
+            }
+            springboard.swipeLeft()
+            settle()
+        }
+        // Not found: a query that matches nothing, for require() to report.
+        return ours.matching(NSPredicate(value: false)).firstMatch
     }
 
     /** The element, once it exists; or the screen's tree in the log, and a failure. */

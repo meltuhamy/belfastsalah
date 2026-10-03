@@ -70,11 +70,12 @@ private func label(_ times: PrayerEntry.Times, _ countdown: WidgetSettings.Count
     }
 }
 
-/** "1h 23m", or "23 min" under the hour. */
+/** "1h 23m", "23 min" under the hour, and "<1 min" in the last one. */
 func minutesText(_ minutes: Int) -> String {
     let hours = minutes / 60
     let rest = minutes % 60
-    return hours > 0 ? "\(hours)h \(rest)m" : "\(rest) min"
+    if hours > 0 { return "\(hours)h \(rest)m" }
+    return rest > 0 ? "\(rest) min" : "<1 min"
 }
 
 /** The countdown in whichever form was chosen; for `.none`, the time. */

@@ -128,6 +128,7 @@ struct WidgetFrame: View {
             if family.isAccessory {
                 PrayerWidgetContent(entry: entry, family: family, colors: colors)
                     .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(white: 0.18))
             } else {
                 PrayerWidgetContent(entry: entry, family: family, colors: colors)
