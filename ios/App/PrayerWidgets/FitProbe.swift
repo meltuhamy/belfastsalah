@@ -15,6 +15,14 @@ import SwiftUI
 struct FitMeasurement: Equatable {
     var given: CGFloat = 0
     var natural: CGFloat = 0
+    /**
+     * The smallest scale the text may shrink to (its minimumScaleFactor), so
+     * the natural width it actually needs is `natural * minimumScale`. 1 for
+     * text that may not shrink, where any shortfall is a cut.
+     */
+    var minimumScale: CGFloat = 1
+
+    var isCutOff: Bool { natural * minimumScale > given + 0.5 }
 }
 
 struct FitPreferenceKey: PreferenceKey {
@@ -24,7 +32,8 @@ struct FitPreferenceKey: PreferenceKey {
         value.merge(nextValue()) { current, next in
             FitMeasurement(
                 given: max(current.given, next.given),
-                natural: max(current.natural, next.natural)
+                natural: max(current.natural, next.natural),
+                minimumScale: min(current.minimumScale, next.minimumScale)
             )
         }
     }
@@ -43,6 +52,7 @@ extension EnvironmentValues {
 
 private struct FitProbe: ViewModifier {
     let id: String
+    let minimumScale: CGFloat
     @Environment(\.fitProbing) private var probing
 
     func body(content: Content) -> some View {
@@ -51,7 +61,7 @@ private struct FitProbe: ViewModifier {
                 .background(GeometryReader { proxy in
                     Color.clear.preference(
                         key: FitPreferenceKey.self,
-                        value: [id: FitMeasurement(given: proxy.size.width)]
+                        value: [id: FitMeasurement(given: proxy.size.width, minimumScale: minimumScale)]
                     )
                 })
                 .overlay(alignment: .leading) {
@@ -74,6 +84,16 @@ private struct FitProbe: ViewModifier {
 extension View {
     /** Names a text for the fit tests. See FitProbe. */
     func fitProbe(_ id: String) -> some View {
-        modifier(FitProbe(id: id))
+        modifier(FitProbe(id: id, minimumScale: 1))
+    }
+
+    /**
+     * A text allowed to shrink to `minimumScale` of its size rather than be
+     * cut, and probed knowing it: it only counts as cut off if it would have
+     * to shrink further than that.
+     */
+    func shrinkable(_ id: String, minimumScale: CGFloat) -> some View {
+        modifier(FitProbe(id: id, minimumScale: minimumScale))
+            .minimumScaleFactor(minimumScale)
     }
 }

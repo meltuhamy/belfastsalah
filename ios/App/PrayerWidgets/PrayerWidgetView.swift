@@ -81,6 +81,12 @@ func minutesText(_ minutes: Int) -> String {
 private struct Countdown: View {
     let times: PrayerEntry.Times
     let mode: WidgetSettings.Countdown
+    /**
+     * How far the big countdown may shrink. On the smallest phones a small
+     * widget is narrower than "12:18:00" at full size - after Isha, with
+     * tomorrow's Fajr hours away - and shrinking is better than "12:1…".
+     */
+    var minimumScale: CGFloat = 0.7
 
     var body: some View {
         switch mode {
@@ -89,11 +95,11 @@ private struct Countdown: View {
             // what keeps it where the layout puts it.
             Text(times.nextAt, style: .timer)
                 .multilineTextAlignment(.leading)
-                .fitProbe("countdown")
+                .shrinkable("countdown", minimumScale: minimumScale)
         case .minutes:
-            Text(minutesText(times.minutesLeft)).fitProbe("countdown")
+            Text(minutesText(times.minutesLeft)).shrinkable("countdown", minimumScale: minimumScale)
         case .time, .none:
-            Text(times.nextTime).fitProbe("countdown")
+            Text(times.nextTime).shrinkable("countdown", minimumScale: minimumScale)
         }
     }
 }
@@ -230,7 +236,11 @@ private struct MediumContent: View {
                 ForEach(Array(times.prayers.enumerated()), id: \.offset) { index, prayer in
                     let next = index == times.nextIndex
                     VStack(spacing: 2) {
-                        Text(prayer.name).font(.caption2).fitProbe("name.\(index)")
+                        // Six to a row: "Maghrib" fills its column on a small
+                        // phone at a larger text size, so names may shrink a
+                        // little rather than be cut.
+                        Text(prayer.name).font(.caption2)
+                            .shrinkable("name.\(index)", minimumScale: 0.8)
                         Text(prayer.time).font(.footnote.weight(.semibold)).monospacedDigit()
                             .fitProbe("time.\(index)")
                     }

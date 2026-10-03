@@ -42,11 +42,11 @@ final class WidgetFitTests: XCTestCase {
                 for typeSize in [DynamicTypeSize.large, .xLarge] {
                     for (name, entry) in entries {
                         let size = device.sizes[family]!
-                        for (id, m) in measure(entry, family, size, typeSize)
-                        where m.natural > m.given + 0.5 {
+                        for (id, m) in measure(entry, family, size, typeSize) where m.isCutOff {
                             failures.append(
                                 "\(device.name) \(family.slug) \(typeSize) \(name): '\(id)' " +
-                                "needs \(Int(m.natural.rounded(.up)))pt, has \(Int(m.given))pt"
+                                "needs \(Int((m.natural * m.minimumScale).rounded(.up)))pt " +
+                                "(at its smallest), has \(Int(m.given))pt"
                             )
                         }
                     }
