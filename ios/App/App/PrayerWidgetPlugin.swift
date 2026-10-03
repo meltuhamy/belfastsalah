@@ -23,10 +23,17 @@ public class PrayerWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
         guard let store = WidgetStore.shared else {
+            NSLog("PrayerWidget: no App Group suite; the widgets cannot be updated")
             call.reject("the App Group is missing from this build")
             return
         }
         Self.apply(payload, to: store) { WidgetCenter.shared.reloadAllTimelines() }
+        // Logged so a simulator's log can say whether the app ever got here,
+        // and whether the group's container really exists for it.
+        let container = FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: WidgetStore.appGroup)
+        NSLog("PrayerWidget: wrote %d bytes; group container %@",
+              payload.count, container?.path ?? "MISSING")
         call.resolve()
     }
 

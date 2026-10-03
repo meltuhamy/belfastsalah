@@ -37,7 +37,7 @@ struct PrayerWidgetContent: View {
     var body: some View {
         switch entry.content {
         case .empty:
-            EmptyContent(family: family, colors: colors)
+            EmptyContent(family: family, colors: colors, note: entry.note)
         case .times(let times):
             switch family {
             case .systemSmall:
@@ -137,6 +137,7 @@ private func placeLine(_ times: PrayerEntry.Times, _ settings: WidgetSettings) -
 private struct EmptyContent: View {
     let family: WidgetFamily
     let colors: WidgetColors
+    var note: String? = nil
 
     var body: some View {
         switch family {
@@ -153,6 +154,12 @@ private struct EmptyContent: View {
             VStack(spacing: 4) {
                 Text("No times").font(.headline).foregroundStyle(colors.primary)
                 Text("Open the app").font(.caption).foregroundStyle(colors.secondary)
+                #if DEBUG
+                if let note {
+                    Text(note).font(.caption2).foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                }
+                #endif
             }
         }
     }

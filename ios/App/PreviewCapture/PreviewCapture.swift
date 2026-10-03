@@ -72,7 +72,8 @@ final class PreviewCapture: XCTestCase {
         let widget = try require(showOurWidgets(), "a widget of ours on the home screen")
         widget.press(forDuration: 1.5)
         try require(springboard.buttons["Edit Widget"], "Edit Widget in the menu").tap()
-        Thread.sleep(forTimeInterval: 2)
+        // The sheet shows a spinner while it asks the extension for its options.
+        Thread.sleep(forTimeInterval: 6)
         capture("edit-widget")
         XCUIDevice.shared.press(.home)
     }

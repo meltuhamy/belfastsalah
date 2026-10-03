@@ -22,10 +22,35 @@ struct PrayerTimelineProvider<Intent: SettingsIntent>: AppIntentTimelineProvider
     }
 
     private func build(_ configuration: Intent) -> (entries: [PrayerEntry], reload: PrayerTimeline.Reload) {
-        PrayerTimeline.build(
-            payload: WidgetPayload.parse(WidgetStore.shared?.read()),
-            now: Date(),
-            settings: configuration.settings
+        let store = WidgetStore.shared
+        let raw = store?.read()
+        let payload = WidgetPayload.parse(raw)
+        var (entries, reload) = PrayerTimeline.build(
+            payload: payload, now: Date(), settings: configuration.settings
         )
+
+        // Why the widget would be empty, for the log and Debug builds.
+        let reason: String
+        if store == nil {
+            reason = "no App Group"
+        } else if raw == nil {
+            reason = "nothing written to the App Group yet"
+        } else if payload == nil {
+            reason = "a payload it cannot read (\(raw?.count ?? 0) bytes)"
+        } else {
+            reason = "the written times have run out"
+        }
+        if entries.first.map({ $0.content == .empty }) ?? true {
+            NSLog("PrayerWidget: timeline is empty: %@", reason)
+        } else {
+            NSLog("PrayerWidget: timeline of %d entries", entries.count)
+        }
+        entries = entries.map { entry in
+            guard entry.content == .empty else { return entry }
+            var noted = entry
+            noted.note = reason
+            return noted
+        }
+        return (entries, reload)
     }
 }

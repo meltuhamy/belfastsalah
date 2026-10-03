@@ -175,6 +175,14 @@ jobs:
             || echo "::warning title=iOS previews::Some captures failed; the comment lists which. The xcresult bundle is in the preview-ios-result artifact."
           ls -l "$TEST_RUNNER_PREVIEW_DIR" || true
 
+      # What the plugin and the widget extension logged: whether the app
+      # wrote a payload, and why a widget is empty if one is.
+      - name: What the app and widgets said
+        if: always()
+        run: |
+          xcrun simctl spawn "${{ steps.sim.outputs.udid }}" log show --last 60m --style compact \
+            --predicate 'eventMessage CONTAINS "PrayerWidget:"' | tail -40 || true
+
       # The lock screen cannot be edited from a test, so those widgets come
       # from the snapshot references instead - as does one of each home
       # screen size, all on one page.

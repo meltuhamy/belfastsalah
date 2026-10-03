@@ -11,6 +11,11 @@ struct PrayerEntry: TimelineEntry {
     let date: Date
     let settings: WidgetSettings
     let content: Content
+    /**
+     * Why there is nothing to show, for an empty entry: Debug builds print
+     * it under "No times", so a preview screenshot says what went wrong.
+     */
+    var note: String? = nil
 
     enum Content: Equatable {
         case times(Times)
