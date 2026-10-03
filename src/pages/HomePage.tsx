@@ -93,7 +93,7 @@ const HomePage: React.FC = () => {
         <IonToolbar>
           <IonTitle>{inView ? "Prayer Times" : monthName}</IonTitle>
           <IonButtons slot="primary">
-            <IonButton routerLink="/settings">
+            <IonButton routerLink="/settings" aria-label="Settings">
               <IonIcon slot="icon-only" icon={settings} />
             </IonButton>
           </IonButtons>
