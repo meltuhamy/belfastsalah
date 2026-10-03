@@ -428,11 +428,11 @@ describe("Timezone independence", () => {
     // The UK springs forward on 2026-03-29. A flat 24 hours from late on the
     // 28th skips the 29th entirely, which would have hidden a day of prayers.
     // Isha on the 28th is 19:47 UTC, so late evening is past every prayer and
-    // the answer has to come from the 29th: fajr at 03:08 UTC.
+    // the answer has to come from the 29th: fajr at 04:08 UTC, 05:08 BST.
     const lateOn28th = new Date("2026-03-28T23:00:00Z");
     const next = await londonShafi.getNext(lateOn28th);
 
     expect(next.prayer).toEqual(Prayer.Fajr);
-    expect(next.time).toEqual(utc(2026, 3, 29, 3, 8));
+    expect(next.time).toEqual(utc(2026, 3, 29, 4, 8));
   });
 });
