@@ -103,8 +103,18 @@ final class PreviewCapture: XCTestCase {
         let search = springboard.searchFields.firstMatch
         try require(search, "the widget gallery's search field").tap()
         search.typeText("Prayer")
+        Thread.sleep(forTimeInterval: 1)
+        if page == 0 {
+            // Once, for whoever next has to adjust these steps to a new iOS.
+            print("PreviewCapture: the widget gallery after searching:\n\(springboard.debugDescription)")
+        }
+        // Not the app's icon, which is also on screen behind the gallery
+        // with the same label: tapping that one closes the gallery.
         let app = springboard.descendants(matching: .any)
-            .matching(NSPredicate(format: "label == 'Prayer Times'")).firstMatch
+            .matching(NSPredicate(
+                format: "label == 'Prayer Times' AND elementType != %d",
+                XCUIElement.ElementType.icon.rawValue
+            )).firstMatch
         try require(app, "Prayer Times in the gallery").tap()
         Thread.sleep(forTimeInterval: 1.5)
 
