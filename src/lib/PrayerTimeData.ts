@@ -89,25 +89,25 @@ function parsePrayerData(
 
 type PrayerDataLoader = () => Promise<{ default: Array<PrayerDataRow> }>;
 
-// The single source of truth for which years we have data for. Every entry
-// must point at a file that exists, and any file not listed here is not
-// served — so the two can never drift apart the way a hand-maintained list of
-// year numbers can. Add a year by adding a line here and nowhere else.
-const prayerDataLoaders: Record<
-  PrayerLocation,
-  Record<number, PrayerDataLoader>
-> = {
-  [PrayerLocation.Belfast]: {
-    2019: () => import("../prayer_data/belfast-2019.json")
-  },
-  [PrayerLocation.London]: {
-    2022: () => import("../prayer_data/london-2022.json"),
-    2023: () => import("../prayer_data/london-2023.json"),
-    2024: () => import("../prayer_data/london-2024.json"),
-    2025: () => import("../prayer_data/london-2025.json"),
-    2026: () => import("../prayer_data/london-2026.json")
+// The single source of truth for which years we have data for is the files in
+// src/prayer_data themselves: every <location>-<year>.json is served, and
+// nothing else is - so the two can never drift apart the way a hand-maintained
+// list of year numbers can. Add a year by adding its file and nowhere else.
+const prayerDataFiles = import.meta.glob<{ default: Array<PrayerDataRow> }>(
+  "../prayer_data/*-*.json"
+);
+
+const prayerDataLoaders = Object.fromEntries(
+  Object.values(PrayerLocation).map(location => [location, {}])
+) as Record<PrayerLocation, Record<number, PrayerDataLoader>>;
+
+for (const [file, loader] of Object.entries(prayerDataFiles)) {
+  const match = /\/([a-z]+)-(\d{4})\.json$/.exec(file);
+  const location = match?.[1] as PrayerLocation | undefined;
+  if (match && location && location in prayerDataLoaders) {
+    prayerDataLoaders[location][Number(match[2])] = loader;
   }
-};
+}
 
 // The timetables are published as UK local times, so the timetable's own zone
 // - not the device's - decides which day's row applies.

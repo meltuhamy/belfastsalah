@@ -19,7 +19,7 @@ function settingsWith(overrides: Partial<AppSettings> = {}): AppSettings {
 }
 
 // london-2026.json, 15 February.
-const LONDON_15_FEB = ["05:36", "07:13", "12:20", "14:45", "17:18", "18:48"];
+const LONDON_15_FEB = ["05:35", "07:12", "12:20", "14:46", "17:19", "18:49"];
 const MORNING = new Date("2026-02-15T10:00:00Z");
 
 describe("buildWidgetPayload", () => {
@@ -69,7 +69,7 @@ describe("buildWidgetPayload", () => {
       settingsWith({ asrMethod: AsrMethod.Hanafi }),
       MORNING
     ))!;
-    expect(payload.days[0].prayers[3]).toEqual({ name: "Asr", time: "15:25" });
+    expect(payload.days[0].prayers[3]).toEqual({ name: "Asr", time: "15:26" });
   });
 
   it("Should follow the clock the user reads times in", async () => {
@@ -113,12 +113,12 @@ describe("the days", () => {
     expect(payload.days[1].dateLabel).toEqual("Mon 16 Feb");
     // london-2026.json, 16 February.
     expect(payload.days[1].prayers.map((p) => p.time)).toEqual([
-      "05:34",
-      "07:11",
+      "05:33",
+      "07:10",
       "12:20",
       "14:47",
-      "17:20",
-      "18:50",
+      "17:21",
+      "18:51",
     ]);
     expect(payload.days.length).toBeGreaterThanOrEqual(7);
   });
@@ -176,7 +176,7 @@ describe("the upcoming list", () => {
     const payload = (await buildWidgetPayload(settingsWith(), lateEvening))!;
     expect(payload.upcoming[0].name).toEqual("Fajr");
     // london-2026.json, 16 February.
-    expect(payload.upcoming[0].time).toEqual("05:34");
+    expect(payload.upcoming[0].time).toEqual("05:33");
   });
 
   it("Should not include prayers that have already passed today", async () => {

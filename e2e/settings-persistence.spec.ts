@@ -74,7 +74,7 @@ test("remembers the Asr method", async ({ page }) => {
   await reload(page);
 
   await goHome(page);
-  await expect.poll(async () => (await todayTimes(page)).Asr).toBe("15:25");
+  await expect.poll(async () => (await todayTimes(page)).Asr).toBe("15:26");
 });
 
 test("remembers the theme", async ({ page }) => {

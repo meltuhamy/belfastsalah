@@ -23,14 +23,14 @@ const NOON_ISH = "2026-02-15T10:00:00Z";
 
 // london-2026.json, 15 February.
 const LONDON = {
-  Fajr: "05:36",
-  Shuruq: "07:13",
+  Fajr: "05:35",
+  Shuruq: "07:12",
   Duhr: "12:20",
-  Asr: "14:45",
-  Maghrib: "17:18",
-  Isha: "18:48",
+  Asr: "14:46",
+  Maghrib: "17:19",
+  Isha: "18:49",
 };
-const LONDON_HANAFI_ASR = "15:25";
+const LONDON_HANAFI_ASR = "15:26";
 
 // belfast-2019.json, 15 February. Belfast has only the one year of data, so it
 // is served whatever year is asked for - which is why these are Belfast's

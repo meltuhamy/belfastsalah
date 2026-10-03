@@ -37,3 +37,6 @@ yarn-error.log*
 *.p8
 *.mobileprovision
 *.b64
+
+# Downloads cached by scripts/lupt-to-utc-json.js
+scripts/data/lupt/

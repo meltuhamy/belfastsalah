@@ -51,12 +51,12 @@ test("shows the chosen month's own times", async ({ page }) => {
   // london-2026.json, 1 March.
   expect((await monthRows(page))[0]).toEqual([
     "1",
-    "05:07",
-    "06:44",
+    "05:06",
+    "06:43",
     "12:18",
     "15:04",
-    "17:43",
-    "19:09",
+    "17:44",
+    "19:10",
   ]);
 });
 

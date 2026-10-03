@@ -133,17 +133,20 @@ You're welcome to modify the project as you wish and contribute back to this pro
 ### How do I add my own prayer times?
 
 The prayer data lives in `src/prayer_data`, named `LOCATION-YEAR.json` — for
-example `london-2024.json`. To add a year, drop the file in and add one line
-to `prayerDataLoaders` in `src/lib/PrayerTimeData.ts`. That map is the single
-source of truth for which years exist, so nothing else needs updating.
+example `london-2024.json`. Those files are the single source of truth for
+which years exist: to add a year, drop the file in, and nothing else needs
+updating.
 
-`scripts/spreadsheet-to-utc-json.js` turns a mosque CSV in `scripts/data` into
-one of those files, converting the printed UK local times to the UTC instants
-the app stores.
+London's timetable from 2026 on is the
+[London Unified Prayer Timetable](https://londonsalahtimes.com/downloads/),
+imported by `scripts/lupt-to-utc-json.js` — `node scripts/lupt-to-utc-json.js
+2026 2076` downloads each year's spreadsheet and converts its UK clock times
+to the UTC instants the app stores. The years before that came from mosque
+CSVs in `scripts/data`, through `scripts/spreadsheet-to-utc-json.js`.
 
-Adding a new location the user can choose takes four edits: a loader entry in
-`prayerDataLoaders`, plus `locationTimeZones` and `locationNames` beside it in
-`src/lib/PrayerTimeData.ts`, and an `IonSelectOption` in
+Adding a new location the user can choose takes four edits: a `PrayerLocation`
+value named like its files, plus `locationTimeZones` and `locationNames` beside
+it in `src/lib/PrayerTimeData.ts`, and an `IonSelectOption` in
 `src/components/LocationSelector.tsx` — the one picker shared by the setup and
 settings screens.
 
