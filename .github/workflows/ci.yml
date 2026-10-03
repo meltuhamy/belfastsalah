@@ -4,6 +4,10 @@ on:
   # Runs on every branch, so native builds are verified before a pull request
   # exists - this is the only place the Android and iOS toolchains are checked.
   push:
+  # Only for pull requests from forks, whose pushes do not run here. A branch
+  # of this repository already gets the push run, for the same commit, and
+  # GitHub shows it on the pull request; running again for the pull request
+  # doubled every job. Each job carries the condition, as workflows cannot.
   pull_request:
   workflow_dispatch:
 
@@ -14,6 +18,7 @@ concurrency:
 jobs:
   web:
     name: Lint, typecheck, test, build
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -48,6 +53,7 @@ jobs:
 
   e2e:
     name: Browser tests
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -74,6 +80,7 @@ jobs:
 
   android:
     name: Android debug build
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -147,6 +154,7 @@ jobs:
 
   ios:
     name: iOS build (unsigned)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     # macOS runners are free and unmetered on public repositories.
     runs-on: macos-26
     steps:
