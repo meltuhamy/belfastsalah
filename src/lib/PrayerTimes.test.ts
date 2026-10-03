@@ -67,9 +67,10 @@ expect.extend({
 
 describe("Prayer data year selection", () => {
   it("Should offer every year we ship data for", () => {
-    expect(getAvailableYears(PrayerLocation.London)).toEqual([
-      2022, 2023, 2024, 2025, 2026
-    ]);
+    // 2022-2025 from the older spreadsheets, 2026 on from londonsalahtimes.com.
+    expect(getAvailableYears(PrayerLocation.London)).toEqual(
+      Array.from({ length: 2076 - 2022 + 1 }, (_, i) => 2022 + i)
+    );
     expect(getAvailableYears(PrayerLocation.Belfast)).toEqual([2019]);
   });
 
@@ -77,12 +78,12 @@ describe("Prayer data year selection", () => {
     // Regression test: the year list used to be hardcoded and stopped at 2024,
     // so 2025 and 2026 were quietly served 2024's timetable. 301 of 366 days
     // differ between 2024 and 2026, so this is a real accuracy bug.
-    // 2026-03-04 -> 04:58 in the 2024 table, 05:01 in the 2026 table.
+    // 2026-03-04 -> 04:58 in the 2024 table, 04:59 in the 2026 table.
     const marchFourth2026 = await londonShafi.getDay(utc(2026, 3, 4));
 
     expect(marchFourth2026[Prayer.Fajr]).toBePrayer(
       Prayer.Fajr,
-      utc(2026, 3, 4, 5, 1)
+      utc(2026, 3, 4, 4, 59)
     );
   });
 
@@ -93,10 +94,11 @@ describe("Prayer data year selection", () => {
   });
 
   it("Should clamp to the latest year we have when asked for a future one", async () => {
-    // 2099 is beyond our data, so it falls back to the latest (2026).
+    // 2099 is beyond our data, so it falls back to the latest (2076), whose
+    // 4 March Fajr is 04:57.
     const dayTimes = await londonShafi.getDay(utc(2099, 3, 4));
-    expect(dayTimes[Prayer.Fajr].time.getUTCHours()).toEqual(5);
-    expect(dayTimes[Prayer.Fajr].time.getUTCMinutes()).toEqual(1);
+    expect(dayTimes[Prayer.Fajr].time.getUTCHours()).toEqual(4);
+    expect(dayTimes[Prayer.Fajr].time.getUTCMinutes()).toEqual(57);
   });
 });
 
@@ -410,29 +412,29 @@ describe("Timezone independence", () => {
     const lateEvening = new Date("2026-08-04T23:30:00Z");
     const times = await londonShafi.getDay(lateEvening);
 
-    // 2026-08-05: ["8","5","02:47","04:27","12:12","16:14","17:20","19:46","20:50"]
+    // 2026-08-05: ["8","5","02:47","04:27","12:12","16:14","17:20","19:45","20:49"]
     expect(times[Prayer.Fajr]).toBePrayer(Prayer.Fajr, utc(2026, 8, 5, 2, 47));
   });
 
   it("Should cross into the next day by UK date", async () => {
-    // Isha on the 5th is 20:50 UTC; the next prayer is Fajr on the 6th.
+    // Isha on the 5th is 20:49 UTC; the next prayer is Fajr on the 6th.
     const afterIsha = new Date("2026-08-05T21:00:00Z");
     const next = await londonShafi.getNext(afterIsha);
 
-    // 2026-08-06 fajr is 02:48 UTC
+    // 2026-08-06 fajr is 02:49 UTC
     expect(next.prayer).toEqual(Prayer.Fajr);
-    expect(next.time).toEqual(utc(2026, 8, 6, 2, 48));
+    expect(next.time).toEqual(utc(2026, 8, 6, 2, 49));
   });
 
   it("Should step a whole day when the UK clocks change", async () => {
     // The UK springs forward on 2026-03-29. A flat 24 hours from late on the
     // 28th skips the 29th entirely, which would have hidden a day of prayers.
     // Isha on the 28th is 19:47 UTC, so late evening is past every prayer and
-    // the answer has to come from the 29th: fajr at 04:08 UTC, 05:08 BST.
+    // the answer has to come from the 29th: fajr at 04:07 UTC, 05:07 BST.
     const lateOn28th = new Date("2026-03-28T23:00:00Z");
     const next = await londonShafi.getNext(lateOn28th);
 
     expect(next.prayer).toEqual(Prayer.Fajr);
-    expect(next.time).toEqual(utc(2026, 3, 29, 4, 8));
+    expect(next.time).toEqual(utc(2026, 3, 29, 4, 7));
   });
 });

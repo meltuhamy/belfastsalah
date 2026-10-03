@@ -7,11 +7,14 @@ import { fileURLToPath } from "node:url";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
+// The years before 2026. From 2026 on, the London files come from the
+// official timetable instead, through lupt-to-utc-json.js.
+//
 // The spreadsheets are in UK clock time, but a sheet can move its clocks on
-// dates of its own: 2025's and 2026's change on 1 April and 28 October, while
+// dates of its own: 2025's changes on 1 April and 28 October, while
 // the real changes are the last Sundays of March and October. Converting with
-// the real dates put the days in between an hour out - Fajr at 06:03 on
-// 25 October 2026 instead of 05:03. So each row is converted with the offset
+// the real dates put the days in between an hour out - Fajr at 06:04 on
+// 26 October 2025 instead of 05:04. So each row is converted with the offset
 // the sheet itself is using, read off its own hour jumps, rather than the one
 // the calendar says. For a sheet that changes on the real dates the two agree.
 
@@ -110,4 +113,3 @@ processCSV("london", 2022);
 processCSV("london", 2023);
 processCSV("london", 2024);
 processCSV("london", 2025);
-processCSV("london", 2026);

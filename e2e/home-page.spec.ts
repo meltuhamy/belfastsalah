@@ -22,12 +22,12 @@ import {
 const NOON_ISH = "2026-02-15T10:00:00Z";
 
 const LONDON_15_FEB = {
-  Fajr: "05:36",
-  Shuruq: "07:13",
+  Fajr: "05:35",
+  Shuruq: "07:12",
   Duhr: "12:20",
-  Asr: "14:45",
-  Maghrib: "17:18",
-  Isha: "18:48",
+  Asr: "14:46",
+  Maghrib: "17:19",
+  Isha: "18:49",
 };
 
 test.beforeEach(async ({ page }) => {
@@ -48,10 +48,10 @@ test("dates the card in the timetable's calendar", async ({ page }) => {
 });
 
 test("names the next prayer and counts down to it", async ({ page }) => {
-  // 10:00, so Duhr at 12:20 is next and Shuruq at 07:13 has been and gone.
+  // 10:00, so Duhr at 12:20 is next and Shuruq at 07:12 has been and gone.
   await expect(page.getByText("Duhr in")).toBeVisible();
   await expect(page.getByTestId("countdown")).toHaveText("2h 20m");
-  await expect(page.getByText("Shuruq was 2h 47m ago")).toBeVisible();
+  await expect(page.getByText("Shuruq was 2h 48m ago")).toBeVisible();
 });
 
 test("points the card at the prayer it is counting down to", async ({
@@ -107,7 +107,7 @@ test("moves the strip onto tomorrow once the last prayer has passed", async ({
   await expect(page.getByTestId("tomorrow-badge")).toHaveText("Tomorrow");
   await expect(page.getByTestId("day-date")).toHaveText("Mon 16 Feb");
   // 16 Feb's own Fajr, not the 15th's.
-  await expect.poll(async () => (await todayTimes(page)).Fajr).toBe("05:34");
+  await expect.poll(async () => (await todayTimes(page)).Fajr).toBe("05:33");
   await expect.poll(() => highlightedPrayer(page)).toBe("Fajr");
   await expect
     .poll(() => tailTarget(page))
@@ -121,7 +121,7 @@ test("carries the day over at midnight", async ({ page }) => {
   await expect(page.getByTestId("day-date")).toHaveText("Mon 16 Feb");
   // Past midnight the reader is on that day themselves, so the badge goes.
   await expect(page.getByTestId("tomorrow-badge")).toHaveCount(0);
-  await expect.poll(async () => (await todayTimes(page)).Fajr).toBe("05:34");
+  await expect.poll(async () => (await todayTimes(page)).Fajr).toBe("05:33");
 });
 
 test("keeps the toolbar flat until something is under it", async ({ page }) => {
@@ -148,8 +148,8 @@ test("opens the month table on the current month", async ({ page }) => {
   // non-leap year in src/prayer_data does, duplicating the 28th - so this is
   // also a check that the table follows the calendar and not the file.
   expect(rows).toHaveLength(28);
-  expect(rows[0]).toEqual(["1", "06:00", "07:37", "12:19", "14:25", "16:52", "18:28"]);
-  expect(rows[27]).toEqual(["28", "05:09", "06:46", "12:18", "15:03", "17:41", "19:08"]);
+  expect(rows[0]).toEqual(["1", "05:59", "07:36", "12:19", "14:26", "16:53", "18:29"]);
+  expect(rows[27]).toEqual(["28", "05:08", "06:45", "12:18", "15:03", "17:42", "19:09"]);
 });
 
 test("marks today in the month table, and only today", async ({ page }) => {

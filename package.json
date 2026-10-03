@@ -51,6 +51,7 @@
     "csvtojson": "^2.0.10",
     "jsdom": "^30.0.1",
     "oxlint": "^1.77.0",
+    "read-excel-file": "^9.3.10",
     "typescript": "^7.0.2",
     "vite": "^8.2.0",
     "vitest": "^4.1.10"

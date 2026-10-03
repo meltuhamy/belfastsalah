@@ -4,9 +4,11 @@ package com.meltuhamy.londonsalah.widget
  * A day of prayer times as the app would hand them to the widgets, for both
  * the JVM tests and the ones on a device.
  *
- * 15 January 2026 in London, read out of src/prayer_data/london-2026.json.
- * January is on GMT, so the clock strings are the UTC ones and the instants
- * below can be checked against the file by eye.
+ * 15 January 2026 in London, read out of src/prayer_data/london-2026.json as
+ * it was before the official timetable replaced it - a minute off that file in
+ * places now, which nothing here depends on: the tests only compare the
+ * widgets against these values. January is on GMT, so the clock strings are
+ * the UTC ones.
  *
  * Deliberately not 15 February. The layouts carry that day's times as sample
  * text for the widget picker, with Duhr highlighted, so a test using the same

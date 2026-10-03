@@ -7,12 +7,11 @@ import {
   waitForMonthTable,
 } from "./support/app";
 
-// The spreadsheet behind london-2026.json changes its clocks on 1 April and
-// 28 October rather than on the real dates, and converting it with the real
-// date once left the days in between an hour out: Fajr at 06:03 on
-// 25 October instead of 05:03. On screen the times should carry on from one
-// day to the next, with the hour moving on the real change - 29 March and
-// 25 October 2026.
+// The timetable once had the days around each clock change an hour out - Fajr
+// at 06:03 on 25 October 2026 instead of 05:03 - because its spreadsheet
+// moved its clocks on 1 April and 28 October rather than on the real dates.
+// On screen the times should carry on from one day to the next, with the hour
+// moving on the real change: 29 March and 25 October 2026.
 
 async function fajr(page: import("@playwright/test").Page, days: Array<number>) {
   const rows = await monthRows(page);
@@ -26,8 +25,8 @@ test("springs forward on the last Sunday of March", async ({ page }) => {
 
   await expect
     .poll(() => fajr(page, [28, 29, 30, 31]))
-    .toEqual(["04:10", "05:08", "05:06", "05:05"]);
-  expect((await todayTimes(page)).Fajr).toBe("05:06");
+    .toEqual(["04:09", "05:07", "05:05", "05:03"]);
+  expect((await todayTimes(page)).Fajr).toBe("05:05");
 });
 
 test("falls back on the last Sunday of October", async ({ page }) => {
@@ -37,6 +36,6 @@ test("falls back on the last Sunday of October", async ({ page }) => {
 
   await expect
     .poll(() => fajr(page, [24, 25, 26, 27, 28]))
-    .toEqual(["06:01", "05:03", "05:04", "05:05", "05:07"]);
-  expect((await todayTimes(page)).Fajr).toBe("05:04");
+    .toEqual(["06:02", "05:04", "05:05", "05:06", "05:08"]);
+  expect((await todayTimes(page)).Fajr).toBe("05:05");
 });
