@@ -185,3 +185,64 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             build
+
+      # The widgets, on a simulator: the payload as the TypeScript writes it
+      # (fixtures/widget-payload), the timeline built from it, the App Group
+      # the app and the widget share, whether any text is cut off, and
+      # snapshots compared against ios/App/PrayerWidgetsTests/__Snapshots__.
+      #
+      # Signed ad hoc rather than not at all: a simulator only grants
+      # entitlements - the App Group among them - to a signed app, and that
+      # needs no certificate.
+      #
+      # As on Android, the snapshot comparison is skipped while
+      # record-widget-screenshots.yml is replacing the references, or before
+      # there are any; every other test still runs.
+      - name: Boot a simulator
+        id: sim
+        run: echo "udid=$(scripts/ios/boot-simulator.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Widget tests
+        working-directory: ios/App
+        env:
+          RECORDING: ${{ contains(github.event.head_commit.message, '[record screenshots]') }}
+        run: |
+          skip=()
+          if [ "$RECORDING" = "true" ] || [ ! -d PrayerWidgetsTests/__Snapshots__ ]; then
+            skip=(-skip-testing:PrayerWidgetsTests/WidgetSnapshotTests)
+          fi
+          xcodebuild test \
+            -project App.xcodeproj \
+            -scheme PrayerWidgetsTests \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath build \
+            -resultBundlePath "$RUNNER_TEMP/PrayerWidgetsTests.xcresult" \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= \
+            "${skip[@]}"
+
+      # The logic again in zones far from London. Nothing on the native side
+      # should do calendar arithmetic, and this is what would catch it if it
+      # started to - as test:zones does for the TypeScript.
+      - name: Widget logic in other time zones
+        working-directory: ios/App
+        run: |
+          for zone in Pacific/Auckland America/Los_Angeles Asia/Dubai; do
+            echo "--- TZ=$zone ---"
+            TEST_RUNNER_TZ="$zone" xcodebuild test-without-building \
+              -project App.xcodeproj \
+              -scheme PrayerWidgetsTests \
+              -destination "id=${{ steps.sim.outputs.udid }}" \
+              -derivedDataPath build \
+              -only-testing:PrayerWidgetsTests/WidgetPayloadTests \
+              -only-testing:PrayerWidgetsTests/PrayerTimelineTests \
+              CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=
+          done
+
+      # What a failure looks like: the result bundle, and for a snapshot that
+      # changed, the new image beside the reference.
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: ios-widget-test-results
+          path: ${{ runner.temp }}/PrayerWidgetsTests.xcresult
+          retention-days: 30

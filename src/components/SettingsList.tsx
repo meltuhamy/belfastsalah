@@ -35,7 +35,7 @@ import {
   TEST_NOTIFICATION_DELAY_SECONDS,
 } from "../lib/notifications";
 import { describeNotifyMinutes } from "../lib/notifyText";
-import { openWidgetSettings, widgetsSupported } from "../lib/widgets";
+import { openWidgetSettings, widgetSettingsRoute } from "../lib/widgets";
 import { useLongPress } from "../lib/useLongPress";
 import "./SettingsList.css";
 
@@ -244,7 +244,7 @@ const SettingsList: React.FC<Props> = ({
           ))}
         </IonSelect>
       </IonItem>
-      {widgetsSupported() && (
+      {widgetSettingsRoute() === "screen" && (
         <IonItem
           button={true}
           detail={true}
@@ -255,6 +255,15 @@ const SettingsList: React.FC<Props> = ({
           <IonLabel>
             <h3>Widget appearance</h3>
             <p>Colours and countdown for each home screen widget</p>
+          </IonLabel>
+        </IonItem>
+      )}
+      {widgetSettingsRoute() === "edit-widget" && (
+        <IonItem data-testid="widget-settings-tip">
+          <IonIcon icon={gridOutline} slot="start" />
+          <IonLabel className="ion-text-wrap">
+            <h3>Widget appearance</h3>
+            <p>Touch and hold a widget, then choose Edit Widget</p>
           </IonLabel>
         </IonItem>
       )}
