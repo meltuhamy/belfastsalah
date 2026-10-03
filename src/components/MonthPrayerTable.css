@@ -7,15 +7,15 @@
 }
 
 .MonthPrayerTable thead tr:nth-child(1) th {
-  background: white;
+  /* The table sits in a card, and this header sticks over its own rows, so it
+     has to be opaque in whichever palette is active. One variable rather than
+     a hardcoded white plus a dark-mode override. */
+  background: var(--ion-card-background, #fff);
   position: sticky;
   top: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.dark .MonthPrayerTable thead tr:nth-child(1) th {
-  background: var(--ion-item-background);
 }
 
 .MonthPrayerTable__col {

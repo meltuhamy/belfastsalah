@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Something for the preview to sit on. A transparent widget is only judgeable
+  against a background, and reading the actual wallpaper needs permissions
+  this app has no other reason to hold - so this stands in for one, shading
+  from light to dark so both text tones can be judged at a glance.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="315"
+        android:endColor="#FF1B2838"
+        android:startColor="#FFB8C4D0"
+        android:type="linear" />
+    <corners android:radius="12dp" />
+</shape>

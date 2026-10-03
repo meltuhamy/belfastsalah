@@ -1,4 +1,4 @@
-import { CapacitorConfig } from "@capacitor/cli";
+import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.meltuhamy.londonsalah",
@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
       smallIcon: "ic_stat_name",
     },
     SplashScreen: {
-      launchShowDuration: 7000,
+      launchShowDuration: 3000,
       androidScaleType: "CENTER_CROP",
       backgroundColor: "#002541",
     },

@@ -1,0 +1,82 @@
+name: Record widget screenshots
+
+# Rewrites the reference images the widget screenshot tests compare against,
+# and commits them back to the branch.
+#
+# For when a change to how the widgets look is intended. Either push the
+# change with "[record screenshots]" in the commit message, or run this by
+# hand from the Actions tab. Then look at the images in the commit this makes:
+# that commit is the review of the change.
+#
+# The images are Robolectric's rendering on this runner, so they have to be
+# recorded here rather than on a laptop - a different machine draws
+# different pixels, and every comparison in CI would fail.
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: record-screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  record:
+    name: Record and commit
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[record screenshots]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v4
+
+      - run: npm ci
+
+      - name: Build web assets and sync
+        run: |
+          npx vite build
+          npx cap sync android
+
+      # Allowed to fail, so that the images are still committed when some
+      # other assertion does not hold: seeing what a widget actually looks
+      # like is how to find out why. The job still fails at the end.
+      - name: Record
+        id: record
+        continue-on-error: true
+        working-directory: android
+        run: ./gradlew recordRoborazziDebug --no-daemon
+
+      - name: Commit the images
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add android/app/src/test/screenshots
+          if git diff --cached --quiet; then
+            echo "The screenshots are unchanged."
+            exit 0
+          fi
+          git commit \
+            -m "Record widget screenshots" \
+            -m "Recorded by the record-widget-screenshots workflow from ${GITHUB_SHA}."
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Fail if the tests did
+        if: steps.record.outcome == 'failure'
+        run: |
+          echo "::error::Some widget tests failed while recording. The images were committed anyway; see the Record step for what failed."
+          exit 1

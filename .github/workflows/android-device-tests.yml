@@ -1,0 +1,93 @@
+name: Android device tests
+
+# The widgets on a real Android system, in an emulator.
+#
+# The JVM tests in ci.yml cover what each widget draws. These cover what only
+# a running system can: that it accepts the five widgets, that binding one
+# runs its provider, that resizing reaches it, and that the appearance screen
+# redraws what is on the home screen (HostedWidgetTest). Then a real launcher
+# adds the tile through its own dialog (LauncherPinTest).
+#
+# An emulator adds several minutes, so this runs on pull requests and nightly
+# rather than on every push.
+
+on:
+  pull_request:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: device-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  device:
+    name: Widgets on an emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v4
+
+      - run: npm ci
+
+      - name: Build web assets and sync
+        run: |
+          npx vite build
+          npx cap sync android
+
+      # Built before the emulator starts, so a compile error fails in a
+      # minute rather than after the emulator has booted. Scoped to :app -
+      # the tests live there, and asking the root project would also build
+      # test APKs for Capacitor's own modules, which do not assemble.
+      - name: Build the app and its device tests
+        working-directory: android
+        run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon
+
+      # Hardware acceleration for the emulator. Linux runners have KVM, but
+      # only root can use it until this opens it up.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # Two runs on one emulator. The hosted tests are ours alone and must
+      # pass. The launcher test drives someone else's interface and may be
+      # flaky, so it retries within itself and a failure here is a warning,
+      # not a red build.
+      - name: Run on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
+          working-directory: android
+          script: |
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.size=medium --no-daemon
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.size=large --no-daemon || echo "::warning title=Launcher smoke test::LauncherPinTest failed after its retries. It drives the emulator's own launcher and is allowed to be flaky; its report is in the device-test-results artifact."
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: device-test-results
+          path: |
+            android/app/build/reports/androidTests
+            android/app/build/outputs/androidTest-results
+          retention-days: 30

@@ -1,4 +1,5 @@
 import { Prayer, AsrMethod } from "./PrayerTimes";
+import { UK_TIME_ZONE, getZonedDateParts } from "./timeZone";
 
 export enum PrayerLocation {
   London = "london",
@@ -31,11 +32,15 @@ export class PrayerData {
   }
 }
 
+// Timetables that only publish one asr column leave the second one null, so a
+// row is a list of times with holes rather than a list of strings.
+export type PrayerDataRow = Array<string | null>;
+
 function parsePrayerData(
-  data: Array<Array<string>>,
+  data: Array<PrayerDataRow>,
   asrMethod: AsrMethod
 ): Array<Array<Array<PrayerData>>> {
-  const year: PrayerYear = new Array(12);
+  const year: PrayerYear = Array.from({ length: 12 });
 
   data.forEach(dayData => {
     const [month, day, fajr, shuruq, duhr, asr, asr2, maghrib, isha] = dayData;
@@ -52,10 +57,16 @@ function parsePrayerData(
       isha
     ];
 
-    const monthNum = +month - 1;
-    const dayNum = +day;
+    const monthNum = +month! - 1;
+    const dayNum = +day!;
 
     const prayers = prayerTimeStrings.map((p, pIndex) => {
+      if (p == null) {
+        throw new Error(
+          `Missing prayer time for month ${month} day ${day} at index ${pIndex}`
+        );
+      }
+
       let split = p.split(":");
       let hours = +split[0];
       let minutes = +split[1];
@@ -76,20 +87,55 @@ function parsePrayerData(
   return year;
 }
 
-function sort(arr: Array<number>) {
-  return [...arr].sort((a, b) => a - b);
+type PrayerDataLoader = () => Promise<{ default: Array<PrayerDataRow> }>;
+
+// The single source of truth for which years we have data for. Every entry
+// must point at a file that exists, and any file not listed here is not
+// served — so the two can never drift apart the way a hand-maintained list of
+// year numbers can. Add a year by adding a line here and nowhere else.
+const prayerDataLoaders: Record<
+  PrayerLocation,
+  Record<number, PrayerDataLoader>
+> = {
+  [PrayerLocation.Belfast]: {
+    2019: () => import("../prayer_data/belfast-2019.json")
+  },
+  [PrayerLocation.London]: {
+    2022: () => import("../prayer_data/london-2022.json"),
+    2023: () => import("../prayer_data/london-2023.json"),
+    2024: () => import("../prayer_data/london-2024.json"),
+    2025: () => import("../prayer_data/london-2025.json"),
+    2026: () => import("../prayer_data/london-2026.json")
+  }
+};
+
+// The timetables are published as UK local times, so the timetable's own zone
+// - not the device's - decides which day's row applies.
+export const locationTimeZones: Record<PrayerLocation, string> = {
+  [PrayerLocation.Belfast]: UK_TIME_ZONE,
+  [PrayerLocation.London]: UK_TIME_ZONE
+};
+
+// One place to name a location, so the picker and the timezone copy can never
+// disagree about what a location is called.
+export const locationNames: Record<PrayerLocation, string> = {
+  [PrayerLocation.Belfast]: "Belfast",
+  [PrayerLocation.London]: "London"
+};
+
+export function getAvailableYears(location: PrayerLocation): Array<number> {
+  return Object.keys(prayerDataLoaders[location])
+    .map(Number)
+    .toSorted((a, b) => a - b);
 }
 
+// Pick the closest year we can actually serve: an exact match when we have
+// it, otherwise the nearest year above, otherwise the latest year we hold.
 function getAvailableYear(
   targetYear: number,
   location: PrayerLocation
 ): number {
-  const availableYears = sort(
-    {
-      [PrayerLocation.Belfast]: [2019],
-      [PrayerLocation.London]: [2019, 2020, 2021, 2022, 2023, 2024]
-    }[location]
-  );
+  const availableYears = getAvailableYears(location);
 
   for (let i = 0; i < availableYears.length; i++) {
     if (availableYears[i] >= targetYear) {
@@ -113,7 +159,7 @@ export async function getPrayerData(
     return cacheResult;
   }
 
-  const data = await import(`../prayer_data/${location}-${year}.json`);
+  const data = await prayerDataLoaders[location][year]();
   const prayerYear = parsePrayerData(data.default, asrMethod);
   getPrayerYearCache.set(cacheKey, prayerYear);
   return prayerYear;
@@ -124,10 +170,12 @@ export async function getDay(
   location: PrayerLocation,
   asrMethod: AsrMethod
 ) {
-  const prayerData = await getPrayerData(
-    location,
-    asrMethod,
-    date.getFullYear()
+  // Read the calendar date in the timetable's zone. Using the device's local
+  // date meant anyone outside the UK was served the neighbouring day's times.
+  const { year, month, day } = getZonedDateParts(
+    date,
+    locationTimeZones[location]
   );
-  return prayerData[date.getMonth()][date.getDate() - 1];
+  const prayerData = await getPrayerData(location, asrMethod, year);
+  return { prayers: prayerData[month - 1][day - 1], year };
 }

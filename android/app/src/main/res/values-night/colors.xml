@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_background">#FF1E1E1E</color>
+    <color name="widget_text_primary">#FFFFFFFF</color>
+    <color name="widget_text_secondary">#FFB3B3B3</color>
+    <!-- Ionic's dark palette lightens the primary and pairs it with black. -->
+    <color name="widget_accent">#FF4D8DFF</color>
+    <color name="widget_accent_contrast">#FF000000</color>
+</resources>

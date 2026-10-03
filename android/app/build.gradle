@@ -1,25 +1,87 @@
 apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
+// Adds recordRoborazziDebug and verifyRoborazziDebug, which run the unit tests
+// with the widget screenshots being written or compared. The plugin's version
+// is pinned in the root build.gradle and has to match roborazziVersion below.
+apply plugin: 'io.github.takahirom.roborazzi'
 
 android {
-    compileSdkVersion rootProject.ext.compileSdkVersion
+    namespace = "com.meltuhamy.londonsalah"
+    compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "com.meltuhamy.londonsalah"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 30006
-        versionName "3.0.6"
+        versionCode 40000
+        versionName "4.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
-            ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Release signing is driven entirely by environment variables so that no
+    // keystore or password ever lives in this public repo. Locally, an unset
+    // ANDROID_KEYSTORE_PATH just leaves release builds unsigned.
+    signingConfigs {
+        release {
+            def keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+            if (keystorePath) {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (System.getenv("ANDROID_KEYSTORE_PATH")) {
+                signingConfig = signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+    }
+
+    // The widget payload fixture is used by both the JVM tests and the ones
+    // that run on a device, so it lives in a directory both source sets read.
+    sourceSets {
+        test.java.srcDir 'src/sharedTest/java'
+        androidTest.java.srcDir 'src/sharedTest/java'
+    }
+
+    testOptions {
+        unitTests {
+            // Robolectric inflates the real widget layouts, which it can only
+            // do with the app's resources on the test classpath.
+            includeAndroidResources = true
+            all {
+                // Native graphics measures and draws text for real, which is
+                // what the clipping checks and the screenshots depend on, and
+                // it wants more than Gradle's default half a gigabyte.
+                maxHeapSize = "2g"
+                // The failure message is the useful part - which widget, at
+                // what size, clipped by how much - and Gradle hides it by
+                // default. CI logs are the only place these tests are read.
+                testLogging {
+                    events "failed", "skipped"
+                    exceptionFormat = "full"
+                    showStandardStreams = false
+                }
+            }
+        }
+    }
+}
+
+// Top-level extension, not part of the android block. Capacitor's generated
+// capacitor.build.gradle sets Java source and target compatibility to 21, and
+// Kotlin has to agree or the build fails with an inconsistent JVM-target error.
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
     }
 }
 
@@ -32,10 +94,24 @@ repositories {
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"
+    // org.json ships as stubs in android.jar that throw when called, so a JVM
+    // unit test touching JSON needs a real implementation.
+    testImplementation "org.json:json:20250107"
+    testImplementation "org.robolectric:robolectric:$robolectricVersion"
+    testImplementation "androidx.test:core:$androidxTestVersion"
+    testImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    testImplementation "io.github.takahirom.roborazzi:roborazzi:$roborazziVersion"
+
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test:core:$androidxTestVersion"
+    androidTestImplementation "androidx.test:runner:$androidxTestVersion"
+    androidTestImplementation "androidx.test:rules:$androidxTestVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    androidTestImplementation "androidx.test.uiautomator:uiautomator:$uiAutomatorVersion"
     implementation project(':capacitor-cordova-android-plugins')
 }
 
