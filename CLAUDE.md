@@ -146,6 +146,12 @@ itself still runs on 15.
   (`ios/App/Shared/WidgetStore.swift`). `PrayerWidgetPlugin.swift` has the same
   JS name and `update` method as the Kotlin plugin, and `MainViewController`
   registers it - plugins inside the app are not in Capacitor's generated list.
+  `SceneDelegate` is what creates that controller; the storyboard is not used.
+  It once created Capacitor's own instead, so the plugin was never registered,
+  the web layer's calls failed quietly, and every placed widget said "No
+  times" - only the preview's real home screen showed it. `AppGroupTests`
+  pins it now. The plugin and the extension log `PrayerWidget:` lines, and
+  Debug builds print why a widget is empty under "No times".
   A simulator only grants entitlements to a signed app, so every simulator
   build that has to share data is signed ad hoc
   (`CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=`), never

@@ -1,3 +1,4 @@
+import UIKit
 import XCTest
 
 /**
@@ -7,6 +8,19 @@ import XCTest
  * say so: the widgets would just ask to be opened, forever.
  */
 final class AppGroupTests: XCTestCase {
+
+    /**
+     * The controller the app launches into is the one that registers the
+     * widget plugin. It once was Capacitor's own, created by SceneDelegate,
+     * and nothing failed: the web layer's updates were rejected quietly and
+     * every placed widget said "No times".
+     */
+    func testTheAppLaunchesIntoTheControllerThatRegistersThePlugin() throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let root = try XCTUnwrap(scene.windows.first { $0.isKeyWindow }?.rootViewController
+            ?? scene.windows.first?.rootViewController)
+        XCTAssertEqual(NSStringFromClass(type(of: root)), "App.MainViewController")
+    }
 
     func testTheAppIsEntitledToTheGroup() {
         XCTAssertNotNil(
