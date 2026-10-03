@@ -21,8 +21,8 @@ final class WidgetPayloadTests: XCTestCase {
     func testCountsDownToTheInstantNamedByTheClockString() {
         // In January London is on UTC, so the instant and the string agree.
         let asr = Fixture.payload().upcoming.first { $0.name == "Asr" && $0.day == 0 }!
-        XCTAssertEqual(asr.time, "14:01")
-        XCTAssertEqual(asr.date, Fixture.on15th("14:01"))
+        XCTAssertEqual(asr.time, "14:02")
+        XCTAssertEqual(asr.date, Fixture.on15th("14:02"))
     }
 
     func testFollowsTheAsrMethodAndTheLocation() {

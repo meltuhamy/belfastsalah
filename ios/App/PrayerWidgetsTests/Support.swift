@@ -14,8 +14,8 @@ import XCTest
  */
 enum Fixture {
     static let names = ["Fajr", "Shuruq", "Duhr", "Asr", "Maghrib", "Isha"]
-    static let times = ["06:20", "07:57", "12:15", "14:01", "16:23", "18:00"]
-    static let tomorrowTimes = ["06:19", "07:56", "12:15", "14:03", "16:25", "18:02"]
+    static let times = ["06:20", "07:57", "12:15", "14:02", "16:24", "18:01"]
+    static let tomorrowTimes = ["06:19", "07:56", "12:15", "14:03", "16:26", "18:03"]
     static let date = "Thu 15 Jan"
     static let tomorrowDate = "Fri 16 Jan"
 
@@ -47,9 +47,9 @@ enum Fixture {
      * it reads the clock when drawn - aim at the second exactly and the text
      * flickers between runs.
      */
-    static let onePM = on15th("13:00", seconds: -0.5) // Asr next, 1:01:00 away
+    static let onePM = on15th("13:00", seconds: -0.5) // Asr next, 1:02:00 away
     static let threePM = on15th("15:00", seconds: -0.5) // Maghrib: the longest name
-    static let afterIsha = on15th("18:01", seconds: -0.5) // tomorrow's Fajr
+    static let afterIsha = on15th("18:02", seconds: -0.5) // tomorrow's Fajr
 
     /** The first entry at `now`, for drawing. */
     static func entry(

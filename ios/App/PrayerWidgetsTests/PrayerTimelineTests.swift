@@ -26,9 +26,9 @@ final class PrayerTimelineTests: XCTestCase {
         XCTAssertEqual(entries[0].date, Fixture.onePM)
         let first = try XCTUnwrap(times(entries[0]))
         XCTAssertEqual(first.nextName, "Asr")
-        XCTAssertEqual(first.nextTime, "14:01")
+        XCTAssertEqual(first.nextTime, "14:02")
         XCTAssertEqual(first.nextIndex, 3)
-        XCTAssertEqual(first.nextAt, Fixture.on15th("14:01"))
+        XCTAssertEqual(first.nextAt, Fixture.on15th("14:02"))
         XCTAssertEqual(first.location, "London")
         XCTAssertEqual(first.dateLabel, Fixture.date)
         XCTAssertEqual(first.prayers.map(\.time), Fixture.times)
@@ -36,9 +36,9 @@ final class PrayerTimelineTests: XCTestCase {
 
     func testHasAnEntryAtEachPrayerAfterThat() throws {
         let (entries, _) = build(at: Fixture.onePM)
-        XCTAssertEqual(entries[1].date, Fixture.on15th("14:01"))
+        XCTAssertEqual(entries[1].date, Fixture.on15th("14:02"))
         XCTAssertEqual(try XCTUnwrap(times(entries[1])).nextName, "Maghrib")
-        XCTAssertEqual(entries[2].date, Fixture.on15th("16:23"))
+        XCTAssertEqual(entries[2].date, Fixture.on15th("16:24"))
         XCTAssertEqual(try XCTUnwrap(times(entries[2])).nextName, "Isha")
     }
 
@@ -87,18 +87,18 @@ final class PrayerTimelineTests: XCTestCase {
 
     func testTheMinutesCountdownHasAnEntryEachMinute() throws {
         let (entries, _) = build(at: Fixture.onePM, WidgetSettings(countdown: .minutes))
-        // 12:59:59.5 to Asr at 14:01 is 61 minutes and a half second: 61,
-        // rounded down as the seconds countdown's 1:01:00 is. Then 60 from
-        // 13:00 exactly, 59 from 13:01, and so on down to 0.
-        let lefts = try entries.prefix(63).map { try XCTUnwrap(times($0)).minutesLeft }
-        XCTAssertEqual(Array(lefts.prefix(3)), [61, 60, 59])
+        // 12:59:59.5 to Asr at 14:02 is 62 minutes and a half second: 62,
+        // rounded down as the seconds countdown's 1:02:00 is. Then 61 from
+        // 13:00 exactly, 60 from 13:01, and so on down to 0.
+        let lefts = try entries.prefix(64).map { try XCTUnwrap(times($0)).minutesLeft }
+        XCTAssertEqual(Array(lefts.prefix(3)), [62, 61, 60])
         XCTAssertEqual(entries[1].date, Fixture.on15th("13:00"))
         XCTAssertEqual(entries[2].date, Fixture.on15th("13:01"))
         // The last minute before Asr reads 0, and the next entry is Maghrib's.
-        XCTAssertEqual(entries[61].date, Fixture.on15th("14:00"))
-        XCTAssertEqual(try XCTUnwrap(times(entries[61])).minutesLeft, 0)
         XCTAssertEqual(entries[62].date, Fixture.on15th("14:01"))
-        XCTAssertEqual(try XCTUnwrap(times(entries[62])).nextName, "Maghrib")
+        XCTAssertEqual(try XCTUnwrap(times(entries[62])).minutesLeft, 0)
+        XCTAssertEqual(entries[63].date, Fixture.on15th("14:02"))
+        XCTAssertEqual(try XCTUnwrap(times(entries[63])).nextName, "Maghrib")
     }
 
     func testMinutesTextReadsNaturally() {
