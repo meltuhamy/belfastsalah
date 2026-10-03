@@ -72,8 +72,14 @@ final class PreviewCapture: XCTestCase {
         let widget = try require(showOurWidgets(), "a widget of ours on the home screen")
         widget.press(forDuration: 1.5)
         try require(springboard.buttons["Edit Widget"], "Edit Widget in the menu").tap()
-        // The sheet shows a spinner while it asks the extension for its options.
-        Thread.sleep(forTimeInterval: 6)
+        // The sheet animates in and shows a spinner while it asks the
+        // extension for its options; wait for one of them to be on screen.
+        let option = springboard.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS 'Countdown'")).firstMatch
+        if !option.waitForExistence(timeout: 15) {
+            print("PreviewCapture: Edit Widget showed no options. The screen was:\n\(springboard.debugDescription)")
+        }
+        Thread.sleep(forTimeInterval: 1.5)
         capture("edit-widget")
         XCUIDevice.shared.press(.home)
     }
