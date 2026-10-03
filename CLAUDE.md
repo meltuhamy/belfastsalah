@@ -78,7 +78,7 @@ CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2
 
 CI installs its own browser and needs no override.
 
-## Widget tests
+## Widget tests (Android)
 
 The home screen widgets are native (Kotlin, in `android/app/src/main/java/.../widget`)
 and have three layers of tests of their own. None of them run in this sandbox —
@@ -127,6 +127,57 @@ Things that will bite:
 - **The emulator job builds `:app` only.** The root project's test APKs
   include Capacitor's own modules, and the Cordova plugins module does not
   assemble.
+
+## iOS widgets
+
+The iOS widgets follow the Android design: TypeScript decides everything
+(`src/lib/widgetPayload.ts`), and the native side shows it. They are SwiftUI,
+in a WidgetKit extension, `ios/App/PrayerWidgets`, which needs iOS 17; the app
+itself still runs on 15.
+
+- **Two widgets.** "Prayer times" for the home screen (small, medium, large)
+  and "Next prayer" for the lock screen (rectangular, circular, inline).
+  Their settings are App Intents (`PrayerWidgetIntents.swift`), which iOS
+  shows as Edit Widget and stores per placed widget; each intent only builds
+  a `WidgetSettings`. The app cannot open that sheet itself, so its settings
+  screen shows a tip there instead of Android's "Widget appearance" row
+  (`widgetSettingsRoute`).
+- **The payload crosses an App Group**, `group.com.meltuhamy.londonsalah`
+  (`ios/App/Shared/WidgetStore.swift`). `PrayerWidgetPlugin.swift` has the same
+  JS name and `update` method as the Kotlin plugin, and `MainViewController`
+  registers it - plugins inside the app are not in Capacitor's generated list.
+  A simulator only grants entitlements to a signed app, so every simulator
+  build that has to share data is signed ad hoc
+  (`CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=`), never
+  `CODE_SIGNING_ALLOWED=NO`.
+- **No alarms.** WidgetKit draws a timeline of entries, one per prayer, from
+  `PrayerTimeline`; the system ticks `Text(_, style: .timer)` in between.
+  The minutes countdown has no live text style, so in that mode there is an
+  entry a minute, capped per timeline.
+- **The views take the family and colour scheme as parameters**
+  (`PrayerWidgetContent`). Outside WidgetKit neither can be set through the
+  environment, so a view that read them could only be tested one way.
+
+Tests are `ios/App/PrayerWidgetsTests`, run on a simulator in ci.yml, and
+like Android's they cannot run in this sandbox:
+
+- `WidgetPayloadTests` and `PrayerTimelineTests` read
+  `fixtures/widget-payload/*.json`, which `src/lib/widgetPayload.fixture.test.ts`
+  writes with the real `buildWidgetPayload` and fails on when they are out of
+  date (`UPDATE_FIXTURES=1 npx vitest run widgetPayload.fixture`). A change to
+  the payload therefore reaches the Swift tests as a changed file. CI runs
+  them in three more zones.
+- `AppGroupTests` runs inside the app and checks it is entitled to the group.
+- `WidgetFitTests` is `WidgetFitTest`'s counterpart: `fitProbe` records each
+  text's given and natural width, at the Pro Max and SE sizes.
+- `WidgetSnapshotTests` compares against `__Snapshots__`, recorded on the
+  runner by `[record screenshots]` exactly as on Android. The countdown is
+  rebased onto the real clock before drawing (`rebasedToNow`), half a second
+  short of the minute, for the same reason as the Android fixture.
+- Everything uses 15 January; `PrayerEntry.sample` - the gallery and
+  placeholder - uses 15 February.
+
+The targets were added by `scripts/ios/add-widget-targets.rb`.
 
 ## Preview comments
 

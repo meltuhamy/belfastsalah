@@ -46,6 +46,98 @@ final class PreviewCapture: XCTestCase {
         captureMainScreens(theme: "dark")
     }
 
+    /**
+     * The home screen widgets, added the way a person adds them: edit mode,
+     * the widget gallery, search, pick a size, Add Widget. Then the Edit
+     * Widget sheet for one of them.
+     *
+     * This drives SpringBoard, whose wording and layout are Apple's and move
+     * between iOS versions, so every step looks for what it needs under a few
+     * names, and a step that cannot find it prints the whole screen's
+     * accessibility tree to the log before giving up - that is what to read
+     * when these images go missing. test2 has already launched the app with
+     * London settings, which is what wrote the widgets' payload.
+     */
+    func test4HomeScreenWidgets() throws {
+        for (index, size) in ["small", "medium", "large"].enumerated() {
+            try addWidget(page: index, size: size)
+        }
+        tapIfPresent(springboard.buttons["Done"])
+        XCUIDevice.shared.press(.home)
+        settle()
+        capture("home-widgets")
+    }
+
+    func test5EditWidget() throws {
+        XCUIDevice.shared.press(.home)
+        settle()
+        // A widget's label is what it says, and only ours says London.
+        let widget = springboard.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS 'London'")).firstMatch
+        try require(widget, "a widget of ours on the home screen")
+        widget.press(forDuration: 1.5)
+        try require(springboard.buttons["Edit Widget"], "Edit Widget in the menu").tap()
+        Thread.sleep(forTimeInterval: 2)
+        capture("edit-widget")
+        XCUIDevice.shared.press(.home)
+    }
+
+    private let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+
+    private func addWidget(page: Int, size: String) throws {
+        XCUIDevice.shared.press(.home)
+        settle()
+
+        // Edit mode: touch and hold an empty part of the home screen.
+        springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.93))
+            .press(forDuration: 2)
+        // iOS 18 on has an Edit menu with Add Widget in it; 17 had a "+".
+        if !tapIfPresent(springboard.buttons["Add Widget"], timeout: 2) {
+            if tapIfPresent(springboard.buttons["Edit"], timeout: 3) {
+                try require(springboard.buttons["Add Widget"], "Add Widget in the Edit menu").tap()
+            } else {
+                try require(springboard.buttons["Add"], "an Edit or + button in edit mode").tap()
+            }
+        }
+
+        let search = springboard.searchFields.firstMatch
+        try require(search, "the widget gallery's search field").tap()
+        search.typeText("Prayer")
+        let app = springboard.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == 'Prayer Times'")).firstMatch
+        try require(app, "Prayer Times in the gallery").tap()
+        Thread.sleep(forTimeInterval: 1.5)
+
+        // The sizes are pages of one sheet, smallest first.
+        for _ in 0..<page {
+            springboard.swipeLeft()
+            Thread.sleep(forTimeInterval: 0.8)
+        }
+        try require(springboard.buttons["Add Widget"], "Add Widget for the \(size) size").tap()
+        Thread.sleep(forTimeInterval: 2)
+    }
+
+    /** The element, once it exists; or the screen's tree in the log, and a failure. */
+    @discardableResult
+    private func require(_ element: XCUIElement, _ what: String, timeout: TimeInterval = 8) throws -> XCUIElement {
+        if element.waitForExistence(timeout: timeout) {
+            return element
+        }
+        print("PreviewCapture could not find \(what). The screen was:\n\(springboard.debugDescription)")
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "missing: \(what)"
+        shot.lifetime = .keepAlways
+        add(shot)
+        throw XCTSkip("Could not find \(what)")
+    }
+
+    @discardableResult
+    private func tapIfPresent(_ element: XCUIElement, timeout: TimeInterval = 2) -> Bool {
+        guard element.waitForExistence(timeout: timeout) else { return false }
+        element.tap()
+        return true
+    }
+
     private func captureMainScreens(theme: String) {
         let app = launch(settings: settingsJSON(theme: theme))
         let web = app.webViews.firstMatch

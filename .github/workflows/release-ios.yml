@@ -11,6 +11,8 @@ name: Release iOS
 #   IOS_CERTIFICATE_BASE64         - base64 of your distribution cert (.p12)
 #   IOS_CERTIFICATE_PASSWORD       - password for that .p12
 #   IOS_PROVISIONING_PROFILE_BASE64 - base64 of the .mobileprovision
+#   IOS_WIDGET_PROVISIONING_PROFILE_BASE64 - the same, for the widget
+#                                    extension (com.meltuhamy.londonsalah.widgets)
 
 on:
   push:
@@ -46,6 +48,7 @@ jobs:
           IOS_CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
           IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
           IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          IOS_WIDGET_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_WIDGET_PROVISIONING_PROFILE_BASE64 }}
         run: |
           set -euo pipefail
           CERT_PATH="$RUNNER_TEMP/cert.p12"
@@ -68,6 +71,14 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
 
+          # The widget extension is signed with a profile of its own.
+          if [ -z "$IOS_WIDGET_PROVISIONING_PROFILE_BASE64" ]; then
+            echo "::error::IOS_WIDGET_PROVISIONING_PROFILE_BASE64 is not set; see RELEASING.md."
+            exit 1
+          fi
+          echo "$IOS_WIDGET_PROVISIONING_PROFILE_BASE64" | base64 -d \
+            > ~/Library/MobileDevice/Provisioning\ Profiles/widget.mobileprovision
+
       - name: Build and upload
         env:
           CI: "true"
@@ -81,7 +92,8 @@ jobs:
         if: always()
         run: |
           security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
-          rm -f ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+          rm -f ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision \
+            ~/Library/MobileDevice/Provisioning\ Profiles/widget.mobileprovision
 
       - uses: actions/upload-artifact@v7
         if: success()

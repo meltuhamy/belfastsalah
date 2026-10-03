@@ -7,7 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		13BE3C978D76E8B9B3A3B6CB /* PrayerTimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AA48F6B530FE5615F57FF2A /* PrayerTimelineProvider.swift */; };
+		215B6605ED3F67170121EE7F /* widget-payload in Resources */ = {isa = PBXBuildFile; fileRef = 62DC98E8CB9ABEFE5A311C51 /* widget-payload */; };
+		2A215776FB38E1B05BA35796 /* PrayerWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 363B0CC19BA310111BDBFBFF /* PrayerWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		2AB9AC0A02C310ED597FA0FA /* WidgetPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B0893C831C31973C0B9E255 /* WidgetPayload.swift */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
+		41444CE64D8E1FC99320FF89 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 52312D64191166D1EDB2F23C /* SnapshotTesting */; };
+		42E77690C3F8D2A0CF637AAE /* WidgetSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A7513816E28EAA429D7BA4F /* WidgetSnapshotTests.swift */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
@@ -15,11 +21,41 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		565AA39A9B84297D592C94A3 /* PrayerWidgetIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = E788BBD2843B9046DCC7D757 /* PrayerWidgetIntents.swift */; };
+		5FAC35D5B528F9053E76FFBF /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25FED8C8F0736410F5264BF /* MainViewController.swift */; };
+		6E91719C4A62A2DC9BFBFF58 /* WidgetPayloadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5CA4C8BE9DE1AC4B5DDBC18 /* WidgetPayloadTests.swift */; };
+		77408E2E9567B44BE7766A74 /* FitProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78E97BC7972EA842DA3A8FAE /* FitProbe.swift */; };
+		7F445B2606C51F5C8BECA71D /* PrayerTimeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80C8B632AFA2D0142AD3A451 /* PrayerTimeline.swift */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
+		ABF6826B77DB8CA8535E350C /* PrayerWidgetIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = E788BBD2843B9046DCC7D757 /* PrayerWidgetIntents.swift */; };
+		B0C0921AA0F4E1140D16BF6F /* Support.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B8BE075956E498288B928AA /* Support.swift */; };
+		B6B9F22BDD01F41378C4B16F /* PrayerWidgetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F7C73A4D7C6F9880A14990E /* PrayerWidgetPlugin.swift */; };
+		B6F0A529A3FFD6DAA9A2D126 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE79AEC13FE6CF9CA4B42F77 /* WidgetStore.swift */; };
+		B82A64292FC4A24A8D8A1CDC /* FitProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78E97BC7972EA842DA3A8FAE /* FitProbe.swift */; };
+		B85E77F689F0CA361C3D9F19 /* PrayerWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E7C96C292C681ABE4A202B1 /* PrayerWidgetView.swift */; };
+		BE99854362BA7BCECCFBFD2A /* WidgetFitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B030677ADC1B37697F799A2 /* WidgetFitTests.swift */; };
+		CC46E677C2290821F4779877 /* PrayerWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DDB059691358D0F15F41D4C /* PrayerWidgetsBundle.swift */; };
+		D36D2D694580732F269A1673 /* PrayerTimelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EAF209DCCF38B0A90B0B1DE /* PrayerTimelineTests.swift */; };
+		D83F308B68CE46ADD174522B /* WidgetSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC5DE3D2DC59E490B8DD8AF0 /* WidgetSettings.swift */; };
+		E26F46B3DE77762559BAB4C5 /* PrayerTimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AA48F6B530FE5615F57FF2A /* PrayerTimelineProvider.swift */; };
+		E63D4468CEC88E12DB847280 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE79AEC13FE6CF9CA4B42F77 /* WidgetStore.swift */; };
+		E9F7643D3D4170DE8A67477A /* WidgetSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC5DE3D2DC59E490B8DD8AF0 /* WidgetSettings.swift */; };
+		ED643255F30CD32A8A9D9F99 /* PrayerWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E7C96C292C681ABE4A202B1 /* PrayerWidgetView.swift */; };
+		F9FFB618E9A87911D79DBD68 /* WidgetPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B0893C831C31973C0B9E255 /* WidgetPayload.swift */; };
+		FC3066E05BA25A2CB82C8E49 /* AppGroupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4B577C03955D8D2497AE393 /* AppGroupTests.swift */; };
 		FC5941DA0AECB34917EB60DE /* PreviewCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA3551385D17232A2ADBC54A /* PreviewCapture.swift */; };
+		FC76F0CEBB0CCD0AA53CB48A /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE79AEC13FE6CF9CA4B42F77 /* WidgetStore.swift */; };
+		FF55953B83BAC76B671E9F3B /* PrayerTimeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80C8B632AFA2D0142AD3A451 /* PrayerTimeline.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		A7601731CD883B0500863FDB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 504EC3031FED79650016851F;
+			remoteInfo = App;
+		};
 		ADE5380F14F55F99250EABDD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
@@ -27,10 +63,34 @@
 			remoteGlobalIDString = 504EC3031FED79650016851F;
 			remoteInfo = App;
 		};
+		E79457A906E91F4246AF8822 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 20330216FF2C83722C46543F;
+			remoteInfo = PrayerWidgets;
+		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		B22B06457406C071C6FE9261 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				2A215776FB38E1B05BA35796 /* PrayerWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		0C087419A24C80151F39416D /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
+		363B0CC19BA310111BDBFBFF /* PrayerWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PrayerWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		4174E229F0664C4D524B572E /* PrayerWidgets.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = PrayerWidgets.entitlements; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		504EC3071FED79650016851F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -39,13 +99,48 @@
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
+		5AA48F6B530FE5615F57FF2A /* PrayerTimelineProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrayerTimelineProvider.swift; sourceTree = "<group>"; };
+		62DC98E8CB9ABEFE5A311C51 /* widget-payload */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder; name = "widget-payload"; path = "../../fixtures/widget-payload"; sourceTree = "<group>"; };
+		72B0459552F099D830AFCC09 /* App.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
+		78E97BC7972EA842DA3A8FAE /* FitProbe.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FitProbe.swift; sourceTree = "<group>"; };
+		7B8BE075956E498288B928AA /* Support.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Support.swift; sourceTree = "<group>"; };
+		7EAF209DCCF38B0A90B0B1DE /* PrayerTimelineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrayerTimelineTests.swift; sourceTree = "<group>"; };
+		80C8B632AFA2D0142AD3A451 /* PrayerTimeline.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrayerTimeline.swift; sourceTree = "<group>"; };
+		841E4AE59D321C1D88654CAE /* PrayerWidgetsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PrayerWidgetsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8B030677ADC1B37697F799A2 /* WidgetFitTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetFitTests.swift; sourceTree = "<group>"; };
+		8E7C96C292C681ABE4A202B1 /* PrayerWidgetView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrayerWidgetView.swift; sourceTree = "<group>"; };
+		8F7C73A4D7C6F9880A14990E /* PrayerWidgetPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrayerWidgetPlugin.swift; sourceTree = "<group>"; };
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		9A7513816E28EAA429D7BA4F /* WidgetSnapshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotTests.swift; sourceTree = "<group>"; };
+		9B0893C831C31973C0B9E255 /* WidgetPayload.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetPayload.swift; sourceTree = "<group>"; };
+		9DDB059691358D0F15F41D4C /* PrayerWidgetsBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrayerWidgetsBundle.swift; sourceTree = "<group>"; };
 		A32C35E66A1A3698F0728B3C /* PreviewCapture.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PreviewCapture.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A5CA4C8BE9DE1AC4B5DDBC18 /* WidgetPayloadTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetPayloadTests.swift; sourceTree = "<group>"; };
+		AC5DE3D2DC59E490B8DD8AF0 /* WidgetSettings.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSettings.swift; sourceTree = "<group>"; };
+		C4B577C03955D8D2497AE393 /* AppGroupTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppGroupTests.swift; sourceTree = "<group>"; };
+		D25FED8C8F0736410F5264BF /* MainViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		DA3551385D17232A2ADBC54A /* PreviewCapture.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PreviewCapture.swift; sourceTree = "<group>"; };
+		E788BBD2843B9046DCC7D757 /* PrayerWidgetIntents.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrayerWidgetIntents.swift; sourceTree = "<group>"; };
+		FE79AEC13FE6CF9CA4B42F77 /* WidgetStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		2D4B5BC9C4D32178CECD7830 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				41444CE64D8E1FC99320FF89 /* SnapshotTesting in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		33127B7E0FA938E3F315DFC9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		504EC3011FED79650016851F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -71,6 +166,9 @@
 				504EC3061FED79650016851F /* App */,
 				504EC3051FED79650016851F /* Products */,
 				E07DC38660B969D238A2059C /* PreviewCapture */,
+				53BFBD2B9C01A6EBA4B10185 /* Shared */,
+				A9BADE0F523A19D6515F6D75 /* PrayerWidgets */,
+				565A02612FCB26FBE2C3E89F /* PrayerWidgetsTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -79,6 +177,8 @@
 			children = (
 				504EC3041FED79650016851F /* App.app */,
 				A32C35E66A1A3698F0728B3C /* PreviewCapture.xctest */,
+				363B0CC19BA310111BDBFBFF /* PrayerWidgets.appex */,
+				841E4AE59D321C1D88654CAE /* PrayerWidgetsTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,8 +195,53 @@
 				504EC3131FED79650016851F /* Info.plist */,
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
+				8F7C73A4D7C6F9880A14990E /* PrayerWidgetPlugin.swift */,
+				D25FED8C8F0736410F5264BF /* MainViewController.swift */,
+				72B0459552F099D830AFCC09 /* App.entitlements */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		53BFBD2B9C01A6EBA4B10185 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				FE79AEC13FE6CF9CA4B42F77 /* WidgetStore.swift */,
+			);
+			name = Shared;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		565A02612FCB26FBE2C3E89F /* PrayerWidgetsTests */ = {
+			isa = PBXGroup;
+			children = (
+				7B8BE075956E498288B928AA /* Support.swift */,
+				A5CA4C8BE9DE1AC4B5DDBC18 /* WidgetPayloadTests.swift */,
+				7EAF209DCCF38B0A90B0B1DE /* PrayerTimelineTests.swift */,
+				C4B577C03955D8D2497AE393 /* AppGroupTests.swift */,
+				9A7513816E28EAA429D7BA4F /* WidgetSnapshotTests.swift */,
+				8B030677ADC1B37697F799A2 /* WidgetFitTests.swift */,
+				62DC98E8CB9ABEFE5A311C51 /* widget-payload */,
+			);
+			name = PrayerWidgetsTests;
+			path = PrayerWidgetsTests;
+			sourceTree = "<group>";
+		};
+		A9BADE0F523A19D6515F6D75 /* PrayerWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				9DDB059691358D0F15F41D4C /* PrayerWidgetsBundle.swift */,
+				E788BBD2843B9046DCC7D757 /* PrayerWidgetIntents.swift */,
+				5AA48F6B530FE5615F57FF2A /* PrayerTimelineProvider.swift */,
+				80C8B632AFA2D0142AD3A451 /* PrayerTimeline.swift */,
+				8E7C96C292C681ABE4A202B1 /* PrayerWidgetView.swift */,
+				78E97BC7972EA842DA3A8FAE /* FitProbe.swift */,
+				9B0893C831C31973C0B9E255 /* WidgetPayload.swift */,
+				AC5DE3D2DC59E490B8DD8AF0 /* WidgetSettings.swift */,
+				0C087419A24C80151F39416D /* Info.plist */,
+				4174E229F0664C4D524B572E /* PrayerWidgets.entitlements */,
+			);
+			name = PrayerWidgets;
+			path = PrayerWidgets;
 			sourceTree = "<group>";
 		};
 		E07DC38660B969D238A2059C /* PreviewCapture */ = {
@@ -111,6 +256,44 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		20330216FF2C83722C46543F /* PrayerWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 149A2153C468CB4E2CED8B9C /* Build configuration list for PBXNativeTarget "PrayerWidgets" */;
+			buildPhases = (
+				18986583F9BC870A9C11DCD2 /* Sources */,
+				33127B7E0FA938E3F315DFC9 /* Frameworks */,
+				CC7865A0436B5061500ADA0E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PrayerWidgets;
+			productName = PrayerWidgets;
+			productReference = 363B0CC19BA310111BDBFBFF /* PrayerWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		31F48A451866AF936B568777 /* PrayerWidgetsTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DC2F0DA559B05C05135B6148 /* Build configuration list for PBXNativeTarget "PrayerWidgetsTests" */;
+			buildPhases = (
+				EC44C3211860A4E25279FAB3 /* Sources */,
+				2D4B5BC9C4D32178CECD7830 /* Frameworks */,
+				725C4DE6810DC791AED8BD57 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				FF84E6A05D71272CCF8CF16C /* PBXTargetDependency */,
+			);
+			name = PrayerWidgetsTests;
+			packageProductDependencies = (
+				52312D64191166D1EDB2F23C /* SnapshotTesting */,
+			);
+			productName = PrayerWidgetsTests;
+			productReference = 841E4AE59D321C1D88654CAE /* PrayerWidgetsTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		504EC3031FED79650016851F /* App */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 504EC3161FED79650016851F /* Build configuration list for PBXNativeTarget "App" */;
@@ -118,10 +301,12 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				B22B06457406C071C6FE9261 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				C102273CD32E72D92F4F45BB /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -176,6 +361,7 @@
 			mainGroup = 504EC2FB1FED79650016851F;
 			packageReferences = (
 				D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */,
+				AF8D7D32134D5B7439713DBE /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
 			);
 			productRefGroup = 504EC3051FED79650016851F /* Products */;
 			projectDirPath = "";
@@ -183,6 +369,8 @@
 			targets = (
 				504EC3031FED79650016851F /* App */,
 				E2150D7A4F64B980779770F1 /* PreviewCapture */,
+				20330216FF2C83722C46543F /* PrayerWidgets */,
+				31F48A451866AF936B568777 /* PrayerWidgetsTests */,
 			);
 		};
 /* End PBXProject section */
@@ -208,15 +396,49 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		725C4DE6810DC791AED8BD57 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				215B6605ED3F67170121EE7F /* widget-payload in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC7865A0436B5061500ADA0E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		18986583F9BC870A9C11DCD2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CC46E677C2290821F4779877 /* PrayerWidgetsBundle.swift in Sources */,
+				ABF6826B77DB8CA8535E350C /* PrayerWidgetIntents.swift in Sources */,
+				13BE3C978D76E8B9B3A3B6CB /* PrayerTimelineProvider.swift in Sources */,
+				7F445B2606C51F5C8BECA71D /* PrayerTimeline.swift in Sources */,
+				ED643255F30CD32A8A9D9F99 /* PrayerWidgetView.swift in Sources */,
+				77408E2E9567B44BE7766A74 /* FitProbe.swift in Sources */,
+				F9FFB618E9A87911D79DBD68 /* WidgetPayload.swift in Sources */,
+				D83F308B68CE46ADD174522B /* WidgetSettings.swift in Sources */,
+				FC76F0CEBB0CCD0AA53CB48A /* WidgetStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		504EC3001FED79650016851F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
+				B6B9F22BDD01F41378C4B16F /* PrayerWidgetPlugin.swift in Sources */,
+				5FAC35D5B528F9053E76FFBF /* MainViewController.swift in Sources */,
+				B6F0A529A3FFD6DAA9A2D126 /* WidgetStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -228,14 +450,47 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EC44C3211860A4E25279FAB3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0C0921AA0F4E1140D16BF6F /* Support.swift in Sources */,
+				6E91719C4A62A2DC9BFBFF58 /* WidgetPayloadTests.swift in Sources */,
+				D36D2D694580732F269A1673 /* PrayerTimelineTests.swift in Sources */,
+				FC3066E05BA25A2CB82C8E49 /* AppGroupTests.swift in Sources */,
+				42E77690C3F8D2A0CF637AAE /* WidgetSnapshotTests.swift in Sources */,
+				BE99854362BA7BCECCFBFD2A /* WidgetFitTests.swift in Sources */,
+				565AA39A9B84297D592C94A3 /* PrayerWidgetIntents.swift in Sources */,
+				E26F46B3DE77762559BAB4C5 /* PrayerTimelineProvider.swift in Sources */,
+				FF55953B83BAC76B671E9F3B /* PrayerTimeline.swift in Sources */,
+				B85E77F689F0CA361C3D9F19 /* PrayerWidgetView.swift in Sources */,
+				B82A64292FC4A24A8D8A1CDC /* FitProbe.swift in Sources */,
+				2AB9AC0A02C310ED597FA0FA /* WidgetPayload.swift in Sources */,
+				E9F7643D3D4170DE8A67477A /* WidgetSettings.swift in Sources */,
+				E63D4468CEC88E12DB847280 /* WidgetStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		C102273CD32E72D92F4F45BB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = PrayerWidgets;
+			target = 20330216FF2C83722C46543F /* PrayerWidgets */;
+			targetProxy = E79457A906E91F4246AF8822 /* PBXContainerItemProxy */;
+		};
 		E46742D42DE00E343EB9F624 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = App;
 			target = 504EC3031FED79650016851F /* App */;
 			targetProxy = ADE5380F14F55F99250EABDD /* PBXContainerItemProxy */;
+		};
+		FF84E6A05D71272CCF8CF16C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = App;
+			target = 504EC3031FED79650016851F /* App */;
+			targetProxy = A7601731CD883B0500863FDB /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -259,6 +514,25 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		20C5E0FC143CB39491CDE62B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = FMTYKM5F9P;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.meltuhamy.londonsalah.PrayerWidgetsTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/App";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		504EC3141FED79650016851F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
@@ -373,6 +647,7 @@
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = FMTYKM5F9P;
@@ -396,6 +671,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = FMTYKM5F9P;
@@ -414,6 +690,35 @@
 			};
 			name = Release;
 		};
+		6E4A6DE84E52AB7FAED50422 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = PrayerWidgets/PrayerWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = FMTYKM5F9P;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PrayerWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Prayer Times";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 4.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.meltuhamy.londonsalah.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		871416140FF450D18CAC5798 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -428,6 +733,34 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = App;
+			};
+			name = Debug;
+		};
+		A4CFCEC12AB00BB89CEBD573 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = PrayerWidgets/PrayerWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = FMTYKM5F9P;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PrayerWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Prayer Times";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 4.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.meltuhamy.londonsalah.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -449,6 +782,24 @@
 			};
 			name = Release;
 		};
+		E46E564C39A26A61F44ADE5E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = FMTYKM5F9P;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.meltuhamy.londonsalah.PrayerWidgetsTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/App";
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -457,6 +808,15 @@
 			buildConfigurations = (
 				CBCD0F393E405D0B29CEDAB4 /* Release */,
 				871416140FF450D18CAC5798 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		149A2153C468CB4E2CED8B9C /* Build configuration list for PBXNativeTarget "PrayerWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6E4A6DE84E52AB7FAED50422 /* Release */,
+				A4CFCEC12AB00BB89CEBD573 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -479,6 +839,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		DC2F0DA559B05C05135B6148 /* Build configuration list for PBXNativeTarget "PrayerWidgetsTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				20C5E0FC143CB39491CDE62B /* Release */,
+				E46E564C39A26A61F44ADE5E /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -488,11 +857,27 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		AF8D7D32134D5B7439713DBE /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-snapshot-testing";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.18.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		4D22ABE82AF431CB00220026 /* CapApp-SPM */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */;
 			productName = "CapApp-SPM";
+		};
+		52312D64191166D1EDB2F23C /* SnapshotTesting */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AF8D7D32134D5B7439713DBE /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
+			productName = SnapshotTesting;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

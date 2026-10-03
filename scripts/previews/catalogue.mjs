@@ -21,6 +21,31 @@ export const CATALOGUE = [
     ],
   },
   {
+    title: "iOS: home screen widgets",
+    dir: "ios",
+    images: [
+      { file: "home-widgets", caption: "Small, medium and large" },
+      { file: "edit-widget", caption: "Edit Widget" },
+    ],
+  },
+  {
+    // Drawn by the snapshot tests rather than on a home screen: the lock
+    // screen cannot be edited from a test, and these show every family on
+    // one page. They are the committed references, so they match what CI
+    // compares against.
+    title: "iOS: widgets as rendered by the tests",
+    dir: "ios",
+    images: [
+      { file: "rendered-small", caption: "Small" },
+      { file: "rendered-medium", caption: "Medium" },
+      { file: "rendered-large", caption: "Large" },
+      { file: "rendered-medium-dark", caption: "Medium, dark" },
+      { file: "rendered-rectangular", caption: "Lock screen" },
+      { file: "rendered-circular", caption: "Lock screen, round" },
+      { file: "rendered-inline", caption: "Lock screen, inline" },
+    ],
+  },
+  {
     title: "Android: app",
     dir: "android",
     images: [
