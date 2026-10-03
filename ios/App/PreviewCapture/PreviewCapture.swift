@@ -118,12 +118,22 @@ final class PreviewCapture: XCTestCase {
         try require(app, "Prayer Times in the gallery").tap()
         Thread.sleep(forTimeInterval: 1.5)
 
-        // The sizes are pages of one sheet, smallest first.
+        // The sizes are pages of a horizontal scroll view, smallest first,
+        // each a button labelled with the app and widget names and valued
+        // "Widget, Small" and so on. Swipe on that, not the whole sheet.
+        let preview = springboard.buttons
+            .matching(NSPredicate(format: "label BEGINSWITH 'Prayer Times,'")).firstMatch
+        try require(preview, "the widget's preview in the gallery")
         for _ in 0..<page {
-            springboard.swipeLeft()
+            preview.swipeLeft()
             Thread.sleep(forTimeInterval: 0.8)
         }
-        try require(springboard.buttons["Add Widget"], "Add Widget for the \(size) size").tap()
+        print("PreviewCapture: adding \(size), the gallery shows \(String(describing: preview.value))")
+        // Its label starts with an icon glyph - " Add Widget" - so not an
+        // exact match.
+        let add = springboard.buttons
+            .matching(NSPredicate(format: "label ENDSWITH 'Add Widget'")).firstMatch
+        try require(add, "Add Widget for the \(size) size").tap()
         Thread.sleep(forTimeInterval: 2)
     }
 

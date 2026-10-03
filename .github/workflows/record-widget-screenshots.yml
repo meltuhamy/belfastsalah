@@ -146,5 +146,6 @@ jobs:
             -m "Record iOS widget screenshots" \
             -m "Recorded by the record-widget-screenshots workflow from ${GITHUB_SHA}."
           # The Android job may have pushed its own commit since checkout.
-          git pull --rebase origin "${GITHUB_REF_NAME}"
+          # --autostash: cap sync leaves the working tree modified.
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
