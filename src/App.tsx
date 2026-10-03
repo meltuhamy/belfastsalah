@@ -54,6 +54,7 @@ import {
   removeUpdateNotifyListener,
 } from "./lib/notifications";
 import { addSaveListener, removeSaveListener } from "./lib/settings";
+import { refreshWidgets } from "./lib/widgets";
 import FullPageSpinner from "./components/FullPageSpinner";
 import SetupPage from "./pages/SetupPage";
 
@@ -162,6 +163,13 @@ const App: React.FC = () => {
     notificationMinutes,
     showTimesInDeviceZone
   ]);
+
+  // Same dependencies as the reminder scheduling above: anything that changes
+  // which times are shown changes what the widgets should say.
+  useEffect(() => {
+    refreshWidgets(settings);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location, asrMethod, showTimesInDeviceZone]);
 
   useEffect(() => {
     function handleSavedEvent() {

@@ -78,6 +78,56 @@ CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2
 
 CI installs its own browser and needs no override.
 
+## Widget tests
+
+The home screen widgets are native (Kotlin, in `android/app/src/main/java/.../widget`)
+and have three layers of tests of their own. None of them run in this sandbox —
+Gradle cannot reach Google's Maven here — so CI is the only place they run.
+
+1. **JVM, every push** (`android/app/src/test`, the Android job in `ci.yml`).
+   Robolectric with native graphics renders each widget the way a launcher
+   does: `WidgetRenderer`'s RemoteViews, applied into real Views.
+   - `WidgetRenderTest` — what each widget shows: the highlight, the countdown
+     in each mode, city and date, the tile's text sizes, the no-times state.
+   - `WidgetFitTest` — no text is cut off, at every size in
+     `WidgetHarness.SIZES`, measured from real text layout. This is the check
+     that matters most: clipping is the bug these widgets have actually had,
+     and it never shows as an error. It found the one-column widget losing
+     its Isha row on its first run.
+   - `WidgetScreenshotTest` — Roborazzi images compared against the
+     references in `android/app/src/test/screenshots`.
+2. **Emulator, pull requests and nightly** (`android/app/src/androidTest`,
+   `android-device-tests.yml`). `HostedWidgetTest` is its own widget host,
+   granted binding with `appwidget grantbind`: the system accepts all five
+   widgets, binding runs the provider, a resize reaches
+   `onAppWidgetOptionsChanged`, and saving the appearance screen redraws the
+   widget. `LauncherPinTest` then has the emulator's launcher add the tile
+   through its own dialog; it drives another app's UI, so it retries and a
+   failure is only a warning.
+3. `PayloadFixture` and `TextFit` in `android/app/src/sharedTest` are shared by
+   both.
+
+Things that will bite:
+
+- **The renderer takes `nowMillis`.** Tests pin it; the app passes nothing and
+  gets the real clock. The fixture's moments sit half a second before the
+  minute, because Chronometer truncates and reads the clock when drawn — aim
+  at the second exactly and the text, and every screenshot, flickers between
+  runs.
+- **The fixture is 15 January, not February.** The layouts carry February's
+  times as sample text for the widget picker, so a test on that date can pass
+  on placeholders the renderer never touched. The device tests likewise wait
+  for text that is not in any layout before believing a widget was drawn.
+- **Changing how a widget looks means new reference screenshots.** Push with
+  `[record screenshots]` in the commit message (or run
+  `record-widget-screenshots.yml` by hand): it re-records them on the CI
+  runner and commits them back, and that commit's images are the review of
+  the change. They have to come from the runner — another machine draws
+  different pixels. CI skips the comparison on the commit that asks for it.
+- **The emulator job builds `:app` only.** The root project's test APKs
+  include Capacitor's own modules, and the Cordova plugins module does not
+  assemble.
+
 ## The once-a-second re-render
 
 `App` dispatches a tick every second for the countdown, so every screen
@@ -91,6 +141,46 @@ state while a drag is in progress: `ionChange` only fires on release, so
 without it the knob was being yanked back to the stored value mid-drag. It is
 also why `SetupPage` uses a functional state update. Bear it in mind before
 adding another control that has to hold state while being interacted with.
+
+## The card that points at the next prayer
+
+`PrayerDayCard` is the blue countdown card, and below it the strip of the
+day's six times on the page background. The card has a tail that points at
+whichever column is next.
+
+The tail is placed by arithmetic, not by measuring: `--next-column` is the
+`Prayer` enum value of the next prayer — the enum is ordered as the strip is,
+so it *is* the column index — and the tail sits at
+`(column + 0.5) × (100% / 6)` of the card's width. That only lands on a column
+centre because the card and the strip are the same width and the strip's grid
+spans all of it. The wrapper owns the margins and the `IonCard` inside it has
+none, so that is true by construction rather than by two elements agreeing;
+keep it that way, and keep horizontal padding out of the strip itself (it goes
+inside the cells instead).
+
+Two Ionic details cost an afternoon each, and both are undone in
+`PrayerDayCard.css`:
+
+- **`ion-card` sets `contain: content` as well as `overflow: hidden`.** Paint
+  containment clips to the border box by itself, whatever `overflow` says, so
+  overriding only `overflow` leaves the tail invisible with nothing in the DOM
+  to show for it. `e2e/support/app.ts`'s `tailTarget` asks the page what is
+  actually painted in the gap below the card, via `elementFromPoint`, because
+  a clipped tail keeps its box and its position — a geometry assertion passes
+  straight through this bug.
+- **`ion-card` is a shadow host**, so `::before`/`::after` on it are never
+  rendered; its box children come from the shadow tree. The tail is a real
+  `<span>`.
+
+Text inside a card needs its class doubled up (`.PrayerDayCard .X`): Ionic
+styles it as `.card-content-md p`, which outweighs a single class of ours and
+flattens every line to the same size.
+
+After the last prayer of the day the strip shows *tomorrow's* times, since
+that is what the card is counting down to — `usePrayerStrip`. The "Tomorrow"
+badge is a separate question from that, and is asked in the display zone
+(`isLaterDay`): someone in Dubai reading London times at 23:30 London is
+already on that day themselves, so the badge would be a lie.
 
 ## Hidden test notification
 

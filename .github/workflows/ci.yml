@@ -101,6 +101,36 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
+      # The widgets, on the JVM through Robolectric: the payload they read,
+      # what each one shows at a given moment, whether its text fits at the
+      # sizes it is used at, and screenshots compared against the committed
+      # ones in android/app/src/test/screenshots.
+      #
+      # The comparison is skipped while record-widget-screenshots.yml is
+      # replacing those references - on a commit that asks it to, or before
+      # there are any - and every other assertion still runs.
+      - name: Android unit tests
+        working-directory: android
+        env:
+          RECORDING: ${{ contains(github.event.head_commit.message, '[record screenshots]') }}
+        run: |
+          if [ "$RECORDING" = "true" ] || [ ! -d app/src/test/screenshots ]; then
+            ./gradlew testDebugUnitTest --no-daemon
+          else
+            ./gradlew verifyRoborazziDebug --no-daemon
+          fi
+
+      # What a failure looks like: the test report, and for a screenshot that
+      # changed, the new image and a diff against the reference.
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: android-unit-test-results
+          path: |
+            android/app/build/reports/tests/testDebugUnitTest
+            android/app/build/outputs/roborazzi
+          retention-days: 30
+
       # The Play Store takes an app bundle, not an APK, and that is a different
       # Gradle task with its own way of failing. Building it unsigned here
       # means a broken release build surfaces on an ordinary push rather than

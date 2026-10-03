@@ -12,6 +12,9 @@ import { expect, type Page } from "@playwright/test";
 /** The picker on setup and settings; also a reliable "app has loaded" marker. */
 export const LOCATION_SELECT = "[data-testid=location-select]";
 
+/** The row of six times on the home screen; the marker that it has arrived. */
+export const PRAYER_STRIP = "[data-testid=prayer-strip]";
+
 /**
  * Freezes the clock before the app boots.
  *
@@ -34,7 +37,7 @@ export async function completeSetup(page: Page) {
   await openSetup(page);
   await page.getByRole("button", { name: "Done" }).click();
   await expect(page.getByRole("button", { name: "Done" })).toHaveCount(0);
-  await expect(page.locator(".DayPrayerTable")).toBeVisible();
+  await expect(page.locator(PRAYER_STRIP)).toBeVisible();
 }
 
 export async function openSettings(page: Page) {
@@ -44,7 +47,7 @@ export async function openSettings(page: Page) {
 
 export async function goHome(page: Page) {
   await page.locator("ion-button[router-link='/']").click();
-  await expect(page.locator(".DayPrayerTable")).toBeVisible();
+  await expect(page.locator(PRAYER_STRIP)).toBeVisible();
 }
 
 /**
@@ -77,16 +80,56 @@ export async function toggle(page: Page, label: string) {
   await page.locator("ion-toggle").filter({ hasText: label }).click();
 }
 
-/** Today's card, as a { Fajr: "05:36", ... } map. */
+/** The day strip, as a { Fajr: "05:36", ... } map. */
 export async function todayTimes(page: Page): Promise<Record<string, string>> {
-  await expect(page.locator(".DayPrayerTable")).toBeVisible();
-  return page.locator(".DayPrayerTable").evaluate((table) => {
+  await expect(page.locator(PRAYER_STRIP)).toBeVisible();
+  return page.locator(PRAYER_STRIP).evaluate((strip) => {
     const times: Record<string, string> = {};
-    for (const row of table.querySelectorAll("tr")) {
-      const [name, time] = row.querySelectorAll("td");
+    for (const cell of strip.querySelectorAll("[data-testid=strip-cell]")) {
+      const [name, time] = cell.querySelectorAll("span");
       times[name.textContent!.trim()] = time.textContent!.trim();
     }
     return times;
+  });
+}
+
+/** The prayer the strip is highlighting, e.g. "Duhr". */
+export async function highlightedPrayer(page: Page): Promise<string> {
+  return page
+    .locator("[data-testid=strip-cell][data-next=true]")
+    .locator("span")
+    .first()
+    .innerText();
+}
+
+/**
+ * Where the card's tail is pointing, read off the screen rather than out of the
+ * markup.
+ *
+ * `painted` asks the page what is actually drawn in the gap below the card,
+ * because a tail that has been clipped away keeps its box and its position -
+ * ion-card's paint containment swallowed it whole the first time round, and
+ * nothing about the DOM said so. `column` is the strip cell the tip lands in.
+ */
+export async function tailTarget(
+  page: Page
+): Promise<{ painted: boolean; column: string | null }> {
+  return page.evaluate(() => {
+    const tail = document.querySelector(".PrayerDayCard__tail")!;
+    const bubble = document.querySelector(".PrayerDayCard__bubble")!;
+    const box = tail.getBoundingClientRect();
+    const x = box.x + box.width / 2;
+    const y = bubble.getBoundingClientRect().bottom + 2;
+
+    let column: string | null = null;
+    for (const cell of document.querySelectorAll("[data-testid=strip-cell]")) {
+      const rect = cell.getBoundingClientRect();
+      if (x >= rect.left && x <= rect.right) {
+        column = cell.querySelector("span")!.textContent!.trim();
+      }
+    }
+
+    return { painted: document.elementFromPoint(x, y) === tail, column };
   });
 }
 

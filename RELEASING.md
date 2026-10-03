@@ -143,3 +143,82 @@ there is a theme picker, and a timezone row appears outside the UK. Play wants
 at least two phone screenshots. The listing name still says London only, though
 the app has covered Belfast for years; renaming the listing is free and keeps
 the same package name.
+
+# Releasing to the App Store
+
+Same bundle id as Android, `com.meltuhamy.londonsalah`. The first release is
+done by hand from a Mac with Xcode; `release-ios.yml` can take over later.
+
+## What you need
+
+- A paid Apple Developer Program membership. Enrolling as an individual takes
+  minutes. Enrolling as a company needs its D-U-N-S number and takes days.
+- Xcode from the Mac App Store, and Node 22.
+
+## Build and run it
+
+```bash
+npm ci
+npx vite build && npx cap sync ios
+npx cap open ios
+```
+
+In Xcode, select the **App** target → **Signing & Capabilities** → pick your
+team and leave **Automatically manage signing** on. Xcode registers the bundle
+id and makes the certificates itself. Picking a team writes
+`DEVELOPMENT_TEAM` into `project.pbxproj`; commit that, since CI needs it.
+
+Run it on your own iPhone, not just the simulator, and check:
+
+- The notification permission prompt appears when reminders are turned on,
+  and a reminder arrives. Long-press the timer icon for a test one.
+- Setup, both themes, and the month table.
+- The timezone row, by setting the phone to a non-UK timezone.
+
+iOS keeps at most 64 pending notifications per app, which is exactly what the
+app schedules - ten days or so of reminders, then one asking to open the app.
+
+The widgets are Android-only; the iOS app has none.
+
+## App Store Connect
+
+**Apps → + → New App**: iOS, the bundle id above, a SKU (anything, e.g.
+`londonsalah`), and a name. Names are unique across the whole store, so
+plain "Prayer Times" is almost certainly taken; something like "Prayer Times
+London & Belfast". The name under the icon stays "Prayer Times" either way.
+
+Then fill in:
+
+| Section | Answer |
+|---|---|
+| App Privacy | **Data Not Collected** - same reason as the Play form |
+| Privacy policy URL | <https://meltuhamy.com/privacy-policy/> |
+| Support URL | required; the privacy policy site or the GitHub repo will do |
+| Category | Reference (or Lifestyle) |
+| Age rating | answer "none" throughout → 4+ |
+| Encryption | nothing to answer: `ITSAppUsesNonExemptEncryption` is already `false` in Info.plist |
+
+**Screenshots**: Apple wants a 6.9" iPhone set (1320×2868). Take them in the
+largest Pro Max simulator Xcode offers, with ⌘S. The Play images are the wrong size and
+are not accepted. iPad screenshots are only needed if the app is offered on
+iPad; untick iPad in the target's supported destinations if you do not want
+to make them.
+
+## Upload and submit
+
+1. In Xcode, set the run destination to **Any iOS Device (arm64)**.
+2. **Product → Archive**. When it finishes, the Organizer opens.
+3. **Distribute App → App Store Connect → Upload**.
+4. After processing (10-30 minutes), the build appears under **TestFlight**.
+   Install it on your phone through the TestFlight app and check it once more.
+5. On the version page, select that build and **Submit for Review**.
+
+Each later upload needs a higher build number (the target's **Build** field),
+and a new App Store version needs a higher **Version** as well.
+
+## Later: releasing from CI
+
+`release-ios.yml` builds and uploads to TestFlight on a `v*` tag. It needs the
+committed `DEVELOPMENT_TEAM` and its secrets (listed at the top of the
+workflow). Set it up after the first manual release, when the certificates
+and the App Store Connect API key exist.

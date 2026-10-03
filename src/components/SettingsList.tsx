@@ -18,6 +18,7 @@ import {
   sunny,
   contrast,
   globeOutline,
+  gridOutline,
   lockClosed,
   openOutline,
 } from "ionicons/icons";
@@ -34,6 +35,7 @@ import {
   TEST_NOTIFICATION_DELAY_SECONDS,
 } from "../lib/notifications";
 import { describeNotifyMinutes } from "../lib/notifyText";
+import { openWidgetSettings, widgetsSupported } from "../lib/widgets";
 import { useLongPress } from "../lib/useLongPress";
 import "./SettingsList.css";
 
@@ -242,6 +244,21 @@ const SettingsList: React.FC<Props> = ({
           ))}
         </IonSelect>
       </IonItem>
+      {widgetsSupported() && (
+        <IonItem
+          button={true}
+          detail={true}
+          onClick={() => openWidgetSettings()}
+          data-testid="widget-settings-link"
+        >
+          <IonIcon icon={gridOutline} slot="start" />
+          <IonLabel>
+            <h3>Widget appearance</h3>
+            <p>Colours and countdown for each home screen widget</p>
+          </IonLabel>
+        </IonItem>
+      )}
+
       <IonListHeader>
         <IonLabel>About</IonLabel>
       </IonListHeader>

@@ -148,6 +148,20 @@ export class BelfastPrayerTimes extends PrayerTimes {
   }
 }
 
+/**
+ * The timetable for a location. Which class to build is not a decision worth
+ * repeating at every call site, and having it in one place is what stops the
+ * two of them drifting apart.
+ */
+export function createPrayerTimes(
+  location: PrayerLocation,
+  asrMethod: AsrMethod
+): PrayerTimes {
+  return location === PrayerLocation.London
+    ? new LondonPrayerTimes(asrMethod)
+    : new BelfastPrayerTimes();
+}
+
 export function prayerToString(prayer: Prayer): string {
   switch (prayer) {
     case Prayer.Fajr:

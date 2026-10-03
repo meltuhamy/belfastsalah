@@ -9,6 +9,11 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:8.13.0'
         classpath 'com.google.gms:google-services:4.4.4'
+        // Literal rather than read from variables.gradle: that file is applied
+        // below this block, so its values do not exist yet up here.
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.21'
+        // Screenshot tests for the home screen widgets; see app/build.gradle.
+        classpath 'io.github.takahirom.roborazzi:roborazzi-gradle-plugin:1.75.0'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
