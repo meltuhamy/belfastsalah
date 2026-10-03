@@ -124,7 +124,8 @@ test_sources = %w[
 tests.add_file_references(test_sources + widget_sources.reject { |f| f.path == "PrayerWidgetsBundle.swift" } + [store])
 
 # The payloads src/lib/widgetPayload.fixture.test.ts writes, as a folder.
-fixtures = tests_group.new_reference("../../fixtures/widget-payload")
+# Relative to the project's directory, not the group's, which is a level down.
+fixtures = tests_group.new_reference("../../fixtures/widget-payload", :project)
 fixtures.last_known_file_type = "folder"
 fixtures.name = "widget-payload"
 tests.resources_build_phase.add_file_reference(fixtures)

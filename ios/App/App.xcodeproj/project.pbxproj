@@ -100,7 +100,7 @@
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		5AA48F6B530FE5615F57FF2A /* PrayerTimelineProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrayerTimelineProvider.swift; sourceTree = "<group>"; };
-		62DC98E8CB9ABEFE5A311C51 /* widget-payload */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder; name = "widget-payload"; path = "../../fixtures/widget-payload"; sourceTree = "<group>"; };
+		62DC98E8CB9ABEFE5A311C51 /* widget-payload */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder; name = "widget-payload"; path = "../../fixtures/widget-payload"; sourceTree = SOURCE_ROOT; };
 		72B0459552F099D830AFCC09 /* App.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		78E97BC7972EA842DA3A8FAE /* FitProbe.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FitProbe.swift; sourceTree = "<group>"; };
 		7B8BE075956E498288B928AA /* Support.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Support.swift; sourceTree = "<group>"; };
