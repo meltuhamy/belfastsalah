@@ -30,7 +30,7 @@ const SettingsTab: React.FC = () => {
         <IonToolbar>
           <IonTitle>Settings</IonTitle>
           <IonButtons slot="primary">
-            <IonButton routerLink="/" routerDirection="back">
+            <IonButton routerLink="/" routerDirection="back" aria-label="Home">
               <IonIcon slot="icon-only" icon={home} />
             </IonButton>
           </IonButtons>

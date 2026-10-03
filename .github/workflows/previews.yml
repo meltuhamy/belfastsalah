@@ -1,0 +1,369 @@
+name: Previews
+
+# Screenshots of the real app, and its widgets, on an iOS simulator and an
+# Android emulator - posted to each pull request as one comment that is edited
+# on every push, so reviewers can see a change without installing a build.
+#
+# Not a test. Nothing here asserts anything, a capture that fails only drops
+# its image (the comment lists what is missing), and the job stays green.
+#
+# The images live on the `previews` branch, never in master: see
+# scripts/previews/branch.sh. pr-<n>/<commit>/ for pull requests, master/ for
+# the latest build of master at full size.
+#
+# Publishing runs here rather than in a workflow_run workflow so that a pull
+# request can preview itself, changes to this file included. That is safe for
+# pull requests from this repository, whose authors can push here anyway; one
+# from a fork gets a read-only token, so it is captured but not published.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  push:
+    branches: [master]
+  schedule:
+    # Weekly: clears out folders for pull requests merged long ago.
+    - cron: "41 4 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: previews-${{ github.event_name == 'schedule' && 'prune' || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android emulator
+    if: github.event_name != 'schedule' && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      apk-url: ${{ steps.apk.outputs.artifact-url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v4
+
+      - run: npm ci
+
+      - name: Build web assets and sync
+        run: |
+          npx vite build
+          npx cap sync android
+
+      - name: Build the app and the capture
+        working-directory: android
+        run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon
+
+      # Linked from the comment, so the build in the screenshots is a tap away.
+      - uses: actions/upload-artifact@v7
+        id: apk
+        with:
+          name: app-debug.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # Each line of `script` runs on its own, and the first to fail ends it,
+      # hence the `|| true`s: a capture that goes wrong should still leave
+      # whatever images it did take.
+      #
+      # Demo mode gives a clean status bar - 9:41, full battery - in place of
+      # whatever the emulator happens to show.
+      - name: Capture
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot -timezone Europe/London
+          working-directory: android
+          script: |
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            adb shell pm grant com.meltuhamy.londonsalah android.permission.POST_NOTIFICATIONS || true
+            adb shell settings put global sysui_demo_allowed 1
+            adb shell am broadcast -a com.android.systemui.demo -e command enter || true
+            adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 0941 || true
+            adb shell am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false || true
+            adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4 -e mobile hide || true
+            adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false || true
+            adb shell am instrument -w -e class com.meltuhamy.londonsalah.preview.PreviewCapture com.meltuhamy.londonsalah.test/androidx.test.runner.AndroidJUnitRunner || true
+            mkdir -p ../previews-out/android
+            adb exec-out run-as com.meltuhamy.londonsalah tar -cf - -C files/previews . | tar -xf - -C ../previews-out/android || true
+            ls -l ../previews-out/android
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: preview-android
+          path: previews-out/android
+          if-no-files-found: ignore
+          retention-days: 7
+
+  ios:
+    name: iOS simulator
+    if: github.event_name != 'schedule' && github.event.action != 'closed'
+    # macOS runners are free and unmetered on public repositories.
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build web assets and sync
+        run: |
+          npx vite build
+          npx cap sync ios
+
+      # The simulator takes its zone from the machine. London, so the app
+      # shows the timetable's own times rather than its device-zone controls.
+      - name: Set the time zone
+        run: |
+          sudo systemsetup -settimezone Europe/London \
+            || sudo ln -sf /usr/share/zoneinfo/Europe/London /etc/localtime
+          date
+
+      # The newest "iPhone N Pro Max" on the newest iOS: its screenshots are
+      # the 6.9" size the App Store asks for, so master's can go straight
+      # into a listing.
+      - name: Boot a simulator
+        id: sim
+        run: |
+          set -euo pipefail
+          udid="$(xcrun simctl list devices available -j | python3 -c '
+          import json, re, sys
+          best = None
+          for runtime, devices in json.load(sys.stdin)["devices"].items():
+              version = re.search(r"iOS-(\d+)-(\d+)", runtime)
+              if not version:
+                  continue
+              for device in devices:
+                  model = re.fullmatch(r"iPhone (\d+) Pro Max", device["name"])
+                  if model:
+                      key = (int(version[1]), int(version[2]), int(model[1]))
+                      if best is None or key > best[0]:
+                          best = (key, device["udid"], device["name"], runtime)
+          print(best[1])
+          print("Using", best[2], "on", best[3], file=sys.stderr)
+          ')"
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl ui "$udid" appearance light
+          xcrun simctl status_bar "$udid" override \
+            --time 9:41 --dataNetwork wifi --wifiMode active --wifiBars 3 \
+            --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
+      # TEST_RUNNER_-prefixed variables reach the test runner without the
+      # prefix. Allowed to fail: see the header.
+      - name: Capture
+        working-directory: ios/App
+        env:
+          TEST_RUNNER_PREVIEW_DIR: ${{ github.workspace }}/previews-out/ios
+        run: |
+          xcodebuild test \
+            -project App.xcodeproj \
+            -scheme PreviewCapture \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath build \
+            -resultBundlePath "$RUNNER_TEMP/PreviewCapture.xcresult" \
+            CODE_SIGNING_ALLOWED=NO \
+            || echo "::warning title=iOS previews::Some captures failed; the comment lists which. The xcresult bundle is in the preview-ios-result artifact."
+          ls -l "$TEST_RUNNER_PREVIEW_DIR" || true
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: preview-ios
+          path: previews-out/ios
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: preview-ios-result
+          path: ${{ runner.temp }}/PreviewCapture.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
+
+  publish:
+    name: Publish
+    needs: [android, ios]
+    # Whatever was captured, even if one platform failed outright. For pull
+    # requests from this repository - a fork's token is read-only - and for
+    # master; a run started by hand on any other branch has nowhere to go.
+    if: >-
+      always() &&
+      github.event_name != 'schedule' && github.event.action != 'closed' &&
+      ((github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository) ||
+       (github.event_name != 'pull_request' && github.ref == 'refs/heads/master'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v7
+        continue-on-error: true
+        with:
+          name: preview-ios
+          path: out/ios
+
+      - uses: actions/download-artifact@v7
+        continue-on-error: true
+        with:
+          name: preview-android
+          path: out/android
+
+      # Only what the captures are meant to produce: PNGs with plain names.
+      - name: Check the images
+        run: |
+          mkdir -p out/ios out/android
+          find out -type f ! -regex 'out/\(ios\|android\)/[a-z0-9-]+\.png' -print -delete
+          find out -type f -size +15M -print -delete
+          find out -type f | sort
+
+      # The comment shows them 240 pixels wide, so pull request images are
+      # shrunk to keep the branch small; master's stay full size for the stores.
+      - name: Shrink for the comment
+        if: github.event_name == 'pull_request'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq pngquant imagemagick > /dev/null
+          find out -name '*.png' -exec mogrify -resize '720x>' {} +
+          find out -name '*.png' -exec pngquant --force --skip-if-larger --quality=70-95 --ext .png {} + || true
+          du -sh out
+
+      - name: Publish to the previews branch
+        id: publish
+        run: |
+          set -euo pipefail
+          short="${SHA:0:7}"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            path="pr-${{ github.event.pull_request.number }}"
+            mkdir -p "staged/$short"
+            cp -R out/. "staged/$short/"
+            scripts/previews/branch.sh put "$path" staged
+            echo "base-url=https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/previews/$path/$short" >> "$GITHUB_OUTPUT"
+          else
+            scripts/previews/branch.sh put master out
+          fi
+
+      - name: Write the comment
+        if: github.event_name == 'pull_request'
+        run: |
+          node scripts/previews/comment.mjs \
+            --dir out \
+            --base-url "${{ steps.publish.outputs.base-url }}" \
+            --sha "$SHA" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --apk-url "${{ needs.android.outputs.apk-url }}" \
+            > comment.md
+          cat comment.md
+
+      - name: Post or update the comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require("fs");
+            const body = fs.readFileSync("comment.md", "utf8");
+            const marker = "<!-- app-preview -->";
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number, per_page: 100,
+            });
+            const mine = comments.find(
+              (c) => c.user.type === "Bot" && c.body.startsWith(marker)
+            );
+            if (mine) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: mine.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+  # A pull request closed without merging takes its images with it. A merged
+  # one keeps them, so its comment still shows them, until the weekly prune.
+  cleanup:
+    name: Remove a closed pull request's images
+    if: >-
+      github.event.action == 'closed' && !github.event.pull_request.merged &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+      - run: scripts/previews/branch.sh delete "pr-${{ github.event.pull_request.number }}"
+
+  prune:
+    name: Prune old images
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - run: scripts/previews/branch.sh list > folders.txt || touch folders.txt
+
+      - name: Decide what to remove
+        id: decide
+        uses: actions/github-script@v8
+        with:
+          result-encoding: string
+          script: |
+            const fs = require("fs");
+            const SIX_MONTHS = 183 * 24 * 60 * 60 * 1000;
+            const remove = [];
+            for (const folder of fs.readFileSync("folders.txt", "utf8").split("\n")) {
+              const match = /^pr-(\d+)$/.exec(folder.trim());
+              if (!match) continue;
+              const { data: pr } = await github.rest.pulls.get({
+                ...context.repo, pull_number: Number(match[1]),
+              });
+              if (pr.state !== "closed") continue;
+              const old = Date.now() - new Date(pr.closed_at).getTime() > SIX_MONTHS;
+              if (!pr.merged_at || old) remove.push(folder.trim());
+            }
+            core.info(`Removing: ${remove.join(" ") || "nothing"}`);
+            return remove.join(" ");
+
+      - if: steps.decide.outputs.result != ''
+        run: scripts/previews/branch.sh delete ${{ steps.decide.outputs.result }}

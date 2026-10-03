@@ -171,3 +171,12 @@ test("puts the settings screen one tap away and comes back", async ({
   await page.locator("ion-button[router-link='/']").click();
   await expect(page.locator(PRAYER_STRIP)).toBeVisible();
 });
+
+// Icon-only, so without a label a screen reader announces nothing useful.
+// Links rather than buttons: an ion-button with a routerLink renders an <a>. The
+// iOS preview capture also finds them by these names.
+test("names the settings and home links", async ({ page }) => {
+  await page.getByRole("link", { name: "Settings" }).click();
+  await page.getByRole("link", { name: "Home" }).click();
+  await expect(page.locator(PRAYER_STRIP)).toBeVisible();
+});

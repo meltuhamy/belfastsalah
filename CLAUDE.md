@@ -128,6 +128,37 @@ Things that will bite:
   include Capacitor's own modules, and the Cordova plugins module does not
   assemble.
 
+## Preview comments
+
+`previews.yml` puts the real app, and its widgets, on an iOS simulator and an
+Android emulator, screenshots them, and keeps one comment on each pull request
+up to date with the results, in collapsed `<details>` sections. It is for
+reviewers, not a test: it never fails the build, and a capture that does not
+work just drops its image, which the comment lists as missing.
+
+- The drivers are `ios/App/PreviewCapture/PreviewCapture.swift` (an XCUITest
+  target with its own scheme, so App's builds never include it) and
+  `android/app/src/androidTest/.../preview/PreviewCapture.kt` (no size
+  annotation, so the device tests' size-filtered runs skip it). Both name each
+  capture; `scripts/previews/catalogue.mjs` says which names the comment shows,
+  under which heading. Adding a screen means a capture in the driver and a line
+  in the catalogue.
+- Settings are planted rather than tapped through: launch arguments into
+  UserDefaults' argument domain on iOS, the `CapacitorStorage`
+  SharedPreferences file on Android. Both are where `@capacitor/preferences`
+  reads, under the key `settings`.
+- The clock is not pinned - neither platform allows it - so the times on screen
+  are whenever CI ran. The status bars are pinned to 9:41.
+- Images go to the `previews` branch (`scripts/previews/branch.sh`), never to
+  the branch under review: `pr-<n>/<commit>/` per pull request and `master/` at
+  full size, which is App Store sized (an iPhone Pro Max simulator). The branch
+  is rewritten as a single commit on every change. Do not merge it or build on
+  it.
+- The PreviewCapture target was added by `scripts/ios/add-preview-capture-target.rb`;
+  rerunning it is a no-op.
+- Pull requests from forks are captured but not published - their token is
+  read-only.
+
 ## The once-a-second re-render
 
 `App` dispatches a tick every second for the countdown, so every screen
