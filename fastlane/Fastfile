@@ -23,7 +23,8 @@ platform :ios do
     # Cloud signing: the project uses automatic signing, and these let
     # xcodebuild register profiles and use a cloud-managed distribution
     # certificate with no Apple account signed in. Both the archive and the
-    # export need them.
+    # export need them, and gym passes xcargs to both - adding them to
+    # export_xcargs as well makes xcodebuild refuse the duplicates.
     auth = [
       "-allowProvisioningUpdates",
       "-authenticationKeyPath #{key_path.shellescape}",
@@ -50,7 +51,6 @@ platform :ios do
         teamID: CredentialsManager::AppfileConfig.try_fetch_value(:team_id) # FMTYKM5F9P
       },
       xcargs: "#{auth} CURRENT_PROJECT_VERSION=#{build_number}",
-      export_xcargs: auth,
       output_directory: "build/ios",
       clean: true
     )
