@@ -1,10 +1,13 @@
 import {
+  biggestBump,
   buildNumber,
   bumpFromLabels,
   bumpVersion,
+  decide,
   formatVersion,
   isAppFile,
   latestVersion,
+  packageChangesTheApp,
   parseVersion,
 } from "./version.mjs";
 
@@ -127,5 +130,157 @@ describe("isAppFile", () => {
     "ios/App/AdHocSigning.xcconfig",
   ])("Should not count %s as the app", (file) => {
     expect(isAppFile(file)).toBe(false);
+  });
+});
+
+describe("biggestBump", () => {
+  it("Should be a patch, asked for by nobody, when no pull request has a label", () => {
+    expect(biggestBump([])).toEqual({ kind: "patch", pull: null });
+    expect(biggestBump([{ number: 50, labels: ["bug"] }])).toEqual({ kind: "patch", pull: null });
+  });
+
+  it("Should take the biggest bump across every pull request in the release", () => {
+    const pulls = [
+      { number: 50, labels: ["release:minor"] },
+      { number: 51, labels: [] },
+    ];
+    expect(biggestBump(pulls)).toEqual({ kind: "minor", pull: 50 });
+    expect(biggestBump([...pulls, { number: 52, labels: ["release:major"] }])).toEqual({ kind: "major", pull: 52 });
+  });
+
+  it("Should still count the bump of a pull request that was held back with release:skip", () => {
+    expect(biggestBump([{ number: 50, labels: ["release:skip", "release:minor"] }])).toEqual({ kind: "minor", pull: 50 });
+  });
+});
+
+describe("decide", () => {
+  const patch = { kind: "patch", pull: null };
+  const base = { requested: "auto", pull: { number: 51, labels: [] }, bump: patch, appFiles: 3, since: "v4.0.1" };
+
+  it("Should release a patch by default", () => {
+    expect(decide(base)).toEqual({ release: true, tagged: false, kind: "patch", reason: "A patch release, the default." });
+  });
+
+  it("Should say which pull request asked for a bigger bump", () => {
+    expect(decide({ ...base, bump: { kind: "minor", pull: 50 } })).toMatchObject({
+      release: true,
+      kind: "minor",
+      reason: "#50 is labelled `release:minor`.",
+    });
+  });
+
+  it("Should not release when nothing in the app changed, and say since when", () => {
+    expect(decide({ ...base, appFiles: 0 })).toMatchObject({
+      release: false,
+      reason: "Nothing in the app changed since v4.0.1; it goes out with the next change that does.",
+    });
+  });
+
+  it("Should hold back a pull request labelled release:skip", () => {
+    expect(decide({ ...base, pull: { number: 51, labels: ["release:skip"] } })).toMatchObject({
+      release: false,
+      reason: "#51 is labelled `release:skip`; it goes out with the next release.",
+    });
+  });
+
+  it("Should release anyway when forced, even with nothing changed or a skip label", () => {
+    expect(decide({ ...base, appFiles: 0, force: true })).toMatchObject({ release: true, reason: "Forced by hand." });
+    expect(decide({ ...base, pull: { number: 51, labels: ["release:skip"] }, force: true })).toMatchObject({
+      release: true,
+      reason: "Forced by hand.",
+    });
+  });
+
+  it("Should use a bump chosen by hand over the labels", () => {
+    expect(decide({ ...base, requested: "major", pull: null, bump: { kind: "minor", pull: 50 } })).toMatchObject({
+      release: true,
+      kind: "major",
+      reason: "A major release, chosen by hand.",
+    });
+  });
+
+  it("Should follow the labels on a manual run, which has no pull request of its own", () => {
+    expect(decide({ ...base, pull: null, bump: { kind: "minor", pull: 50 } })).toMatchObject({ release: true, kind: "minor" });
+  });
+
+  it("Should keep the version of a commit an earlier attempt already tagged", () => {
+    expect(decide({ ...base, appFiles: 0, alreadyTagged: { major: 4, minor: 0, patch: 2 } })).toMatchObject({
+      release: true,
+      tagged: true,
+      reason: "This commit is already tagged v4.0.2, by an earlier attempt.",
+    });
+  });
+
+  it("Should take a new version for an already tagged commit when forced, and plan normally on a dry run", () => {
+    const alreadyTagged = { major: 4, minor: 0, patch: 2 };
+    expect(decide({ ...base, alreadyTagged, force: true })).toMatchObject({ tagged: false });
+    expect(decide({ ...base, alreadyTagged, dryRun: true })).toMatchObject({ tagged: false, reason: "A patch release, the default." });
+  });
+});
+
+describe("packageChangesTheApp", () => {
+  const packageJson = (changes = {}) =>
+    JSON.stringify({
+      name: "prayer-times",
+      scripts: { build: "tsc && vite build" },
+      dependencies: { react: "^19.0.0" },
+      devDependencies: { vite: "^8.0.0", vitest: "^4.0.0" },
+      ...changes,
+    });
+
+  it("Should not count a change to test or lint tooling", () => {
+    const after = packageJson({ devDependencies: { vite: "^8.0.0", vitest: "^4.1.0" } });
+    expect(packageChangesTheApp("package.json", packageJson(), after)).toBe(false);
+  });
+
+  it("Should count a change to what the app depends on or is built with", () => {
+    const react = packageJson({ dependencies: { react: "^19.1.0" } });
+    const vite = packageJson({ devDependencies: { vite: "^8.1.0", vitest: "^4.0.0" } });
+    const android = packageJson({ devDependencies: { vite: "^8.0.0", vitest: "^4.0.0", "@capacitor/android": "^8.0.0" } });
+    const script = packageJson({ scripts: { build: "vite build" } });
+    for (const after of [react, vite, android, script]) {
+      expect(packageChangesTheApp("package.json", packageJson(), after)).toBe(true);
+    }
+  });
+
+  // A small lockfile: react needs scheduler, vite needs rolldown, and vitest
+  // needs tinyspy and its own copy of vite's rolldown.
+  const lockfile = (versions = {}) => {
+    const entry = (path, version, dependencies = {}, extra = {}) => [
+      path,
+      { version: versions[path] ?? version, dependencies, ...extra },
+    ];
+    return JSON.stringify({
+      lockfileVersion: 3,
+      packages: Object.fromEntries([
+        ["", { dependencies: { react: "^19.0.0" }, devDependencies: { vite: "^8.0.0", vitest: "^4.0.0" } }],
+        entry("node_modules/react", "19.0.0", { scheduler: "^0.26.0" }),
+        entry("node_modules/scheduler", "0.26.0"),
+        entry("node_modules/vite", "8.0.0", { rolldown: "^1.0.0" }, { dev: true }),
+        entry("node_modules/rolldown", "1.0.0", {}, { dev: true }),
+        entry("node_modules/vitest", "4.0.0", { tinyspy: "^4.0.0", rolldown: "^2.0.0" }, { dev: true }),
+        entry("node_modules/tinyspy", "4.0.0", {}, { dev: true }),
+        entry("node_modules/vitest/node_modules/rolldown", "2.0.0", {}, { dev: true }),
+      ]),
+    });
+  };
+
+  it.each(["node_modules/vitest", "node_modules/tinyspy", "node_modules/vitest/node_modules/rolldown"])(
+    "Should not count %s, which only the tests use",
+    (path) => {
+      expect(packageChangesTheApp("package-lock.json", lockfile(), lockfile({ [path]: "9.9.9" }))).toBe(false);
+    }
+  );
+
+  it.each(["node_modules/react", "node_modules/scheduler", "node_modules/vite", "node_modules/rolldown"])(
+    "Should count %s, which the app ships or is built with",
+    (path) => {
+      expect(packageChangesTheApp("package-lock.json", lockfile(), lockfile({ [path]: "9.9.9" }))).toBe(true);
+    }
+  );
+
+  it("Should count a file that was added or removed", () => {
+    expect(packageChangesTheApp("package-lock.json", null, lockfile())).toBe(true);
+    expect(packageChangesTheApp("package.json", packageJson(), null)).toBe(true);
   });
 });

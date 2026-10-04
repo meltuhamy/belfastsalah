@@ -3,17 +3,20 @@ name: Release
 # Every merge to master that changes the app is released to testers: a tag,
 # TestFlight, Google Play internal testing, and a GitHub pre-release carrying
 # the notes and the Android builds. Making that pre-release a full release
-# ships it to users - promote.yml. See RELEASING.md.
+# ships it to users: promote-on-release.yml starts promote.yml. See
+# RELEASING.md.
 #
 #   push to master   CI first, then a release if anything in the app changed
 #   Run workflow     the same by hand: choose the bump, force it, or dry-run it
 #   pull request     a dry run, when it changes how releases are made
 #
 # A dry run builds and signs both apps with the version a release would get,
-# has App Store Connect and Google Play check them, and tags, uploads and
-# publishes nothing. GitHub only lets "Run workflow" start a workflow that is
-# already on master, so the pull request trigger is how a change to this file
-# gets tried before it merges.
+# has Google Play validate the Android bundle, checks the App Store Connect
+# key against TestFlight, and tags, uploads, publishes and keeps nothing.
+# GitHub only lets "Run workflow" start a workflow that is already on master,
+# so the pull request trigger is how a change to this file gets tried before
+# it merges. Dependabot's pull requests are not dry-run: their runs get no
+# secrets to sign with, so the next release tries their updates instead.
 
 on:
   push:
@@ -67,7 +70,7 @@ jobs:
   ci:
     name: CI
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run)
-    uses: $/.github/workflows/ci.yml
+    uses: ./.github/workflows/ci.yml
     permissions:
       contents: read
 
@@ -75,18 +78,19 @@ jobs:
     name: Plan
     needs: ci
     # Once CI has passed, or without it for a dry run, which releases nothing.
-    # A fork's pull request gets no secrets, so it is not dry-run here.
+    # Pull requests from forks and from Dependabot get no secrets, so they are
+    # not dry-run here.
     if: >-
       !cancelled() &&
       (needs.ci.result == 'success' || needs.ci.result == 'skipped') &&
       (github.event_name != 'pull_request' ||
-       github.event.pull_request.head.repo.full_name == github.repository)
+       (github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.user.login != 'dependabot[bot]'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: write # generating the release notes, and the tag
-      pull-requests: read # the merged pull request's labels
-      issues: write # making the release labels, the first time
+      pull-requests: read # the labels of the pull requests in the release
     outputs:
       release: ${{ steps.plan.outputs.release }}
       build: ${{ steps.plan.outputs.build }}
@@ -158,14 +162,14 @@ jobs:
     env:
       RELEASE_VERSION: ${{ needs.plan.outputs.version }}
       RELEASE_BUILD_NUMBER: ${{ needs.plan.outputs.build_number }}
-      RELEASE_NOTES_FILE: release-plan/store-notes.txt
+      RELEASE_NOTES_FILE: release-plan/tester-notes.txt
       DRY_RUN: ${{ needs.plan.outputs.dry_run }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: $/.github/actions/setup
+      - uses: ./.github/actions/setup
         with:
           platform: android
           fastlane: "true"
@@ -215,27 +219,25 @@ jobs:
           echo "Signed with the upload key $fingerprint"
           echo "Android $RELEASE_VERSION ($RELEASE_BUILD_NUMBER), signed with the upload key \`$fingerprint\`." >> "$GITHUB_STEP_SUMMARY"
 
-      # Repository variables; secrets are read too, in case they were saved
-      # there instead.
       - name: Check for Google Play
         id: play
         env:
-          PROVIDER: ${{ vars.GOOGLE_WORKLOAD_IDENTITY_PROVIDER || secrets.GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
-          SERVICE_ACCOUNT: ${{ vars.GOOGLE_SERVICE_ACCOUNT || secrets.GOOGLE_SERVICE_ACCOUNT }}
+          PROVIDER: ${{ secrets.GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
+          SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
         run: |
           if [ -n "$PROVIDER" ] && [ -n "$SERVICE_ACCOUNT" ]; then
             echo "connected=true" >> "$GITHUB_OUTPUT"
           else
             echo "connected=false" >> "$GITHUB_OUTPUT"
-            echo "::warning title=Google Play::Google Play is not connected - GOOGLE_WORKLOAD_IDENTITY_PROVIDER and GOOGLE_SERVICE_ACCOUNT are not set - so the bundle is not uploaded; it is attached to the GitHub release instead."
+            echo "::warning title=Google Play::Google Play is not connected - the GOOGLE_WORKLOAD_IDENTITY_PROVIDER and GOOGLE_SERVICE_ACCOUNT secrets are not set - so the bundle is not uploaded; it is attached to the GitHub release instead."
           fi
 
       - name: Sign in to Google Play
         if: steps.play.outputs.connected == 'true'
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
-          workload_identity_provider: ${{ vars.GOOGLE_WORKLOAD_IDENTITY_PROVIDER || secrets.GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ vars.GOOGLE_SERVICE_ACCOUNT || secrets.GOOGLE_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ secrets.GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
 
       - name: Upload to internal testing
         id: upload
@@ -249,13 +251,18 @@ jobs:
           bundle exec fastlane android beta dry_run:"$DRY_RUN"
           echo "where=Google Play internal testing" >> "$GITHUB_OUTPUT"
 
+      # Kept only for a real release, which attaches them. A dry run's APK
+      # is unmerged code signed with the upload key, and would install as an
+      # update over a release's.
       - name: Name the files for the release
+        if: env.DRY_RUN != 'true'
         run: |
           mkdir -p dist
           cp android/app/build/outputs/bundle/release/app-release.aab "dist/prayer-times-$RELEASE_VERSION.aab"
           cp android/app/build/outputs/apk/release/app-release.apk "dist/prayer-times-$RELEASE_VERSION.apk"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: env.DRY_RUN != 'true'
         with:
           name: android-release
           path: dist
@@ -281,7 +288,7 @@ jobs:
     env:
       RELEASE_VERSION: ${{ needs.plan.outputs.version }}
       RELEASE_BUILD_NUMBER: ${{ needs.plan.outputs.build_number }}
-      RELEASE_NOTES_FILE: release-plan/store-notes.txt
+      RELEASE_NOTES_FILE: release-plan/tester-notes.txt
       DRY_RUN: ${{ needs.plan.outputs.dry_run }}
       APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -290,7 +297,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: $/.github/actions/setup
+      - uses: ./.github/actions/setup
         with:
           platform: ios
           fastlane: "true"
@@ -350,6 +357,7 @@ jobs:
         run: rm -f "$APP_STORE_CONNECT_KEY_PATH"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: env.DRY_RUN != 'true'
         with:
           name: ios-release
           path: build/ios/App.ipa
@@ -368,8 +376,8 @@ jobs:
     permissions:
       contents: write # the release
       id-token: write # signing the provenance attestations
-      attestations: write
-      artifact-metadata: write
+      attestations: write # storing them
+      artifact-metadata: write # linking them to the files
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}

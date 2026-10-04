@@ -22,6 +22,8 @@
 #   bundle exec fastlane android beta dry_run:true
 
 require "fileutils"
+require "open3"
+require "openssl"
 require "shellwords"
 require "tmpdir"
 
@@ -33,6 +35,11 @@ APP_IDENTIFIER = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifi
 TEAM_ID = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
 IPA = "build/ios/App.ipa"
 AAB = "android/app/build/outputs/bundle/release/app-release.aab"
+
+# Google Play takes release notes per language, and shows the listing's
+# default language for the rest. This listing's is en-GB; if Play Console's
+# default language ever changes, change it here too.
+PLAY_NOTES_LANGUAGE = "en-GB"
 
 # fastlane runs each lane from inside fastlane/, though it resolves the paths
 # given to actions from the repository root. Files a lane reads itself are
@@ -67,10 +74,38 @@ platform :ios do
     )
   end
 
+  def certificate_serial(number)
+    number.to_s.downcase.sub(/\A0+/, "")
+  end
+
+  # Signing the archive takes a development certificate, and a runner's
+  # keychains start empty, so Xcode makes a new one for every build and leaves
+  # it registered with Apple, which caps how many a team can have. This
+  # revokes the development certificates in the runner's keychains: the runner
+  # is new for every job, so this build made them. It never touches a
+  # distribution certificate, and a failure here only warns.
+  def revoke_development_certificates
+    pem, = Open3.capture2("security", "find-certificate", "-a", "-p")
+    serials = pem.scan(/-----BEGIN CERTIFICATE-----.+?-----END CERTIFICATE-----/m)
+                 .map { |text| certificate_serial(OpenSSL::X509::Certificate.new(text).serial.to_s(16)) }
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: app_store_api_key)
+    types = Spaceship::ConnectAPI::Certificate::CertificateType
+    revoked = Spaceship::ConnectAPI::Certificate.all(filter: { certificateType: [types::DEVELOPMENT, types::IOS_DEVELOPMENT].join(",") })
+                                                .select { |certificate| serials.include?(certificate_serial(certificate.serial_number)) }
+    revoked.each do |certificate|
+      certificate.delete!
+      UI.message("Revoked #{certificate.name} (#{certificate.serial_number}), the development certificate this build made.")
+    end
+    UI.important("No development certificate from this build to revoke.") if revoked.empty?
+  rescue StandardError => e
+    UI.important("Could not revoke this build's development certificate: #{e.message}")
+  end
+
   desc "Build the IPA for the App Store, carrying the release's version"
   lane :build do
     # A temporary keychain for the development certificate Xcode makes to sign
-    # the archive; it goes with the runner.
+    # the archive. The keychain goes with the runner, and the certificate is
+    # revoked once the IPA is exported.
     setup_ci if ENV["CI"]
 
     # Cloud signing. The project uses automatic signing, and these let
@@ -93,17 +128,21 @@ platform :ios do
     #
     # Capacitor 8 uses Swift Package Manager rather than CocoaPods, so there
     # is no .xcworkspace to point at - the project builds directly.
-    build_app(
-      project: "ios/App/App.xcodeproj",
-      scheme: "App",
-      configuration: "Release",
-      export_method: "app-store",
-      export_options: { signingStyle: "automatic", teamID: TEAM_ID },
-      xcargs: "#{auth} MARKETING_VERSION=#{release_version} CURRENT_PROJECT_VERSION=#{release_build}",
-      output_directory: File.dirname(IPA),
-      output_name: File.basename(IPA, ".ipa"),
-      clean: true
-    )
+    begin
+      build_app(
+        project: "ios/App/App.xcodeproj",
+        scheme: "App",
+        configuration: "Release",
+        export_method: "app-store",
+        export_options: { signingStyle: "automatic", teamID: TEAM_ID },
+        xcargs: "#{auth} MARKETING_VERSION=#{release_version} CURRENT_PROJECT_VERSION=#{release_build}",
+        output_directory: File.dirname(IPA),
+        output_name: File.basename(IPA, ".ipa"),
+        clean: true
+      )
+    ensure
+      revoke_development_certificates if ENV["CI"]
+    end
   end
 
   desc "Upload the IPA to TestFlight, or as a dry run check the API key works"
@@ -158,11 +197,18 @@ platform :ios do
       next
     end
 
-    # Apple reviews one version at a time.
+    # Apple reviews one version at a time. A rejected version's submission
+    # stays open, with unresolved issues, until it is cancelled; promoting a
+    # release means sending this build instead, so it is cancelled, and the
+    # rejected version becomes this one when it is submitted.
+    submission_states = Spaceship::ConnectAPI::ReviewSubmission::ReviewSubmissionState
     in_review = app.get_in_progress_review_submission(platform: platform, includes: "appStoreVersionForReview")
     if in_review
       other = in_review.app_store_version_for_review&.version_string || "Another version"
-      UI.user_error!("#{other} is in App Store review already, and Apple takes one version at a time. Once it is approved or withdrawn in App Store Connect, promote this release again from Actions -> Promote.")
+      unless in_review.state == submission_states::UNRESOLVED_ISSUES
+        UI.user_error!("#{other} is in App Store review already, and Apple takes one version at a time. Once it is approved or withdrawn in App Store Connect, promote this release again from Actions -> Promote.")
+      end
+      UI.important("#{other} was rejected, and its submission is still open.")
     end
 
     build = Spaceship::ConnectAPI::Build.all(
@@ -174,8 +220,18 @@ platform :ios do
     end
 
     if dry_run?(options)
-      UI.success("Build #{release_build} would be submitted for review as #{release_version}. Dry run, so nothing was submitted.")
+      UI.success("Build #{release_build} would be submitted for review as #{release_version}#{in_review ? ', after cancelling that submission' : ''}. Dry run, so nothing was submitted.")
       next
+    end
+
+    if in_review
+      UI.message("Cancelling the rejected submission, so this build can go for review.")
+      in_review.cancel_submission
+      20.times do
+        break unless Spaceship::ConnectAPI::ReviewSubmission.get(review_submission_id: in_review.id).state == submission_states::CANCELING
+
+        sleep(15)
+      end
     end
 
     # Only the release notes are sent: the listing's text and screenshots
@@ -211,20 +267,9 @@ platform :android do
     path
   end
 
-  # Release notes go to Google Play as files, one per language; these are in
-  # the listing's default language, which Play falls back to for the rest.
+  # Release notes go to Google Play as files, one per language.
   def play_release_notes(dir)
-    require "supply"
-    Supply.config = FastlaneCore::Configuration.create(
-      Supply::Options.available_options,
-      { package_name: APP_IDENTIFIER, json_key: play_credentials }
-    )
-    client = Supply::Client.make_from_config
-    client.begin_edit(package_name: APP_IDENTIFIER)
-    language = client.client.get_edit_detail(APP_IDENTIFIER, client.current_edit.id).default_language
-    client.abort_current_edit
-    UI.message("Release notes in #{language}, the listing's default language.")
-    changelogs = File.join(dir, language, "changelogs")
+    changelogs = File.join(dir, PLAY_NOTES_LANGUAGE, "changelogs")
     FileUtils.mkdir_p(changelogs)
     File.write(File.join(changelogs, "#{release_build}.txt"), release_notes)
   end
@@ -280,6 +325,11 @@ platform :android do
     if !dry_run && on_play_track?("production")
       UI.important("Production already has #{release_build}; there is nothing to promote.")
       next
+    end
+    # Internal testing keeps only its newest build, and Play can only promote
+    # what a track has.
+    unless on_play_track?("internal")
+      UI.user_error!("Internal testing no longer has build #{release_build}: a newer build has replaced it. Ship the newest release instead.")
     end
 
     Dir.mktmpdir do |metadata|

@@ -1,0 +1,32 @@
+name: Promote on release
+
+# Unticking "Set as a pre-release" on a release made by release.yml ships it:
+# this starts promote.yml on master for that release. A release event would
+# run the workflow and Fastfile from the tag's commit, which can predate a fix
+# to them; handing over means a promotion always runs master's, the same code
+# as a dry run from Actions -> Promote.
+
+on:
+  release:
+    types: [released]
+
+permissions: {}
+
+jobs:
+  promote:
+    name: Start Promote
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write # start promote.yml
+      contents: read # its workflow file
+    steps:
+      # The one event GITHUB_TOKEN may start a workflow with is a dispatch.
+      - name: Start Promote on master
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          gh workflow run promote.yml --ref master -f tag="$TAG"
+          echo "Started Promote for $TAG on master: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/workflows/promote.yml" >> "$GITHUB_STEP_SUMMARY"

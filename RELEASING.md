@@ -15,16 +15,21 @@ label it first:
 | none | 4.0.1 → 4.0.2 |
 | `release:minor` | 4.0.2 → 4.1.0 |
 | `release:major` | 4.1.0 → 5.0.0 |
-| `release:skip` | not released; goes out with the next release |
+| `release:skip` | not released; goes out with the next release, and is listed in its notes |
 
-A pull request that only changes docs, tests, CI or tooling is not released
-on its own, so it needs no label.
+A release takes the biggest bump any pull request in it asks for, so a label
+counts even when its own merge was not released.
 
-About 25 minutes later the new version is in Google Play internal testing
-and on [GitHub Releases](https://github.com/meltuhamy/belfastsalah/releases)
-as a pre-release. TestFlight has it once Apple has processed it, 10 to 30
-minutes after that. The **Release** run under Actions shows how it is going,
-and its summary says which version it chose, or why it released nothing.
+A pull request that only changes docs, tests, CI or tooling is not released on
+its own, so it needs no label. That includes Dependabot's updates to test and
+lint packages; an update to anything the app ships or is built with is
+released.
+
+Within about half an hour the new version is in Google Play internal
+testing, in TestFlight once Apple has processed it, and on
+[GitHub Releases](https://github.com/meltuhamy/belfastsalah/releases) as a
+pre-release. The **Release** run under Actions shows how it is going, and its
+summary says which version it chose, or why it released nothing.
 
 ## 2. Try it
 
@@ -36,7 +41,9 @@ and its summary says which version it chose, or why it released nothing.
   install the `.apk` attached to the release, after uninstalling the Play
   version: Android will not install one over the other.
 
-Build numbers read as the version: build 4000002 is 4.0.2.
+Build numbers read as the version: build 4000002 is 4.0.2. TestFlight's What
+to Test and Google Play's release notes list what changed since the previous
+release.
 
 Check on real phones before shipping:
 
@@ -56,14 +63,18 @@ Check on real phones before shipping:
 1. Open the release on
    [GitHub Releases](https://github.com/meltuhamy/belfastsalah/releases) and
    click **Edit**.
-2. Rewrite **What's new** for users. Both stores show it. Use plain text, `-`
-   for bullets, and at most 500 characters.
+2. Rewrite **What's new** for users. Both stores show it. It starts out as
+   the title of every pull request since the last shipped release. Use plain
+   text, `-` for bullets, and at most 500 characters.
 3. Untick **Set as a pre-release** and click **Update release**.
 
-The **Promote** run under Actions then sends the iOS build to App Store
-review, and Apple releases it as soon as it is approved. The Android build
-goes to production. When the run finishes, the release's **Builds** table
-says where each build went.
+The **Promote** run under Actions then sends the Android build to
+production, and the iOS build to App Store review; Apple releases it as soon
+as it is approved. When the run finishes, the release's **Builds** table says
+where each build went.
+
+Only the newest release can be shipped: Google Play's internal testing keeps
+only the newest build. A newer release includes everything in the older ones.
 
 To check that a release can be shipped without shipping it, run **Actions →
 Promote → Run workflow** with its tag and **dry_run** ticked.
@@ -72,19 +83,19 @@ Promote → Run workflow** with its tag and **dry_run** ticked.
 
 **Actions → Release → Run workflow** does what a merge does, with options:
 
-- **bump**: `auto` follows the merged pull request's label. Or choose patch,
-  minor or major.
+- **bump**: `auto` takes the biggest label among the pull requests since the
+  last release. Or choose patch, minor or major.
 - **force**: release even if nothing in the app has changed.
-- **dry_run**: build and sign both apps and have both stores check them,
-  without releasing anything.
+- **dry_run**: build and sign both apps, have Google Play validate the Android
+  bundle and check the App Store Connect key, without releasing anything.
 
 ## Changing how releases are made
 
 A pull request that changes `.github/workflows/release.yml`, `fastlane/`,
 `scripts/release/` or the native build files gets a dry run as its
-**Release** check. The dry run builds and signs both apps with the next
-version and has both stores check them, but releases nothing. Make sure it
-passes before merging.
+**Release** check: both apps built and signed with the next version, the
+Android bundle validated by Google Play and the App Store Connect key
+checked, and nothing released. Make sure it passes before merging.
 
 To try a change to `promote.yml`, run **Actions → Promote → Run workflow**
 from your branch, with **dry_run** ticked.
@@ -98,8 +109,12 @@ has, so nothing is uploaded or submitted twice. To retry a promotion, run
 **Actions → Promote → Run workflow** with the tag.
 
 **Never delete a tag.** A release that failed and was not re-run keeps its
-tag, and the next release takes the next version. The stores do not mind the
-gap.
+tag, and the next release takes the next version, with the failed one's
+changes in it. The stores do not mind the gap.
+
+**If the release tooling itself was broken**, merge the fix. Re-running the
+failed run would use the old tooling, but the next release includes every app
+change since the last release that was published.
 
 - **Google Play rejects the bundle's signature.** The keystore in the
   repository's secrets is not the upload key Play expects. Compare the
@@ -124,17 +139,21 @@ gap.
 - **Apple refuses an upload with no clear reason.** An agreement is probably
   waiting for the account holder. Accept it from the banner on the App Store
   Connect home page, then re-run.
-- **Apple says there are too many certificates.** Revoke old *Apple
-  Development* certificates at developer.apple.com → Certificates, then
-  re-run.
+- **Apple says there are too many certificates.** Each build revokes the
+  development certificate it makes, so this should not happen. If it does,
+  revoke old *Apple Development* certificates at developer.apple.com →
+  Certificates, then re-run.
 - **Promote says What's new is too long.** Shorten it on the release, then
   run Promote again.
+- **Promote says a newer release exists.** Ship that one instead: it has
+  everything the older one had.
 - **Promote says another version is in App Store review.** Apple reviews one
   version at a time. Run Promote again once that one has been approved, or
   after withdrawing it in App Store Connect.
 - **Apple rejects the version.** App Store Connect says why. Fix it, merge
-  the fix, and ship that release. If the reviewer has misunderstood, reply to
-  them in App Store Connect instead.
+  the fix, and ship that release: Promote cancels the rejected submission and
+  sends the new build in its place. If the reviewer has misunderstood, reply
+  to them in App Store Connect instead, and leave Promote alone.
 
 ## If the Android upload key is lost
 

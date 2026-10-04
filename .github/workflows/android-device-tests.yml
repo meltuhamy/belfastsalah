@@ -34,7 +34,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: $/.github/actions/setup
+      - uses: ./.github/actions/setup
         with:
           platform: android
 
@@ -51,7 +51,7 @@ jobs:
       # flaky, so it retries within itself and a failure here is a warning,
       # not a red build.
       - name: Run on an emulator
-        uses: $/.github/actions/android-emulator
+        uses: ./.github/actions/android-emulator
         with:
           script: |
             ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.size=medium --no-daemon

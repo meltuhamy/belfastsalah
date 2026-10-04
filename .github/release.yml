@@ -1,10 +1,11 @@
 # How GitHub groups pull requests in the release notes it generates, which
 # release.yml asks for (scripts/release/plan.mjs). A pull request goes under
 # the first category whose labels it has.
+#
+# Pull requests labelled release:skip are listed too: they are not released
+# when they merge, but they are in the release that comes next, and its notes
+# should say so.
 changelog:
-  exclude:
-    labels:
-      - release:skip
   categories:
     - title: Breaking changes
       labels:
@@ -19,6 +20,9 @@ changelog:
     - title: Dependencies
       labels:
         - dependencies
+    - title: Held back from an earlier merge
+      labels:
+        - release:skip
     - title: Other changes
       labels:
         - "*"

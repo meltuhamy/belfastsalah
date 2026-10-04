@@ -1,9 +1,0 @@
-# actionlint configuration.
-paths:
-  .github/workflows/**/*.yml:
-    ignore:
-      # The same-repository form `uses: $/...` (GitHub, July 2026) is newer
-      # than actionlint 1.7.12, which reads it as an action missing its @ref.
-      # zizmor requires it; drop this once actionlint understands it.
-      - 'specifying action "\$/.+" in invalid format'
-      - 'reusable workflow call "\$/.+" at "uses" is not following the format'

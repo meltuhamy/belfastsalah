@@ -16,7 +16,9 @@ updates:
       default-days: 7
     groups:
       # Majors come one at a time: Capacitor, Ionic and React upgrades each
-      # deserve their own pull request.
+      # deserve their own pull request. Most weeks this group is test and lint
+      # tooling, which releases nothing by itself: plan.mjs only counts an npm
+      # change that reaches what the app ships or is built with.
       npm-minor-and-patch:
         update-types: [minor, patch]
 

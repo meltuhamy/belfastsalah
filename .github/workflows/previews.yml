@@ -46,7 +46,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: $/.github/actions/setup
+      - uses: ./.github/actions/setup
         with:
           platform: android
 
@@ -69,7 +69,7 @@ jobs:
       # Demo mode gives a clean status bar - 9:41, full battery - in place of
       # whatever the emulator happens to show.
       - name: Capture
-        uses: $/.github/actions/android-emulator
+        uses: ./.github/actions/android-emulator
         with:
           emulator-options: -timezone Europe/London
           script: |
@@ -105,7 +105,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: $/.github/actions/setup
+      - uses: ./.github/actions/setup
         with:
           platform: ios
 

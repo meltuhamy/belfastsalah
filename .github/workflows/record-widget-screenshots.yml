@@ -44,7 +44,7 @@ jobs:
         with:
           persist-credentials: true # zizmor: ignore[artipacked]
 
-      - uses: $/.github/actions/setup
+      - uses: ./.github/actions/setup
         with:
           platform: android
 
@@ -96,7 +96,7 @@ jobs:
         with:
           persist-credentials: true # zizmor: ignore[artipacked]
 
-      - uses: $/.github/actions/setup
+      - uses: ./.github/actions/setup
         with:
           platform: ios
 

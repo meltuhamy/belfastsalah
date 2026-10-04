@@ -48,27 +48,38 @@ has the steps. When working on the code:
   `0.0.0-dev` / `0.0.0` on purpose. Each run counts on from the highest `v*`
   tag.
 - **Label the pull request** when a patch is wrong: `release:minor`,
-  `release:major`, or `release:skip`. Docs, tests, CI and tooling are not
-  released on their own - `isAppFile` in `scripts/release/version.mjs` - so
-  they need no label.
+  `release:major`, or `release:skip`. A release takes the biggest bump of all
+  the pull requests in it. Docs, tests, CI and tooling are not released on
+  their own - `isAppFile` in `scripts/release/version.mjs` - so they need no
+  label.
+- **A new build tool goes in `BUILD_DEV_DEPENDENCIES`** (`version.mjs`). An
+  npm change counts as the app only if it reaches what the app ships or is
+  built with, worked out from the lockfile, and Vite, its React plugin and
+  Capacitor's CLI and platforms are devDependencies here. A Vite plugin or
+  other build step left off that list would have its updates go unreleased.
 - **Leave the build number alone**: major x 1,000,000 + minor x 1,000 +
   patch, the same on both stores. `version.test.mjs` pins why.
 - **Check the dry run** on a pull request that changes the release
   machinery: `fastlane/`, `scripts/release/`, `release.yml`, the native build
-  files. It builds signed apps carrying the next version, has App Store
-  Connect and Google Play check them, and releases nothing. Try a change to
-  `promote.yml` by running it from the branch with `dry_run`.
+  files. It builds signed apps carrying the next version, has Google Play
+  validate the bundle and App Store Connect answer to the key, and releases
+  nothing. Dependabot's pull requests get none, having no secrets. Try a
+  change to `promote.yml` by running it from the branch with `dry_run`.
+- **Promotion always runs from master.** `promote-on-release.yml` hands a
+  released pre-release to `promote.yml` on master, so a fix to the promote
+  lanes reaches releases made before it, and a dry run tries the same code.
+  Only the newest release can ship, Google Play first.
 - **Change the release notes' format only in `scripts/release/notes.mjs`**:
   promotion reads "What's new" back from between its markers, and
   `notes.test.mjs` pins them.
 - **Keep every store step idempotent** - ask the store first - so a failed job
   is fixed by re-running it.
 - **Workflow conventions**: actions pinned to commit SHAs with the version in
-  a comment, which Dependabot updates; local actions as
-  `uses: $/.github/actions/...`, GitHub's self-repository form, which zizmor
-  requires and actionlint 1.7.12 does not know yet (hence
-  `.github/actionlint.yaml`); `permissions:` and `timeout-minutes` on every
-  job; no caches in `promote.yml`. CI's Workflows job runs actionlint and
+  a comment, which Dependabot updates, and actionlint and zizmor pinned by
+  image digest, which it does not; local actions as `uses: ./.github/...`
+  (zizmor's self-repository audit, which wants `$/`, is off in
+  `.github/zizmor.yml`); `permissions:` and `timeout-minutes` on every job;
+  the Google Play values are secrets. CI's Workflows job runs actionlint and
   zizmor, so run both before pushing a workflow change.
 
 ## Testing

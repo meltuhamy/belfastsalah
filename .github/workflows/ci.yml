@@ -2,19 +2,14 @@ name: CI
 
 # Lint, tests and native builds. Runs on every push to a branch, so the Android
 # and iOS toolchains are checked before a pull request exists - this is the
-# only place they are. On master it runs inside release.yml instead, which only
-# releases a commit that passes.
-#
-# Pull requests run it only when they come from forks, whose pushes do not run
-# here. A branch of this repository already gets the push run, for the same
-# commit, and GitHub shows it on the pull request; running again for the pull
-# request doubled every job. Each job carries the condition, as workflows
-# cannot.
+# only place they are - and GitHub shows that run on the branch's pull request.
+# On master it runs inside release.yml instead, which only releases a commit
+# that passes, and a pull request from a fork, whose pushes do not run here,
+# runs it through ci-fork.yml.
 
 on:
   push:
     branches-ignore: [master]
-  pull_request:
   workflow_dispatch:
   workflow_call:
 
@@ -30,7 +25,6 @@ concurrency:
 jobs:
   workflows:
     name: Workflows
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -38,19 +32,21 @@ jobs:
         with:
           persist-credentials: false
 
+      # Both by image digest, as the actions are by commit; Dependabot does not
+      # update these, so bump them by hand.
+
       # Correctness: expressions, job and action inputs, and shellcheck on
       # every run step.
       - name: actionlint
-        run: docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint:1.7.12 -color
+        run: docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 -color
 
       # Security: template injection, over-broad permissions, unpinned actions,
-      # credentials left lying around.
+      # credentials left lying around. Its settings are in .github/zizmor.yml.
       - name: zizmor
-        run: pipx run zizmor==1.30.1 --offline --format=github .
+        run: docker run --rm -v "$PWD:/repo" --workdir /repo ghcr.io/zizmorcore/zizmor:1.30.1@sha256:a2eb396d886c053073405c7a980f2139ba2248ec172243cfa3841e57196e8101 --offline --format=github .
 
   web:
     name: Lint, typecheck, test, build
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -58,7 +54,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: $/.github/actions/setup
+      - uses: ./.github/actions/setup
 
       - name: Lint
         run: npm run lint
@@ -83,7 +79,6 @@ jobs:
 
   e2e:
     name: Browser tests
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -91,7 +86,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: $/.github/actions/setup
+      - uses: ./.github/actions/setup
 
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
@@ -108,7 +103,6 @@ jobs:
 
   android:
     name: Android debug build
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -116,7 +110,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: $/.github/actions/setup
+      - uses: ./.github/actions/setup
         with:
           platform: android
 
@@ -170,7 +164,6 @@ jobs:
 
   ios:
     name: iOS build (unsigned)
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     # macOS runners are free and unmetered on public repositories.
     runs-on: macos-26
     timeout-minutes: 60
@@ -179,7 +172,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: $/.github/actions/setup
+      - uses: ./.github/actions/setup
         with:
           platform: ios
 
