@@ -42,45 +42,25 @@ jobs:
     outputs:
       apk-url: ${{ steps.apk.outputs.artifact-url }}
     steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 22
-          cache: npm
+          persist-credentials: false
 
-      - uses: actions/setup-java@v5
+      - uses: $/.github/actions/setup
         with:
-          distribution: temurin
-          java-version: 21
-
-      - uses: android-actions/setup-android@v4
-
-      - run: npm ci
-
-      - name: Build web assets and sync
-        run: |
-          npx vite build
-          npx cap sync android
+          platform: android
 
       - name: Build the app and the capture
         working-directory: android
         run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon
 
       # Linked from the comment, so the build in the screenshots is a tap away.
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         id: apk
         with:
           name: app-debug.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
-
-      - name: Enable KVM
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
-            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
 
       # Each line of `script` runs on its own, and the first to fail ends it,
       # hence the `|| true`s: a capture that goes wrong should still leave
@@ -89,15 +69,9 @@ jobs:
       # Demo mode gives a clean status bar - 9:41, full battery - in place of
       # whatever the emulator happens to show.
       - name: Capture
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: $/.github/actions/android-emulator
         with:
-          api-level: 34
-          target: google_apis
-          arch: x86_64
-          profile: pixel_6
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot -timezone Europe/London
-          working-directory: android
+          emulator-options: -timezone Europe/London
           script: |
             adb install -r app/build/outputs/apk/debug/app-debug.apk
             adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
@@ -113,7 +87,7 @@ jobs:
             adb exec-out run-as com.meltuhamy.londonsalah tar -cf - -C files/previews . | tar -xf - -C ../previews-out/android || true
             ls -l ../previews-out/android
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: preview-android
           path: previews-out/android
@@ -127,19 +101,13 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 22
-          cache: npm
+          persist-credentials: false
 
-      - run: npm ci
-
-      - name: Build web assets and sync
-        run: |
-          npx vite build
-          npx cap sync ios
+      - uses: $/.github/actions/setup
+        with:
+          platform: ios
 
       # The simulator takes its zone from the machine. London, so the app
       # shows the timetable's own times rather than its device-zone controls.
@@ -157,21 +125,23 @@ jobs:
       # TEST_RUNNER_-prefixed variables reach the test runner without the
       # prefix. Allowed to fail: see the header.
       #
-      # Signed ad hoc: a simulator only grants an app its entitlements - the
-      # App Group the widgets read from among them - when it is signed, and
-      # ad hoc needs no certificate. Unsigned, the widgets would have no times.
+      # Signed ad hoc (AdHocSigning.xcconfig): a simulator only grants an app
+      # its entitlements - the App Group the widgets read from among them -
+      # when it is signed, and ad hoc needs no certificate. Unsigned, the
+      # widgets would have no times.
       - name: Capture
         working-directory: ios/App
         env:
           TEST_RUNNER_PREVIEW_DIR: ${{ github.workspace }}/previews-out/ios
+          UDID: ${{ steps.sim.outputs.udid }}
         run: |
           xcodebuild test \
             -project App.xcodeproj \
             -scheme PreviewCapture \
-            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -destination "id=$UDID" \
             -derivedDataPath build \
             -resultBundlePath "$RUNNER_TEMP/PreviewCapture.xcresult" \
-            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= \
+            -xcconfig AdHocSigning.xcconfig \
             || echo "::warning title=iOS previews::Some captures failed; the comment lists which. The xcresult bundle is in the preview-ios-result artifact."
           ls -l "$TEST_RUNNER_PREVIEW_DIR" || true
 
@@ -179,8 +149,10 @@ jobs:
       # wrote a payload, and why a widget is empty if one is.
       - name: What the app and widgets said
         if: always()
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
         run: |
-          xcrun simctl spawn "${{ steps.sim.outputs.udid }}" log show --last 60m --style compact \
+          xcrun simctl spawn "$UDID" log show --last 60m --style compact \
             --predicate 'eventMessage CONTAINS "PrayerWidget:"' | tail -40 || true
 
       # The lock screen cannot be edited from a test, so those widgets come
@@ -202,14 +174,14 @@ jobs:
           testLockScreen.inline.png rendered-inline
           EOF
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: preview-ios
           path: previews-out/ios
           if-no-files-found: ignore
           retention-days: 7
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: preview-ios-result
@@ -234,22 +206,26 @@ jobs:
         github.event.pull_request.head.repo.full_name == github.repository) ||
        (github.event_name != 'pull_request' && github.ref == 'refs/heads/master'))
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
-      contents: write
-      pull-requests: write
+      contents: write # the previews branch
+      pull-requests: write # the comment
     env:
       GH_TOKEN: ${{ github.token }}
       SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: preview-ios
           path: out/ios
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: preview-android
@@ -279,8 +255,8 @@ jobs:
         run: |
           set -euo pipefail
           short="${SHA:0:7}"
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            path="pr-${{ github.event.pull_request.number }}"
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            path="pr-$PR_NUMBER"
             mkdir -p "staged/$short"
             cp -R out/. "staged/$short/"
             scripts/previews/branch.sh put "$path" staged
@@ -291,19 +267,22 @@ jobs:
 
       - name: Write the comment
         if: github.event_name == 'pull_request'
+        env:
+          BASE_URL: ${{ steps.publish.outputs.base-url }}
+          APK_URL: ${{ needs.android.outputs.apk-url }}
         run: |
           node scripts/previews/comment.mjs \
             --dir out \
-            --base-url "${{ steps.publish.outputs.base-url }}" \
+            --base-url "$BASE_URL" \
             --sha "$SHA" \
-            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-            --apk-url "${{ needs.android.outputs.apk-url }}" \
+            --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --apk-url "$APK_URL" \
             > comment.md
           cat comment.md
 
       - name: Post or update the comment
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const fs = require("fs");
@@ -331,31 +310,38 @@ jobs:
       github.event.action == 'closed' && !github.event.pull_request.merged &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
-      contents: write
+      contents: write # the previews branch
     env:
       GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:
-      - uses: actions/checkout@v7
-      - run: scripts/previews/branch.sh delete "pr-${{ github.event.pull_request.number }}"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: scripts/previews/branch.sh delete "pr-$PR_NUMBER"
 
   prune:
     name: Prune old images
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
-      contents: write
+      contents: write # the previews branch
       pull-requests: read
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - run: scripts/previews/branch.sh list > folders.txt || touch folders.txt
 
       - name: Decide what to remove
         id: decide
-        uses: actions/github-script@v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           result-encoding: string
           script: |
@@ -376,4 +362,8 @@ jobs:
             return remove.join(" ");
 
       - if: steps.decide.outputs.result != ''
-        run: scripts/previews/branch.sh delete ${{ steps.decide.outputs.result }}
+        env:
+          FOLDERS: ${{ steps.decide.outputs.result }}
+        run: |
+          read -ra folders <<< "$FOLDERS"
+          scripts/previews/branch.sh delete "${folders[@]}"

@@ -1,0 +1,13 @@
+// Ad hoc signing, for simulator builds that need their entitlements: the App
+// Group that the app and the widgets share. A simulator only grants an app its
+// entitlements when it is signed, and "-" signs without any certificate.
+// Unsigned (CODE_SIGNING_ALLOWED=NO), every widget would say "No times".
+//
+//   xcodebuild ... -xcconfig AdHocSigning.xcconfig
+//
+// Settings from -xcconfig override the project's own, which use automatic
+// signing with the release team.
+CODE_SIGN_IDENTITY = -
+CODE_SIGN_STYLE = Manual
+DEVELOPMENT_TEAM =
+PROVISIONING_PROFILE_SPECIFIER =

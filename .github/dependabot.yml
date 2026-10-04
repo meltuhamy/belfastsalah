@@ -1,0 +1,46 @@
+# Weekly dependency updates, grouped so each ecosystem is one pull request.
+#
+# The cooldown holds a new version back for a week after it is published,
+# which is when a compromised or broken release is usually caught.
+#
+# A merged update that changes the app is released to TestFlight and Play
+# internal testing like any other merge (see RELEASING.md), so the betas are
+# where an update is tried before it reaches anyone.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      # Majors come one at a time: Capacitor, Ionic and React upgrades each
+      # deserve their own pull request.
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+
+  # Workflows and the composite actions in .github/actions, all pinned to
+  # commit SHAs with the version beside them.
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/*
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # fastlane, through Gemfile.lock.
+  - package-ecosystem: bundler
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      fastlane:
+        patterns: ["*"]

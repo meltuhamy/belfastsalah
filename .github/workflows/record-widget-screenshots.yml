@@ -12,13 +12,17 @@ name: Record widget screenshots
 # simulator's on a macOS one, so they have to be recorded here rather than on
 # a laptop - a different machine draws different pixels, and every comparison
 # in CI would fail.
+#
+# The commits are pushed with the workflow's own token, so they start no other
+# workflow: on master they are not released, and on a branch CI runs again
+# with the next push.
 
 on:
   push:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: record-screenshots-${{ github.ref }}
@@ -31,27 +35,18 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       contains(github.event.head_commit.message, '[record screenshots]')
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write # commits the images back to the branch
     steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
+      # Credentials kept: the last step pushes with them.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 22
-          cache: npm
+          persist-credentials: true # zizmor: ignore[artipacked]
 
-      - uses: actions/setup-java@v5
+      - uses: $/.github/actions/setup
         with:
-          distribution: temurin
-          java-version: 21
-
-      - uses: android-actions/setup-android@v4
-
-      - run: npm ci
-
-      - name: Build web assets and sync
-        run: |
-          npx vite build
-          npx cap sync android
+          platform: android
 
       # Allowed to fail, so that the images are still committed when some
       # other assertion does not hold: seeing what a widget actually looks
@@ -92,20 +87,18 @@ jobs:
       (github.event_name == 'workflow_dispatch' ||
        contains(github.event.head_commit.message, '[record screenshots]'))
     runs-on: macos-26
+    timeout-minutes: 45
+    permissions:
+      contents: write # commits the images back to the branch
     steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
+      # Credentials kept: the last step pushes with them.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 22
-          cache: npm
+          persist-credentials: true # zizmor: ignore[artipacked]
 
-      - run: npm ci
-
-      - name: Build web assets and sync
-        run: |
-          npx vite build
-          npx cap sync ios
+      - uses: $/.github/actions/setup
+        with:
+          platform: ios
 
       - name: Boot a simulator
         id: sim
@@ -117,15 +110,16 @@ jobs:
         working-directory: ios/App
         env:
           TEST_RUNNER_SNAPSHOT_TESTING_RECORD: all
+          UDID: ${{ steps.sim.outputs.udid }}
         run: |
           rm -rf PrayerWidgetsTests/__Snapshots__
           xcodebuild test \
             -project App.xcodeproj \
             -scheme PrayerWidgetsTests \
-            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -destination "id=$UDID" \
             -derivedDataPath build \
             -only-testing:PrayerWidgetsTests/WidgetSnapshotTests \
-            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= \
+            -xcconfig AdHocSigning.xcconfig \
             || true
           find PrayerWidgetsTests/__Snapshots__ -name '*.png' | sort
 
