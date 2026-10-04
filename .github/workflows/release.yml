@@ -11,8 +11,10 @@ name: Release
 #   pull request     a dry run, when it changes how releases are made
 #
 # A dry run builds and signs both apps with the version a release would get,
-# has Google Play validate the Android bundle, checks the App Store Connect
-# key against TestFlight, and tags, uploads, publishes and keeps nothing.
+# and has each store check its build as it checks an upload: Google Play the
+# Android bundle, Apple the IPA. What Apple reports by email once it has
+# processed a build only comes with a real upload. Nothing is tagged,
+# uploaded, published or kept.
 # GitHub only lets "Run workflow" start a workflow that is already on master,
 # so the pull request trigger is how a change to this file gets tried before
 # it merges. Dependabot's pull requests are not dry-run: their runs get no

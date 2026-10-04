@@ -62,7 +62,8 @@ has the steps. When working on the code:
 - **Check the dry run** on a pull request that changes the release
   machinery: `fastlane/`, `scripts/release/`, `release.yml`, the native build
   files. It builds signed apps carrying the next version, has Google Play
-  validate the bundle and App Store Connect answer to the key, and releases
+  and Apple validate them as they would an upload (Apple's findings from
+  processing a build come by email, only after a real one), and releases
   nothing. Dependabot's pull requests get none, having no secrets. Try a
   change to `promote.yml` by running it from the branch with `dry_run`.
 - **Promotion always runs from master.** `promote-on-release.yml` hands a

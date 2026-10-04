@@ -88,16 +88,17 @@ Promote → Run workflow** with its tag and **dry_run** ticked.
 - **bump**: `auto` takes the biggest label among the pull requests since the
   last release. Or choose patch, minor or major.
 - **force**: release even if nothing in the app has changed.
-- **dry_run**: build and sign both apps, have Google Play validate the Android
-  bundle and check the App Store Connect key, without releasing anything.
+- **dry_run**: build and sign both apps, and have Google Play and Apple
+  check them as they check an upload, without releasing anything.
 
 ## Changing how releases are made
 
 A pull request that changes `.github/workflows/release.yml`, `fastlane/`,
 `scripts/release/` or the native build files gets a dry run as its
-**Release** check: both apps built and signed with the next version, the
-Android bundle validated by Google Play and the App Store Connect key
-checked, and nothing released. Make sure it passes before merging.
+**Release** check: both apps built and signed with the next version, and
+checked by Google Play and Apple as an upload would be, with nothing
+released. Make sure it passes before merging. It cannot catch what Apple
+finds while processing a build, which arrives by email after a real upload.
 
 To try a change to `promote.yml`, run **Actions → Promote → Run workflow**
 from your branch, with **dry_run** ticked.
