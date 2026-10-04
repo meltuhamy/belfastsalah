@@ -142,10 +142,10 @@ change since the last release that was published.
 - **Apple refuses an upload with no clear reason.** An agreement is probably
   waiting for the account holder. Accept it from the banner on the App Store
   Connect home page, then re-run.
-- **Apple says there are too many certificates.** Each iOS build makes an
-  *Apple Development: Created via API* certificate, which expires after a
-  year. Apple sets no limit on them for a paid team, but if it ever refuses
-  one, revoke old ones at developer.apple.com → Certificates, then re-run.
+- **The Release run warns about the iOS signing certificate**, or a dry run
+  fails because Xcode made a certificate of its own: the stored certificate
+  is missing, has expired or been revoked, or expires within 30 days. Store a
+  new one, as [below](#the-ios-signing-certificate).
 - **Promote says What's new is too long.** Shorten it on the release, then
   run Promote again.
 - **Promote says a newer release exists.** Ship that one instead: it has
@@ -173,6 +173,31 @@ is, ask Google to accept a new one. Existing installs are not affected.
    the new key in the secrets:
    `./scripts/release/android-signing-secrets.sh upload-keystore.jks`. This
    needs the GitHub CLI, signed in.
+
+## The iOS signing certificate
+
+iOS builds sign with one *Apple Development* certificate, kept in the
+repository's secrets. It lasts a year. The Release run warns in its last 30
+days, and once it has gone, every build makes a certificate of its own
+again. To store one, or to renew it, on a Mac with Xcode:
+
+1. In Xcode → Settings → Accounts, select the team, click **Manage
+   Certificates**, then **+** → **Apple Development**.
+2. In Keychain Access → login → **My Certificates**, right-click the new
+   *Apple Development* certificate, choose **Export**, and save it as a .p12
+   with a password.
+3. Run `./scripts/release/ios-signing-secrets.sh path/to/certificate.p12`.
+   It checks the password opens it, shows the certificate's name and expiry,
+   and sets `APPLE_DEVELOPMENT_P12_BASE64` and
+   `APPLE_DEVELOPMENT_P12_PASSWORD`. This needs the GitHub CLI, signed in.
+4. Delete the .p12, then run **Actions → Release → Run workflow** with
+   **dry_run** ticked. It fails if the build still makes a certificate of its
+   own.
+
+Once a release has signed with the new certificate, revoke the old one at
+developer.apple.com → Certificates. Each revocation emails the account
+holder, so the *Created via API* certificates that builds made before one
+was stored can just be left to expire.
 
 ## Updating the store listings
 

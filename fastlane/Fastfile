@@ -9,7 +9,9 @@
 # and credentials, which the workflows provide:
 #
 #   iOS      APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID and
-#            APP_STORE_CONNECT_KEY_PATH, the .p8 file
+#            APP_STORE_CONNECT_KEY_PATH, the .p8 file; for the build,
+#            APPLE_DEVELOPMENT_P12_BASE64 and APPLE_DEVELOPMENT_P12_PASSWORD,
+#            the Apple Development certificate the archive is signed with
 #   Android  ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS
 #            and ANDROID_KEY_PASSWORD, which android/app/build.gradle signs
 #            with; GOOGLE_APPLICATION_CREDENTIALS for Google Play, written by
@@ -22,6 +24,8 @@
 #   bundle exec fastlane android beta dry_run:true
 
 require "fileutils"
+require "open3"
+require "openssl"
 require "shellwords"
 require "tmpdir"
 
@@ -33,6 +37,9 @@ APP_IDENTIFIER = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifi
 TEAM_ID = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
 IPA = "build/ios/App.ipa"
 AAB = "android/app/build/outputs/bundle/release/app-release.aab"
+
+# The keychain setup_ci makes on a runner, which Xcode signs the archive from.
+CI_KEYCHAIN = "fastlane_tmp_keychain"
 
 # Google Play takes release notes per language, and shows the listing's
 # default language for the rest. This listing's is en-GB; if Play Console's
@@ -60,6 +67,20 @@ def dry_run?(options)
   options[:dry_run].to_s == "true"
 end
 
+# A paragraph in the job's summary on GitHub Actions, and a line in the log.
+def job_summary(markdown)
+  UI.message(markdown)
+  File.write(ENV["GITHUB_STEP_SUMMARY"], "#{markdown}\n\n", mode: "a") if ENV["GITHUB_STEP_SUMMARY"]
+end
+
+# A warning on the run's page and in the job's summary, as well as the log.
+# The message has to be one line.
+def job_warning(title, message)
+  UI.important(message)
+  $stdout.puts("::warning title=#{title}::#{message}") if ENV["GITHUB_ACTIONS"]
+  File.write(ENV["GITHUB_STEP_SUMMARY"], "⚠️ #{message}\n\n", mode: "a") if ENV["GITHUB_STEP_SUMMARY"]
+end
+
 default_platform(:ios)
 
 platform :ios do
@@ -72,15 +93,109 @@ platform :ios do
     )
   end
 
+  # OpenSSL hands back a subject's fields as bytes, which in Apple's
+  # certificates are UTF-8: a name like Zoë would otherwise break the messages.
+  def subject_field(certificate, field)
+    certificate.subject.to_a.find { |key, _| key == field }&.at(1).to_s.dup.force_encoding(Encoding::UTF_8)
+  end
+
+  def common_name(certificate)
+    subject_field(certificate, "CN")
+  end
+
+  def team_of(certificate)
+    subject_field(certificate, "OU")
+  end
+
+  # Apple and OpenSSL write a serial number differently.
+  def certificate_serial(number)
+    number.to_s.downcase.sub(/\A0+/, "")
+  end
+
+  # The team's development certificates, as Apple has them.
+  def development_certificates
+    types = Spaceship::ConnectAPI::Certificate::CertificateType
+    Spaceship::ConnectAPI::Certificate.all(filter: { certificateType: [types::DEVELOPMENT, types::IOS_DEVELOPMENT].join(",") })
+  end
+
+  def keychain_certificates(keychain)
+    pem, = Open3.capture2("security", "find-certificate", "-a", "-p", keychain)
+    pem.scan(/-----BEGIN CERTIFICATE-----.+?-----END CERTIFICATE-----/m).map { |text| OpenSSL::X509::Certificate.new(text) }
+  end
+
+  # Whether the keychain has the certificate's private key too, so can sign
+  # with it.
+  def can_sign?(certificate, keychain)
+    identities, = Open3.capture2("security", "find-identity", "-p", "codesigning", keychain)
+    identities.include?(OpenSSL::Digest::SHA1.hexdigest(certificate.to_der).upcase)
+  end
+
+  # Imports the Apple Development certificate the archive is signed with,
+  # APPLE_DEVELOPMENT_P12_BASE64 opened with APPLE_DEVELOPMENT_P12_PASSWORD,
+  # into the keychain setup_ci made. Returns it, or nil when neither secret is
+  # set: Xcode then makes a new certificate for the build, as it does whenever
+  # it has none to sign with. known is the team's development certificates.
+  def import_development_certificate(known)
+    p12 = ENV["APPLE_DEVELOPMENT_P12_BASE64"].to_s
+    password = ENV["APPLE_DEVELOPMENT_P12_PASSWORD"].to_s
+    if p12.empty? && password.empty?
+      job_warning("iOS signing", "No Apple Development certificate is stored - APPLE_DEVELOPMENT_P12_BASE64 and APPLE_DEVELOPMENT_P12_PASSWORD are not set - so Xcode makes a new one for this build.")
+      return nil
+    end
+    UI.user_error!("APPLE_DEVELOPMENT_P12_PASSWORD is not set, though APPLE_DEVELOPMENT_P12_BASE64 is.") if password.empty?
+    UI.user_error!("APPLE_DEVELOPMENT_P12_BASE64 is not set, though APPLE_DEVELOPMENT_P12_PASSWORD is.") if p12.empty?
+
+    # import_certificate only logs it when security refuses the file, so what
+    # reached the keychain is checked after.
+    Dir.mktmpdir("signing-", ENV["RUNNER_TEMP"]) do |directory|
+      path = File.join(directory, "development.p12")
+      File.binwrite(path, p12.unpack1("m"))
+      import_certificate(certificate_path: path, certificate_password: password, keychain_name: CI_KEYCHAIN, keychain_password: "")
+    end
+    keychain = FastlaneCore::Helper.keychain_path(CI_KEYCHAIN)
+    certificates = keychain_certificates(keychain)
+    UI.user_error!("APPLE_DEVELOPMENT_P12_BASE64 did not import: it is not a .p12, or APPLE_DEVELOPMENT_P12_PASSWORD does not open it.") if certificates.empty?
+    certificate = certificates.find { |candidate| can_sign?(candidate, keychain) }
+    UI.user_error!("The .p12 in APPLE_DEVELOPMENT_P12_BASE64 has no private key. Export the certificate from My Certificates in Keychain Access, which includes it.") unless certificate
+
+    name = common_name(certificate)
+    unless name.start_with?("Apple Development:", "iPhone Developer:")
+      UI.user_error!("APPLE_DEVELOPMENT_P12_BASE64 holds #{name}, which is not an Apple Development certificate.")
+    end
+    UI.user_error!("#{name} belongs to team #{team_of(certificate)}, not #{TEAM_ID}.") unless team_of(certificate) == TEAM_ID
+
+    # Xcode cannot sign with a certificate that has expired or been revoked,
+    # and quietly makes one per build again, so both are warned about, and so
+    # is an expiry a month away.
+    expires = certificate.not_after.utc.strftime("%Y-%m-%d")
+    left = certificate.not_after - Time.now
+    serial = certificate_serial(certificate.serial.to_s(16))
+    if left.negative?
+      job_warning("iOS signing", "#{name} expired on #{expires}, so Xcode makes a new certificate for this build. Store a new one with scripts/release/ios-signing-secrets.sh.")
+    elsif known.none? { |other| certificate_serial(other.serial_number) == serial }
+      job_warning("iOS signing", "#{name} is not among the team's certificates any more, as happens when one is revoked, so Xcode makes a new certificate for this build. Store a new one with scripts/release/ios-signing-secrets.sh.")
+    elsif left < 30 * 86_400
+      days = (left / 86_400).ceil
+      job_warning("iOS signing", "#{name} expires on #{expires}, in #{days} #{days == 1 ? 'day' : 'days'}; after that Xcode makes a new certificate for every build. Store a new one with scripts/release/ios-signing-secrets.sh before then.")
+    end
+    UI.success("Imported #{name}, which expires on #{expires}.")
+    certificate
+  end
+
   desc "Build the IPA for the App Store, carrying the release's version"
-  lane :build do
-    # A temporary keychain for the development certificate Xcode makes to sign
-    # the archive, since a runner's keychains start empty. The keychain goes
-    # with the runner; the certificate, "Apple Development: Created via API",
-    # stays registered with Apple until it expires after a year. Apple sets no
-    # limit on development certificates for a paid team, and revoking each one
-    # would send the account holder an email for every build.
-    setup_ci if ENV["CI"]
+  lane :build do |options|
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: app_store_api_key)
+    known = development_certificates
+
+    # Signing the archive takes an Apple Development certificate, and a
+    # runner's keychains start empty: setup_ci makes a keychain for the stored
+    # one. With none to sign with, Xcode makes a new certificate, which stays
+    # registered with Apple until it expires a year later.
+    certificate = nil
+    if ENV["CI"]
+      setup_ci(keychain_name: CI_KEYCHAIN)
+      certificate = import_development_certificate(known)
+    end
 
     # Cloud signing. The project uses automatic signing, and these let
     # xcodebuild register profiles and use a cloud-managed distribution
@@ -113,6 +228,24 @@ platform :ios do
       output_name: File.basename(IPA, ".ipa"),
       clean: true
     )
+
+    # Whether the stored certificate really signed it: Apple would have a new
+    # development certificate if Xcode had to make one. A dry run fails on
+    # that, as the proof; a release goes ahead, with a warning.
+    serials = known.map(&:serial_number)
+    made = development_certificates.reject { |other| serials.include?(other.serial_number) }
+    if made.empty?
+      signer = certificate ? "*#{common_name(certificate)}*, which expires on #{certificate.not_after.utc.strftime('%Y-%m-%d')}" : "a development certificate Apple already had"
+      job_summary("The iOS archive was signed with #{signer}.")
+    else
+      names = made.map { |other| "#{other.name} (#{other.serial_number})" }.join(", ")
+      job_summary("The iOS archive was signed with a development certificate Xcode made for it, #{names}.")
+      if certificate
+        message = "Xcode made a development certificate, #{names}, instead of signing with #{common_name(certificate)}."
+        UI.user_error!(message) if dry_run?(options)
+        job_warning("iOS signing", message)
+      end
+    end
   end
 
   # Has Apple check the IPA as it checks an upload - the version and build

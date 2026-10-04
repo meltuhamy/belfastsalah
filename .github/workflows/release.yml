@@ -329,8 +329,13 @@ jobs:
             exit 1
           fi
 
+      # The Apple Development certificate the archive is signed with. Without
+      # it, Xcode makes a new one for every build; the build lane warns.
       - name: Build and sign
-        run: bundle exec fastlane ios build
+        env:
+          APPLE_DEVELOPMENT_P12_BASE64: ${{ secrets.APPLE_DEVELOPMENT_P12_BASE64 }}
+          APPLE_DEVELOPMENT_P12_PASSWORD: ${{ secrets.APPLE_DEVELOPMENT_P12_PASSWORD }}
+        run: bundle exec fastlane ios build dry_run:"$DRY_RUN"
 
       # The version each bundle in the IPA carries - the app and its widget
       # extension both, which the App Store requires to agree.
