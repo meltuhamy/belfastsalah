@@ -30,10 +30,54 @@ Notes:
   even on a public repo.
 - Skip this for changes that cannot affect the app, such as edits to README or
   to workflow files that are not part of the build.
+- On master, CI runs inside `release.yml` rather than as `ci.yml` of its own.
+  A merged change's signed builds are on its GitHub release.
+
+## Releases
+
+A merge to `master` that changes the app is released to testers by itself:
+`release.yml` runs CI, tags the next version, uploads to TestFlight and Google
+Play internal testing, and publishes a GitHub pre-release with the Android
+builds. Users get it when someone makes that pre-release a full release, which
+runs `promote.yml`. RELEASING.md has the whole flow; when working on the code:
+
+- **Merging is shipping to testers**, so a pull request is finished when it
+  merges.
+- **Never write a version into a file.** The `vX.Y.Z` tags are the only
+  record: fastlane passes the version to Gradle (`-PversionCode`,
+  `-PversionName`) and to xcodebuild (`MARKETING_VERSION`,
+  `CURRENT_PROJECT_VERSION`), and the files say `0.0.0-dev` / `0.0.0` on
+  purpose. Never create a tag or a release by hand either: the next run counts
+  from the highest `v*` tag.
+- **Label the pull request** when a patch is wrong: `release:minor`,
+  `release:major`, or `release:skip`. Docs, tests, CI and tooling are not
+  released on their own - `isAppFile` in `scripts/release/version.mjs` - so
+  they need no label.
+- **The build number is major x 1,000,000 + minor x 1,000 + patch**, the same
+  on both stores. `version.test.mjs` pins why.
+- **A pull request that changes the release machinery** - `fastlane/`,
+  `scripts/release/`, `release.yml`, the native build files - gets a dry run:
+  signed builds carrying the next version, checked by App Store Connect and
+  Google Play, nothing tagged, uploaded or published. GitHub only offers *Run
+  workflow* for workflows already on master, so this is how a change to the
+  pipeline is tried before it merges. `promote.yml` has a `dry_run` input.
+- **The release's "What's new" sits between markers** in its notes, and
+  promotion reads it back from there for the stores. `scripts/release/notes.mjs`
+  owns that format; `notes.test.mjs` pins it.
+- **Every store step is idempotent** - it asks the store first - so a failed
+  job is fixed by re-running it. Keep any new step that way.
+- **Workflow conventions**: actions pinned to commit SHAs with the version in
+  a comment, which Dependabot updates; local actions as
+  `uses: $/.github/actions/...`, GitHub's self-repository form, which zizmor
+  requires and actionlint 1.7.12 does not know yet (hence
+  `.github/actionlint.yaml`); `permissions:` and `timeout-minutes` on every
+  job; no caches in `promote.yml`. CI's Workflows job runs actionlint and
+  zizmor, so run both before pushing a workflow change.
 
 ## Testing
 
-- `npm test` — vitest, unit tests in `src/`
+- `npm test` — vitest, unit tests in `src/`, and in `scripts/` for the release
+  and preview tooling
 - `npm run test:e2e` — Playwright, real-browser tests in `e2e/`
 
 Behaviour is covered end-to-end; vitest is for utility functions and data
@@ -153,9 +197,8 @@ itself still runs on 15.
   pins it now. The plugin and the extension log `PrayerWidget:` lines, and
   Debug builds print why a widget is empty under "No times".
   A simulator only grants entitlements to a signed app, so every simulator
-  build that has to share data is signed ad hoc
-  (`CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=`), never
-  `CODE_SIGNING_ALLOWED=NO`.
+  build that has to share data is signed ad hoc - `xcodebuild -xcconfig
+  AdHocSigning.xcconfig`, from `ios/App` - never `CODE_SIGNING_ALLOWED=NO`.
 - **No alarms.** WidgetKit draws a timeline of entries, one per prayer, from
   `PrayerTimeline`; the system ticks `Text(_, style: .timer)` in between.
   The minutes countdown has no live text style, so in that mode there is an
@@ -307,13 +350,13 @@ The London files are generated, so regenerate rather than editing them by
 hand:
 
 - **2026 to 2076** come from the official London Unified Prayer Timetable,
-  `node scripts/lupt-to-utc-json.js 2026 2076`, which downloads each year's
-  .xlsx from londonsalahtimes.com/downloads into `scripts/data/lupt` (not
-  committed). Those sheets change their clocks on the real dates, and the
+  `node scripts/timetables/lupt-to-utc-json.js 2026 2076`, which downloads
+  each year's .xlsx from londonsalahtimes.com/downloads into
+  `scripts/timetables/data/lupt` (not committed). Those sheets change their clocks on the real dates, and the
   script refuses one that does not. The 2026 file only has a 12-hour sheet,
   which the script turns back into 24-hour times.
-- **2022 to 2025** come from the CSVs in `scripts/data`, through
-  `scripts/spreadsheet-to-utc-json.js`. 2025's sheet moves its clocks on
+- **2022 to 2025** come from the CSVs in `scripts/timetables/data`, through
+  `scripts/timetables/spreadsheet-to-utc-json.js`. 2025's sheet moves its clocks on
   1 April and 28 October, not on the real dates, so that script converts each
   row with the offset the sheet itself is using, read off its own hour jumps.
   Converting with the calendar's offset left days each spring and autumn an
