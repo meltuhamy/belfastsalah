@@ -24,7 +24,7 @@ on:
   workflow_dispatch:
     inputs:
       bump:
-        description: Version bump - auto follows the merged pull request's labels
+        description: Version bump - auto takes the biggest label among the pull requests since the last release
         type: choice
         options: [auto, patch, minor, major]
         default: auto
