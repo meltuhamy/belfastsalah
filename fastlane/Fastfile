@@ -22,8 +22,6 @@
 #   bundle exec fastlane android beta dry_run:true
 
 require "fileutils"
-require "open3"
-require "openssl"
 require "shellwords"
 require "tmpdir"
 
@@ -74,38 +72,14 @@ platform :ios do
     )
   end
 
-  def certificate_serial(number)
-    number.to_s.downcase.sub(/\A0+/, "")
-  end
-
-  # Signing the archive takes a development certificate, and a runner's
-  # keychains start empty, so Xcode makes a new one for every build and leaves
-  # it registered with Apple, which caps how many a team can have. This
-  # revokes the development certificates in the runner's keychains: the runner
-  # is new for every job, so this build made them. It never touches a
-  # distribution certificate, and a failure here only warns.
-  def revoke_development_certificates
-    pem, = Open3.capture2("security", "find-certificate", "-a", "-p")
-    serials = pem.scan(/-----BEGIN CERTIFICATE-----.+?-----END CERTIFICATE-----/m)
-                 .map { |text| certificate_serial(OpenSSL::X509::Certificate.new(text).serial.to_s(16)) }
-    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: app_store_api_key)
-    types = Spaceship::ConnectAPI::Certificate::CertificateType
-    revoked = Spaceship::ConnectAPI::Certificate.all(filter: { certificateType: [types::DEVELOPMENT, types::IOS_DEVELOPMENT].join(",") })
-                                                .select { |certificate| serials.include?(certificate_serial(certificate.serial_number)) }
-    revoked.each do |certificate|
-      certificate.delete!
-      UI.message("Revoked #{certificate.name} (#{certificate.serial_number}), the development certificate this build made.")
-    end
-    UI.important("No development certificate from this build to revoke.") if revoked.empty?
-  rescue StandardError => e
-    UI.important("Could not revoke this build's development certificate: #{e.message}")
-  end
-
   desc "Build the IPA for the App Store, carrying the release's version"
   lane :build do
     # A temporary keychain for the development certificate Xcode makes to sign
-    # the archive. The keychain goes with the runner, and the certificate is
-    # revoked once the IPA is exported.
+    # the archive, since a runner's keychains start empty. The keychain goes
+    # with the runner; the certificate, "Apple Development: Created via API",
+    # stays registered with Apple until it expires after a year. Apple sets no
+    # limit on development certificates for a paid team, and revoking each one
+    # would send the account holder an email for every build.
     setup_ci if ENV["CI"]
 
     # Cloud signing. The project uses automatic signing, and these let
@@ -128,21 +102,17 @@ platform :ios do
     #
     # Capacitor 8 uses Swift Package Manager rather than CocoaPods, so there
     # is no .xcworkspace to point at - the project builds directly.
-    begin
-      build_app(
-        project: "ios/App/App.xcodeproj",
-        scheme: "App",
-        configuration: "Release",
-        export_method: "app-store",
-        export_options: { signingStyle: "automatic", teamID: TEAM_ID },
-        xcargs: "#{auth} MARKETING_VERSION=#{release_version} CURRENT_PROJECT_VERSION=#{release_build}",
-        output_directory: File.dirname(IPA),
-        output_name: File.basename(IPA, ".ipa"),
-        clean: true
-      )
-    ensure
-      revoke_development_certificates if ENV["CI"]
-    end
+    build_app(
+      project: "ios/App/App.xcodeproj",
+      scheme: "App",
+      configuration: "Release",
+      export_method: "app-store",
+      export_options: { signingStyle: "automatic", teamID: TEAM_ID },
+      xcargs: "#{auth} MARKETING_VERSION=#{release_version} CURRENT_PROJECT_VERSION=#{release_build}",
+      output_directory: File.dirname(IPA),
+      output_name: File.basename(IPA, ".ipa"),
+      clean: true
+    )
   end
 
   desc "Upload the IPA to TestFlight, or as a dry run check the API key works"

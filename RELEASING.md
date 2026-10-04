@@ -141,10 +141,10 @@ change since the last release that was published.
 - **Apple refuses an upload with no clear reason.** An agreement is probably
   waiting for the account holder. Accept it from the banner on the App Store
   Connect home page, then re-run.
-- **Apple says there are too many certificates.** Each build revokes the
-  development certificate it makes, so this should not happen. If it does,
-  revoke old *Apple Development* certificates at developer.apple.com →
-  Certificates, then re-run.
+- **Apple says there are too many certificates.** Each iOS build makes an
+  *Apple Development: Created via API* certificate, which expires after a
+  year. Apple sets no limit on them for a paid team, but if it ever refuses
+  one, revoke old ones at developer.apple.com → Certificates, then re-run.
 - **Promote says What's new is too long.** Shorten it on the release, then
   run Promote again.
 - **Promote says a newer release exists.** Ship that one instead: it has
