@@ -1,25 +1,43 @@
+require "shellwords"
+
 default_platform(:ios)
 
 platform :ios do
   desc "Build a signed IPA and upload it to TestFlight"
   lane :beta do
-    # Creates a temporary keychain on CI and cleans it up afterwards.
+    # A temporary keychain on CI, for the development certificate Xcode makes
+    # to sign the archive; it is thrown away with the runner.
     setup_ci if ENV["CI"]
 
+    key_id = ENV.fetch("APP_STORE_CONNECT_KEY_ID")
+    issuer_id = ENV.fetch("APP_STORE_CONNECT_ISSUER_ID")
+    key_path = ENV.fetch("APP_STORE_CONNECT_KEY_PATH")
+
     api_key = app_store_connect_api_key(
-      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
-      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
-      key_content: ENV.fetch("APP_STORE_CONNECT_KEY_CONTENT"),
-      is_key_content_base64: true,
+      key_id: key_id,
+      issuer_id: issuer_id,
+      key_filepath: key_path,
       in_house: false
     )
 
+    # Cloud signing: the project uses automatic signing, and these let
+    # xcodebuild register profiles and use a cloud-managed distribution
+    # certificate with no Apple account signed in. Both the archive and the
+    # export need them, and gym passes xcargs to both - adding them to
+    # export_xcargs as well makes xcodebuild refuse the duplicates.
+    auth = [
+      "-allowProvisioningUpdates",
+      "-authenticationKeyPath #{key_path.shellescape}",
+      "-authenticationKeyID #{key_id.shellescape}",
+      "-authenticationKeyIssuerID #{issuer_id.shellescape}"
+    ].join(" ")
+
     # Build numbers have to be unique per marketing version in TestFlight, so
     # the workflow run number is used rather than a value committed to git.
-    increment_build_number(
-      xcodeproj: "ios/App/App.xcodeproj",
-      build_number: ENV.fetch("BUILD_NUMBER", Time.now.to_i.to_s)
-    )
+    # Set as a build setting rather than with agvtool, which needs a
+    # versioning system the project does not declare; this way it reaches
+    # the widget extension too, whose Info.plist is generated from it.
+    build_number = ENV.fetch("BUILD_NUMBER", Time.now.to_i.to_s)
 
     # Capacitor 8 uses Swift Package Manager rather than CocoaPods, so there
     # is no .xcworkspace to point at - the project builds directly.
@@ -28,6 +46,11 @@ platform :ios do
       scheme: "App",
       configuration: "Release",
       export_method: "app-store",
+      export_options: {
+        signingStyle: "automatic",
+        teamID: CredentialsManager::AppfileConfig.try_fetch_value(:team_id) # FMTYKM5F9P
+      },
+      xcargs: "#{auth} CURRENT_PROJECT_VERSION=#{build_number}",
       output_directory: "build/ios",
       clean: true
     )
