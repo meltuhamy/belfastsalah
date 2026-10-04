@@ -12,8 +12,11 @@ android {
         applicationId "com.meltuhamy.londonsalah"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 40000
-        versionName "4.0.0"
+        // A release gets its version from the tag it is built for: fastlane
+        // passes -PversionCode and -PversionName (see RELEASING.md). Anything
+        // else - a local build, CI's debug APK - is a development build.
+        versionCode = (findProperty("versionCode") ?: "1") as Integer
+        versionName = findProperty("versionName") ?: "0.0.0-dev"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

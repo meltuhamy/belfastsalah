@@ -1,3 +1,4 @@
 source "https://rubygems.org"
 
-gem "fastlane"
+# The version is locked in Gemfile.lock and kept current by Dependabot.
+gem "fastlane", "~> 2.240"

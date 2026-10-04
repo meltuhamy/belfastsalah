@@ -1,34 +1,60 @@
 name: CI
 
-on:
-  # Runs on every branch, so native builds are verified before a pull request
-  # exists - this is the only place the Android and iOS toolchains are checked.
-  push:
-  # Only for pull requests from forks, whose pushes do not run here. A branch
-  # of this repository already gets the push run, for the same commit, and
-  # GitHub shows it on the pull request; running again for the pull request
-  # doubled every job. Each job carries the condition, as workflows cannot.
-  pull_request:
-  workflow_dispatch:
+# Lint, tests and native builds. Runs on every push to a branch, so the Android
+# and iOS toolchains are checked before a pull request exists - this is the
+# only place they are - and GitHub shows that run on the branch's pull request.
+# On master it runs inside release.yml instead, which only releases a commit
+# that passes, and a pull request from a fork, whose pushes do not run here,
+# runs it through ci-fork.yml.
 
+on:
+  push:
+    branches-ignore: [master]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+# The literal "ci-" matters: inside release.yml, github.workflow is the
+# caller's name, and a group the caller already holds would deadlock.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  workflows:
+    name: Workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Both by image digest, as the actions are by commit; Dependabot does not
+      # update these, so bump them by hand.
+
+      # Correctness: expressions, job and action inputs, and shellcheck on
+      # every run step.
+      - name: actionlint
+        run: docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 -color
+
+      # Security: template injection, over-broad permissions, unpinned actions,
+      # credentials left lying around. Its settings are in .github/zizmor.yml.
+      - name: zizmor
+        run: docker run --rm -v "$PWD:/repo" --workdir /repo ghcr.io/zizmorcore/zizmor:1.30.1@sha256:a2eb396d886c053073405c7a980f2139ba2248ec172243cfa3841e57196e8101 --offline --format=github .
+
   web:
     name: Lint, typecheck, test, build
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 22
-          cache: npm
+          persist-credentials: false
 
-      - run: npm ci
+      - uses: ./.github/actions/setup
 
       - name: Lint
         run: npm run lint
@@ -45,7 +71,7 @@ jobs:
       - name: Build
         run: npx vite build
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: web-build
           path: build
@@ -53,17 +79,14 @@ jobs:
 
   e2e:
     name: Browser tests
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 22
-          cache: npm
+          persist-credentials: false
 
-      - run: npm ci
+      - uses: ./.github/actions/setup
 
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
@@ -71,7 +94,7 @@ jobs:
       - name: Run Playwright tests
         run: npm run test:e2e
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
         with:
           name: playwright-report
@@ -80,29 +103,16 @@ jobs:
 
   android:
     name: Android debug build
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 22
-          cache: npm
+          persist-credentials: false
 
-      - uses: actions/setup-java@v5
+      - uses: ./.github/actions/setup
         with:
-          distribution: temurin
-          java-version: 21
-
-      - uses: android-actions/setup-android@v4
-
-      - run: npm ci
-
-      - name: Build web assets and sync
-        run: |
-          npx vite build
-          npx cap sync android
+          platform: android
 
       - name: Assemble debug APK
         working-directory: android
@@ -129,7 +139,7 @@ jobs:
 
       # What a failure looks like: the test report, and for a screenshot that
       # changed, the new image and a diff against the reference.
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
         with:
           name: android-unit-test-results
@@ -141,12 +151,12 @@ jobs:
       # The Play Store takes an app bundle, not an APK, and that is a different
       # Gradle task with its own way of failing. Building it unsigned here
       # means a broken release build surfaces on an ordinary push rather than
-      # on the tag you were hoping to ship.
+      # on the merge that was meant to ship it.
       - name: Assemble release bundle (unsigned)
         working-directory: android
         run: ./gradlew bundleRelease --no-daemon
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: app-debug.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
@@ -154,26 +164,20 @@ jobs:
 
   ios:
     name: iOS build (unsigned)
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     # macOS runners are free and unmetered on public repositories.
     runs-on: macos-26
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 22
-          cache: npm
+          persist-credentials: false
 
-      - run: npm ci
-
-      - name: Build web assets and sync
-        run: |
-          npx vite build
-          npx cap sync ios
+      - uses: ./.github/actions/setup
+        with:
+          platform: ios
 
       # No signing here, so this only proves the project compiles. Signed
-      # builds live in release-ios.yml.
+      # builds come from release.yml.
       - name: Build without signing
         working-directory: ios/App
         run: |
@@ -191,9 +195,9 @@ jobs:
       # the app and the widget share, whether any text is cut off, and
       # snapshots compared against ios/App/PrayerWidgetsTests/__Snapshots__.
       #
-      # Signed ad hoc rather than not at all: a simulator only grants
-      # entitlements - the App Group among them - to a signed app, and that
-      # needs no certificate.
+      # Signed ad hoc (AdHocSigning.xcconfig) rather than not at all: a
+      # simulator only grants entitlements - the App Group among them - to a
+      # signed app, and that needs no certificate.
       #
       # As on Android, the snapshot comparison is skipped while
       # record-widget-screenshots.yml is replacing the references, or before
@@ -206,6 +210,7 @@ jobs:
         working-directory: ios/App
         env:
           RECORDING: ${{ contains(github.event.head_commit.message, '[record screenshots]') }}
+          UDID: ${{ steps.sim.outputs.udid }}
         run: |
           skip=()
           if [ "$RECORDING" = "true" ] || [ ! -d PrayerWidgetsTests/__Snapshots__ ]; then
@@ -214,10 +219,10 @@ jobs:
           xcodebuild test \
             -project App.xcodeproj \
             -scheme PrayerWidgetsTests \
-            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -destination "id=$UDID" \
             -derivedDataPath build \
             -resultBundlePath "$RUNNER_TEMP/PrayerWidgetsTests.xcresult" \
-            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= \
+            -xcconfig AdHocSigning.xcconfig \
             "${skip[@]}"
 
       # The logic again in zones far from London. Nothing on the native side
@@ -225,22 +230,24 @@ jobs:
       # started to - as test:zones does for the TypeScript.
       - name: Widget logic in other time zones
         working-directory: ios/App
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
         run: |
           for zone in Pacific/Auckland America/Los_Angeles Asia/Dubai; do
             echo "--- TZ=$zone ---"
             TEST_RUNNER_TZ="$zone" xcodebuild test-without-building \
               -project App.xcodeproj \
               -scheme PrayerWidgetsTests \
-              -destination "id=${{ steps.sim.outputs.udid }}" \
+              -destination "id=$UDID" \
               -derivedDataPath build \
               -only-testing:PrayerWidgetsTests/WidgetPayloadTests \
               -only-testing:PrayerWidgetsTests/PrayerTimelineTests \
-              CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=
+              -xcconfig AdHocSigning.xcconfig
           done
 
       # What a failure looks like: the result bundle, and for a snapshot that
       # changed, the new image beside the reference.
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
         with:
           name: ios-widget-test-results

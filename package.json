@@ -1,6 +1,5 @@
 {
   "name": "prayertimes",
-  "version": "4.0.0",
   "private": true,
   "type": "module",
   "description": "Prayer times for Belfast and London, straight from the mosque timetable.",

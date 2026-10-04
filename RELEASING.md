@@ -1,263 +1,211 @@
-# Releasing to Google Play
+# Releasing
 
-The listing is **London Prayer Times**, package `com.meltuhamy.londonsalah`.
-Play App Signing is enrolled, which is worth knowing: the keystore you hold is
-an *upload* key, not the app signing key. Google holds the signing key and
-re-signs every release. If the upload key is lost or wrong, ask Google for an
-upload key reset — it is a few days, not a catastrophe.
+Merging to `master` releases the app to testers, and you ship it to users
+from its GitHub release. Everything else is automatic, so never write a
+version into a file or create a tag or a GitHub release yourself: each
+release counts on from the highest `v*` tag.
 
-## If the upload key is lost, or its password is
+## 1. Merge
 
-This is recoverable, and that is the whole point of Play App Signing being
-enrolled. The upload key only proves it is you uploading; the key that users'
-devices actually check is held by Google and never changes. Ask for a reset:
+Merge the pull request. It is released as the next patch version unless you
+label it first:
 
-1. Generate the new key and its certificate:
-
-   ```bash
-   ./scripts/new-upload-key.sh
-   ```
-
-   Put the password in a password manager as you type it, not afterwards.
-   Back up `upload-keystore.jks` before you close whatever machine or
-   Codespace you made it on — losing it means another reset request. Re-running
-   the script never regenerates over an existing key; if the export was
-   interrupted it just retries that part.
-
-2. Play Console → Protected with Play → Play Store protection → **Manage Play
-   app signing** → request an upload key reset, attaching that `.pem`.
-
-Google swaps the registered upload certificate in a couple of business days.
-Existing installs are unaffected, because the app signing key is untouched.
-
-Do not tag a release until the reset has gone through. Until then Play still
-expects the old certificate and will reject a bundle signed with the new key.
-
-The original 2015 keystore lives in Google Drive as
-`com.meltuhamy.londonsalah.keystore`. Its password is not recorded anywhere —
-not in this repo's history, not alongside the file — so assume a reset is the
-path unless someone turns it up.
-
-## One-time setup
-
-Four repository secrets, set from a machine that has the upload keystore:
-
-```bash
-./scripts/android-signing-secrets.sh path/to/upload-keystore.jks
-```
-
-It shows the certificate fingerprint first so you can check it against
-Play Console → Protected with Play → Play Store protection → **Manage Play app
-signing**, and refuses to continue until you confirm it matches. No key or
-password is written to disk. Set `PLAY_SERVICE_ACCOUNT_JSON` too if you want
-the workflow to upload to the internal track by itself.
-
-## Cutting a release
-
-1. Bump the version in `android/app/build.gradle`. The convention is
-   `major.minor.patch` → `MMmmpp`, so 4.0.1 is `versionCode 40001`. It only has
-   to increase; Play rejects a bundle whose code is not higher than the last
-   one uploaded.
-2. Commit, then tag:
-
-   ```bash
-   git tag v4.0.1 && git push origin v4.0.1
-   ```
-
-3. `release-android.yml` builds a signed `.aab` and attaches it as an artifact.
-   Download it, or run the workflow manually with `publish: true` to push it
-   straight to the internal track.
-4. Upload to the **internal** track first, whatever else you do. Promote to
-   production only after the checks below.
-
-Ordinary pushes build the release bundle unsigned in CI, so a broken release
-build shows up before you tag rather than after.
-
-## Console forms
-
-Play blocks releases while any of these are incomplete. None of them are
-onerous for this app, because it collects nothing.
-
-**Data safety** — the whole form is "no":
-
-| Question | Answer |
+| Label | Version |
 |---|---|
-| Does your app collect or share any user data? | **No** |
-| Is all data encrypted in transit? | n/a — no data is transmitted |
-| Do you provide a way to request data deletion? | n/a — no data is collected |
+| none | 4.0.1 → 4.0.2 |
+| `release:minor` | 4.0.2 → 4.1.0 |
+| `release:major` | 4.1.0 → 5.0.0 |
+| `release:skip` | not released; goes out with the next release, and is listed in its notes |
 
-That is accurate rather than convenient: the app makes no network requests at
-all, has no analytics or crash reporting, and ships its timetables in the
-bundle. Settings and scheduled reminders stay on the device.
+A release takes the biggest bump any pull request in it asks for, so a label
+counts even when its own merge was not released.
 
-**Other declarations**
+A pull request that only changes docs, tests, CI or tooling is not released on
+its own, so it needs no label. That includes Dependabot's updates to test and
+lint packages; an update to anything the app ships or is built with is
+released.
 
-| Form | Answer |
-|---|---|
-| App access | All functionality available, no login |
-| Ads | No ads |
-| Content rating | Reference / education; everyone |
-| Target audience | 13+ (no child-directed content or design) |
-| Government app | No |
-| Financial features | None |
-| Health | None |
+Within about half an hour the new version is in Google Play internal
+testing, in TestFlight once Apple has processed it, and on
+[GitHub Releases](https://github.com/meltuhamy/belfastsalah/releases) as a
+pre-release. The **Release** run under Actions shows how it is going, and its
+summary says which version it chose, or why it released nothing.
 
-**Privacy policy**: <https://meltuhamy.com/privacy-policy/>
+## 2. Try it
 
-## Exact alarms
+- **iPhone**: install it from the TestFlight app. Everyone in the *App Store
+  Connect Users* group gets every build.
+- **Android**: install it from Google Play as an internal tester. Testers are
+  added in Play Console → Test and release → Testing → Internal testing →
+  Testers, and join by opening the link on that page on their phone. Or
+  install the `.apk` attached to the release, after uninstalling the Play
+  version: Android will not install one over the other.
 
-The app declares `USE_EXACT_ALARM`. Play restricts that permission to apps
-whose core function needs alarms at an exact time, so it may draw a review
-question. The justification is straightforward: the app's only function is
-telling you when the next prayer is and reminding you before it, and a
-reminder that drifts by fifteen minutes is not a reminder. Doze downgrades
-inexact alarms, which is precisely the case that has to work.
+Build numbers read as the version: build 4000002 is 4.0.2. TestFlight's What
+to Test and Google Play's release notes list what changed since the previous
+release.
 
-If a reviewer rejects it, the fallback is `SCHEDULE_EXACT_ALARM` plus a
-runtime prompt sending the user to system settings to grant "Alarms &
-reminders". That is a manifest change and a permission check, not a redesign.
+Check on real phones before shipping:
 
-## Before promoting to production
+- **A reminder fires.** Long-press the timer icon beside the reminder slider
+  for a test one in a few seconds, then leave the phone alone until a real
+  one arrives.
+- **Updating keeps settings.** Install the store version, choose a location
+  and a theme, then update to the new one.
+- **Notifications**: the permission prompt, and reminders after a reboot.
+- **Widgets** show times rather than "No times", and their settings change
+  them: Edit Widget on iOS, the appearance screen on Android. On iOS, check
+  the lock screen ones too.
+- **The splash screen** on Android 12 or later.
 
-Install from the internal track on a real device and check:
+## 3. Ship
 
-- **A reminder actually fires.** Long-press the timer icon next to the
-  reminder slider — a hidden diagnostic that schedules one a few seconds out,
-  so you do not have to wait for a prayer time. Then leave the phone alone long
-  enough to check a real one arrives from Doze.
-- **Upgrading over the old version keeps settings.** Install the previous
-  release first, set a location and a theme, then update. The settings
-  migration is unit-tested, but never against a store written by 3.0.6.
-- **Notifications prompt on Android 13+**, and reminders still arrive after a
-  reboot.
-- **The splash screen** on Android 12+, which uses the platform API and cannot
-  be checked in a browser.
+1. Open the release on
+   [GitHub Releases](https://github.com/meltuhamy/belfastsalah/releases) and
+   click **Edit**.
+2. Rewrite **What's new** for users. Both stores show it. It starts out as
+   the title of every pull request since the last shipped release. Use plain
+   text, `-` for bullets, and at most 500 characters.
+3. Untick **Set as a pre-release** and click **Update release**.
 
-Note the release build is signed with a different key from the debug APKs from
-CI, so it will not install over one. Uninstall the debug build first.
+The **Promote** run under Actions then sends the Android build to
+production, and the iOS build to App Store review; Apple releases it as soon
+as it is approved. The release shows as a pre-release again while Promote
+runs, and becomes a full release once a store has it. When the run finishes,
+the release's **Builds** table says where each build went. If neither store
+took it, it stays a pre-release: fix the cause, then untick it again.
 
-## Store listing
+Only the newest release can be shipped: Google Play's internal testing keeps
+only the newest build. A newer release includes everything in the older ones.
 
-The screenshots on the listing predate the rewrite — setup is one screen now,
-there is a theme picker, and a timezone row appears outside the UK. Play wants
-at least two phone screenshots. The listing name still says London only, though
-the app has covered Belfast for years; renaming the listing is free and keeps
-the same package name.
+To check that a release can be shipped without shipping it, run **Actions →
+Promote → Run workflow** with its tag and **dry_run** ticked.
 
-# Releasing to the App Store
+## Releasing without a merge
 
-Same bundle id as Android, `com.meltuhamy.londonsalah`. The first release is
-done by hand from a Mac with Xcode; `release-ios.yml` can take over later.
+**Actions → Release → Run workflow** does what a merge does, with options:
 
-## What you need
+- **bump**: `auto` takes the biggest label among the pull requests since the
+  last release. Or choose patch, minor or major.
+- **force**: release even if nothing in the app has changed.
+- **dry_run**: build and sign both apps, and have Google Play and Apple
+  check them as they check an upload, without releasing anything.
 
-- A paid Apple Developer Program membership. Enrolling as an individual takes
-  minutes. Enrolling as a company needs its D-U-N-S number and takes days.
-- Xcode from the Mac App Store, and Node 22.
+## Changing how releases are made
 
-## Build and run it
+A pull request that changes `.github/workflows/release.yml`, `fastlane/`,
+`scripts/release/` or the native build files gets a dry run as its
+**Release** check: both apps built and signed with the next version, and
+checked by Google Play and Apple as an upload would be, with nothing
+released. Make sure it passes before merging. It cannot catch what Apple
+finds while processing a build, which arrives by email after a real upload.
 
-```bash
-npm ci
-npx vite build && npx cap sync ios
-npx cap open ios
-```
+To try a change to `promote.yml`, run **Actions → Promote → Run workflow**
+from your branch, with **dry_run** ticked.
 
-In Xcode, select the **App** target → **Signing & Capabilities** → pick your
-team and leave **Automatically manage signing** on. Xcode registers the bundle
-id and makes the certificates itself. Picking a team writes
-`DEVELOPMENT_TEAM` into `project.pbxproj`; commit that, since CI needs it.
+## When something goes wrong
 
-Run it on your own iPhone, not just the simulator, and check:
+Open the failed run and read the error; the common ones are below. Once the
+cause is fixed, or if a store or a runner just had a bad moment, click
+**Re-run failed jobs**. Every store step first asks the store what it already
+has, so nothing is uploaded or submitted twice. To retry a promotion, run
+**Actions → Promote → Run workflow** with the tag.
 
-- The notification permission prompt appears when reminders are turned on,
-  and a reminder arrives. Long-press the timer icon for a test one.
-- Setup, both themes, and the month table.
-- The timezone row, by setting the phone to a non-UK timezone.
+**Never delete a tag.** A release that failed and was not re-run keeps its
+tag, and the next release takes the next version, with the failed one's
+changes in it. The stores do not mind the gap.
 
-iOS keeps at most 64 pending notifications per app, which is exactly what the
-app schedules - ten days or so of reminders, then one asking to open the app.
+**If the release tooling itself was broken**, merge the fix. Re-running the
+failed run would use the old tooling, but the next release includes every app
+change since the last release that was published.
 
-### The widgets
+- **Google Play rejects the bundle's signature.** The keystore in the
+  repository's secrets is not the upload key Play expects. Compare the
+  SHA-256 in the Release run's summary with the upload key under Play
+  Console → Test and release → App integrity → App signing. Then load the
+  right keystore with
+  `./scripts/release/android-signing-secrets.sh path/to/keystore.jks`. If
+  nobody has it, follow [the steps below](#if-the-android-upload-key-is-lost).
+- **Google Play wants a declaration** under Policy and programs → App
+  content. Complete it in Play Console, then re-run. The answers are always
+  the same: the app collects and shares no data, as it makes no network
+  requests; it has no ads and no login; it is rated for everyone and aimed
+  at ages 13 and up. The privacy policy is
+  <https://meltuhamy.com/privacy-policy/>.
+- **Google Play asks why the app needs exact alarms** (`USE_EXACT_ALARM`).
+  Reply that its only function is telling you when the next prayer is and
+  reminding you before it. A reminder that drifts by fifteen minutes is no
+  reminder, and Doze defers inexact alarms in exactly the case that has to
+  work. If Play still refuses, the app has to switch to
+  `SCHEDULE_EXACT_ALARM`, with a prompt that sends the user to the system's
+  Alarms & reminders setting.
+- **Apple refuses an upload with no clear reason.** An agreement is probably
+  waiting for the account holder. Accept it from the banner on the App Store
+  Connect home page, then re-run.
+- **The Release run warns about the iOS signing certificate**, or a dry run
+  fails because Xcode made a certificate of its own: the stored certificate
+  is missing, has expired or been revoked, or expires within 30 days. Store a
+  new one, as [below](#the-ios-signing-certificate).
+- **Promote says What's new is too long.** Shorten it on the release, then
+  run Promote again.
+- **Promote says a newer release exists.** Ship that one instead: it has
+  everything the older one had. The older release stays a pre-release.
+- **Promote says another version is in App Store review.** Apple reviews one
+  version at a time. Run Promote again once that one has been approved, or
+  after withdrawing it in App Store Connect.
+- **Apple rejects the version.** App Store Connect says why. Fix it, merge
+  the fix, and ship that release: Promote cancels the rejected submission and
+  sends the new build in its place. If the reviewer has misunderstood, reply
+  to them in App Store Connect instead, and leave Promote alone.
 
-The widgets are a separate target, **PrayerWidgets** (bundle id
-`com.meltuhamy.londonsalah.widgets`), embedded in the app. They read what
-the app writes through an App Group, `group.com.meltuhamy.londonsalah`, which
-both targets' `.entitlements` files already name.
+## If the Android upload key is lost
 
-With automatic signing there is nothing to set up by hand: select the
-**PrayerWidgets** target too, check the team is the same, and Xcode registers
-the widget's bundle id and the App Group when it next signs. In
-**Signing & Capabilities** both targets should show **App Groups** with that
-group ticked; if one shows it in red, tick it again.
+Google holds the key that signs the app on users' phones. The keystore in the
+repository's secrets is only the upload key. If it is lost, or its password
+is, ask Google to accept a new one. Existing installs are not affected.
 
-On the phone, also check:
+1. On a computer with a JDK, run `./scripts/release/new-upload-key.sh`. It
+   makes `upload-keystore.jks` and `upload_certificate.pem`. Save the
+   password in a password manager as you type it, and back up the keystore.
+2. In Play Console → Test and release → App integrity → App signing, click
+   **Request upload key reset** and attach `upload_certificate.pem`.
+3. Once Google confirms the reset, which takes a couple of business days, put
+   the new key in the secrets:
+   `./scripts/release/android-signing-secrets.sh upload-keystore.jks`. This
+   needs the GitHub CLI, signed in.
 
-- A widget added from the home screen shows the times, not "No times". If it
-  says "No times" after the app has been opened, the App Group is missing
-  from one of the targets.
-- **Edit Widget** (touch and hold the widget) changes the countdown and
-  colours, and each copy of the widget keeps its own.
-- The lock screen widgets: **Customize** the lock screen → add widgets.
+## The iOS signing certificate
 
-The widgets need iOS 17. On older iOS the app works as before and simply has
-no widgets to offer.
+iOS builds sign with one *Apple Development* certificate, kept in the
+repository's secrets. It lasts a year. The Release run warns in its last 30
+days, and once it has gone, every build makes a certificate of its own
+again. To store one, or to renew it, on a Mac with Xcode:
 
-## App Store Connect
+1. In Xcode → Settings → Accounts, select the team, click **Manage
+   Certificates**, then **+** → **Apple Development**.
+2. In Keychain Access → login → **My Certificates**, right-click the new
+   *Apple Development* certificate, choose **Export**, and save it as a .p12
+   with a password.
+3. Run `./scripts/release/ios-signing-secrets.sh path/to/certificate.p12`.
+   It checks the password opens it, shows the certificate's name and expiry,
+   and sets `APPLE_DEVELOPMENT_P12_BASE64` and
+   `APPLE_DEVELOPMENT_P12_PASSWORD`. This needs the GitHub CLI, signed in.
+4. Delete the .p12, then run **Actions → Release → Run workflow** with
+   **dry_run** ticked. It fails if the build still makes a certificate of its
+   own.
 
-**Apps → + → New App**: iOS, the bundle id above, a SKU (anything, e.g.
-`londonsalah`), and a name. Names are unique across the whole store, so
-plain "Prayer Times" is almost certainly taken; something like "Prayer Times
-London & Belfast". The name under the icon stays "Prayer Times" either way.
+Once a release has signed with the new certificate, revoke the old one at
+developer.apple.com → Certificates. Each revocation emails the account
+holder, so the *Created via API* certificates that builds made before one
+was stored can just be left to expire.
 
-Then fill in:
+## Updating the store listings
 
-| Section | Answer |
-|---|---|
-| App Privacy | **Data Not Collected** - same reason as the Play form |
-| Privacy policy URL | <https://meltuhamy.com/privacy-policy/> |
-| Support URL | required; the privacy policy site or the GitHub repo will do |
-| Category | Reference (or Lifestyle) |
-| Age rating | answer "none" throughout → 4+ |
-| Encryption | nothing to answer: `ITSAppUsesNonExemptEncryption` is already `false` in Info.plist |
+Releases change only the release notes. Edit the listings' text and
+screenshots in App Store Connect and Play Console.
 
-**Screenshots**: Apple wants a 6.9" iPhone set (1320×2868). Take them in the
-largest Pro Max simulator Xcode offers, with ⌘S. The Play images are the wrong size and
-are not accepted. iPad screenshots are only needed if the app is offered on
-iPad; untick iPad in the target's supported destinations if you do not want
-to make them.
-
-## Upload and submit
-
-1. In Xcode, set the run destination to **Any iOS Device (arm64)**.
-2. **Product → Archive**. When it finishes, the Organizer opens.
-3. **Distribute App → App Store Connect → Upload**.
-4. After processing (10-30 minutes), the build appears under **TestFlight**.
-   Install it on your phone through the TestFlight app and check it once more.
-5. On the version page, select that build and **Submit for Review**.
-
-Each later upload needs a higher build number (the target's **Build** field),
-and a new App Store version needs a higher **Version** as well.
-
-## Releasing from CI
-
-`release-ios.yml` builds and uploads to TestFlight on a `v*` tag, or by hand
-from **Actions → Release iOS → Run workflow**. It uses cloud signing: the
-project's automatic signing, authorised by an App Store Connect API key, so
-Xcode registers the profiles for the app and the widget extension and signs
-with a cloud-managed distribution certificate. There is no certificate or
-profile to export or renew.
-
-One-time setup:
-
-1. App Store Connect → Users and Access → Integrations → App Store Connect
-   API → **+**, with the **Admin** role (cloud-managed certificates need it).
-   Download the `.p8` - Apple only offers it once.
-2. Three repository secrets: `APP_STORE_CONNECT_KEY_ID`,
-   `APP_STORE_CONNECT_ISSUER_ID` (top of the same page), and
-   `APP_STORE_CONNECT_KEY_CONTENT`, from `base64 -i AuthKey_XXXX.p8 | pbcopy`.
-
-The build number is the workflow's run number, so it only ever goes up; it
-has to be higher than any build uploaded by hand for the same version.
-TestFlight takes no more builds of a version once it is released, so bump
-`MARKETING_VERSION` first.
+- **App Store screenshots**: the latest from `master`, at the size Apple
+  wants, are on the `previews` branch under
+  [`master/ios`](https://github.com/meltuhamy/belfastsalah/tree/previews/master/ios).
+- **Google Play screenshots**: `npm run screenshots` writes a set to
+  `store/screenshots`.

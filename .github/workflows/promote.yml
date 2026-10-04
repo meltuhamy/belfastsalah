@@ -1,0 +1,267 @@
+name: Promote
+
+# Ships a release to users. Its Android build moves from internal testing to
+# production, then its iOS build goes to App Store review and out as soon as
+# Apple approves it. Both with the release's "What's new" as their notes.
+#
+# Started by promote-on-release.yml when a pre-release made by release.yml
+# becomes a full release (edit it on GitHub and untick "Set as a
+# pre-release"), or by hand. Either way it runs from master, so a promotion
+# always uses the current workflow and Fastfile, and a dry run tries exactly
+# what a real promotion does. With dry_run it checks the release, its notes and
+# both stores and changes nothing; from a branch, that is how a change to this
+# file is tried. See RELEASING.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The release to promote, such as v4.0.2
+        required: true
+      dry_run:
+        description: Check everything, submit nothing
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# One promotion at a time: Apple reviews one version at a time.
+concurrency:
+  group: promote
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ inputs.tag }}
+  DRY_RUN: ${{ inputs.dry_run }}
+  # fastlane wants a UTF-8 locale.
+  LC_ALL: en_US.UTF-8
+  LANG: en_US.UTF-8
+
+jobs:
+  prepare:
+    name: Read the release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      build_number: ${{ steps.release.outputs.build_number }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Nothing to cache: the release scripts need no packages.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      # Everything that can be checked before a store is touched is checked
+      # here, once: a release that cannot ship fails now rather than half way.
+      #
+      # Only the newest release can ship. Google Play's internal testing keeps
+      # just the newest build, so an older release's Android build is no
+      # longer there to promote, and the two stores would end up on different
+      # versions.
+      - name: Read the release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [ "$DRY_RUN" != "true" ] && [ "$GITHUB_REF" != "refs/heads/master" ]; then
+            echo "::error::Releases are promoted from master, not $GITHUB_REF. Tick dry_run to try a branch."
+            exit 1
+          fi
+          read -r version build_number < <(node scripts/release/version.mjs "$TAG")
+          if [ "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = "true" ]; then
+            echo "::error::$TAG is still a draft."
+            exit 1
+          fi
+          # shellcheck disable=SC2046 # one tag per word
+          newest="$(node scripts/release/version.mjs latest $(gh release list --exclude-drafts --limit 100 --json tagName --jq '.[].tagName'))"
+          if [ "$newest" != "$TAG" ]; then
+            echo "::error::$newest is newer than $TAG, and only the newest release can ship: Google Play's internal testing no longer has $TAG's build. Ship $newest instead."
+            exit 1
+          fi
+          gh release view "$TAG" --json body --jq .body > release.md
+          mkdir -p promote
+          node scripts/release/notes.mjs store --from-release < release.md > promote/store-notes.txt
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "build_number=$build_number" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Promoting $TAG - $version ($build_number)"
+            if [ "$DRY_RUN" = "true" ]; then echo "Dry run: nothing is submitted."; fi
+            echo
+            echo "What's new, as the stores will show it:"
+            echo
+            echo '```'
+            cat promote/store-notes.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: promote
+          path: promote
+          retention-days: 30
+
+  # Google Play goes first: it is quick, and it is the store more likely to
+  # refuse. If it fails, the iOS build is not submitted, so the stores do not
+  # end up shipping different versions.
+  google-play:
+    name: Google Play
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: ${{ inputs.dry_run != true && 'google-play' || '' }}
+      url: https://play.google.com/store/apps/details?id=com.meltuhamy.londonsalah
+    permissions:
+      contents: read
+      id-token: write # keyless sign-in to Google Play
+    outputs:
+      where: ${{ steps.promote.outputs.where }}
+      shipped: ${{ steps.promote.outputs.shipped }}
+    env:
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE_BUILD_NUMBER: ${{ needs.prepare.outputs.build_number }}
+      RELEASE_NOTES_FILE: promote/store-notes.txt
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          bundler-cache: true
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: promote
+          path: promote
+
+      - name: Check for Google Play
+        id: play
+        env:
+          PROVIDER: ${{ secrets.GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
+          SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -n "$PROVIDER" ] && [ -n "$SERVICE_ACCOUNT" ]; then
+            echo "connected=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "connected=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Google Play::Google Play is not connected - the GOOGLE_WORKLOAD_IDENTITY_PROVIDER and GOOGLE_SERVICE_ACCOUNT secrets are not set - so promote this release by hand in Play Console."
+          fi
+
+      - name: Sign in to Google Play
+        if: steps.play.outputs.connected == 'true'
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ secrets.GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
+
+      - name: Promote to production
+        id: promote
+        env:
+          CONNECTED: ${{ steps.play.outputs.connected }}
+        run: |
+          if [ "$CONNECTED" != "true" ]; then
+            echo "where=Not promoted - Google Play is not connected; promote it in Play Console" >> "$GITHUB_OUTPUT"
+            echo "shipped=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          bundle exec fastlane android promote dry_run:"$DRY_RUN"
+          echo "where=Google Play production, from $(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+          echo "shipped=true" >> "$GITHUB_OUTPUT"
+
+  app-store:
+    name: App Store
+    needs: [prepare, google-play]
+    # App Store Connect's API is all this needs; no Mac.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: ${{ inputs.dry_run != true && 'app-store' || '' }}
+      url: https://apps.apple.com/app/id993461657
+    outputs:
+      where: ${{ steps.submit.outputs.where }}
+    env:
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE_BUILD_NUMBER: ${{ needs.prepare.outputs.build_number }}
+      RELEASE_NOTES_FILE: promote/store-notes.txt
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          bundler-cache: true
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: promote
+          path: promote
+
+      - name: Write the App Store Connect key
+        env:
+          APP_STORE_CONNECT_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
+        run: |
+          echo "APP_STORE_CONNECT_KEY_PATH=$RUNNER_TEMP/AuthKey.p8" >> "$GITHUB_ENV"
+          echo "$APP_STORE_CONNECT_KEY_CONTENT" | base64 -d > "$RUNNER_TEMP/AuthKey.p8"
+
+      - name: Submit for review
+        id: submit
+        run: |
+          bundle exec fastlane ios promote dry_run:"$DRY_RUN"
+          echo "where=App Store - submitted for review $(date -u +%Y-%m-%d), released once approved" >> "$GITHUB_OUTPUT"
+
+      - name: Remove the App Store Connect key
+        if: always()
+        run: rm -f "$APP_STORE_CONNECT_KEY_PATH"
+
+  # The release says where its builds went. It becomes a full release, and
+  # the latest one, once either store has it. If neither does it is left as
+  # it was: a pre-release when unticking started this, as
+  # promote-on-release.yml makes it one again while Promote runs, and a
+  # release that shipped before stays shipped. Edited with the workflow's own
+  # token, which starts no further workflows.
+  finish:
+    name: Update the release
+    needs: [prepare, google-play, app-store]
+    if: always() && needs.prepare.result == 'success' && inputs.dry_run != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # the release's notes and its status
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Nothing to cache: the release scripts need no packages.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Update the release
+        env:
+          ANDROID_WHERE: ${{ needs.google-play.result == 'success' && needs.google-play.outputs.where || 'Promotion to production failed - see the Promote run' }}
+          IOS_WHERE: ${{ needs.app-store.result == 'success' && needs.app-store.outputs.where || needs.app-store.result == 'skipped' && 'Not submitted, as Google Play failed first - see the Promote run' || 'App Store submission failed - see the Promote run' }}
+          SHIPPED: ${{ needs.google-play.outputs.shipped == 'true' || needs.app-store.result == 'success' }}
+        run: |
+          gh release view "$TAG" --json body --jq .body > release.md
+          node scripts/release/notes.mjs status --ios "$IOS_WHERE" --android "$ANDROID_WHERE" < release.md > updated.md
+          if [ "$SHIPPED" = "true" ]; then
+            gh release edit "$TAG" --notes-file updated.md --prerelease=false --latest
+          else
+            gh release edit "$TAG" --notes-file updated.md
+          fi

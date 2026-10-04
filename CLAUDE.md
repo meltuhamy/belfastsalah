@@ -30,10 +30,66 @@ Notes:
   even on a public repo.
 - Skip this for changes that cannot affect the app, such as edits to README or
   to workflow files that are not part of the build.
+- On master, CI runs inside `release.yml` rather than as `ci.yml` of its own.
+  A merged change's signed builds are on its GitHub release.
+
+## Releases
+
+A merge to `master` that changes the app is released to testers by itself,
+and to users when its GitHub pre-release is made a full release. RELEASING.md
+has the steps. When working on the code:
+
+- **Merging is shipping to testers**, so a pull request has to be finished
+  when it merges.
+- **Never write a version into a file**, and never create a tag or a release
+  by hand. The `vX.Y.Z` tags are the only record: fastlane passes the version
+  to Gradle (`-PversionCode`, `-PversionName`) and to xcodebuild
+  (`MARKETING_VERSION`, `CURRENT_PROJECT_VERSION`), and the files say
+  `0.0.0-dev` / `0.0.0` on purpose. Each run counts on from the highest `v*`
+  tag.
+- **Label the pull request** when a patch is wrong: `release:minor`,
+  `release:major`, or `release:skip`. A release takes the biggest bump of all
+  the pull requests in it. Docs, tests, CI and tooling are not released on
+  their own - `isAppFile` in `scripts/release/version.mjs` - so they need no
+  label.
+- **A new build tool goes in `BUILD_DEV_DEPENDENCIES`** (`version.mjs`). An
+  npm change counts as the app only if it reaches what the app ships or is
+  built with, worked out from the lockfile, and Vite, its React plugin and
+  Capacitor's CLI and platforms are devDependencies here. A Vite plugin or
+  other build step left off that list would have its updates go unreleased.
+- **Leave the build number alone**: major x 1,000,000 + minor x 1,000 +
+  patch, the same on both stores. `version.test.mjs` pins why.
+- **Check the dry run** on a pull request that changes the release
+  machinery: `fastlane/`, `scripts/release/`, `release.yml`, the native build
+  files. It builds signed apps carrying the next version, has Google Play
+  and Apple validate them as they would an upload (Apple's findings from
+  processing a build come by email, only after a real one), and releases
+  nothing. Dependabot's pull requests get none, having no secrets. Try a
+  change to `promote.yml` by running it from the branch with `dry_run`.
+- **Promotion always runs from master.** `promote-on-release.yml` hands a
+  released pre-release to `promote.yml` on master, so a fix to the promote
+  lanes reaches releases made before it, and a dry run tries the same code.
+  Only the newest release can ship, Google Play first. A release is a full
+  release only once a store has it - the hand-over makes it a pre-release
+  again while Promote runs - because `plan.mjs` drafts What's new from the
+  last full release.
+- **Change the release notes' format only in `scripts/release/notes.mjs`**:
+  promotion reads "What's new" back from between its markers, and
+  `notes.test.mjs` pins them.
+- **Keep every store step idempotent** - ask the store first - so a failed job
+  is fixed by re-running it.
+- **Workflow conventions**: actions pinned to commit SHAs with the version in
+  a comment, which Dependabot updates, and actionlint and zizmor pinned by
+  image digest, which it does not; local actions as `uses: ./.github/...`
+  (zizmor's self-repository audit, which wants `$/`, is off in
+  `.github/zizmor.yml`); `permissions:` and `timeout-minutes` on every job;
+  the Google Play values are secrets. CI's Workflows job runs actionlint and
+  zizmor, so run both before pushing a workflow change.
 
 ## Testing
 
-- `npm test` — vitest, unit tests in `src/`
+- `npm test` — vitest, unit tests in `src/`, and in `scripts/` for the release
+  and preview tooling
 - `npm run test:e2e` — Playwright, real-browser tests in `e2e/`
 
 Behaviour is covered end-to-end; vitest is for utility functions and data
@@ -153,9 +209,8 @@ itself still runs on 15.
   pins it now. The plugin and the extension log `PrayerWidget:` lines, and
   Debug builds print why a widget is empty under "No times".
   A simulator only grants entitlements to a signed app, so every simulator
-  build that has to share data is signed ad hoc
-  (`CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=`), never
-  `CODE_SIGNING_ALLOWED=NO`.
+  build that has to share data is signed ad hoc - `xcodebuild -xcconfig
+  AdHocSigning.xcconfig`, from `ios/App` - never `CODE_SIGNING_ALLOWED=NO`.
 - **No alarms.** WidgetKit draws a timeline of entries, one per prayer, from
   `PrayerTimeline`; the system ticks `Text(_, style: .timer)` in between.
   The minutes countdown has no live text style, so in that mode there is an
@@ -307,17 +362,18 @@ The London files are generated, so regenerate rather than editing them by
 hand:
 
 - **2026 to 2076** come from the official London Unified Prayer Timetable,
-  `node scripts/lupt-to-utc-json.js 2026 2076`, which downloads each year's
-  .xlsx from londonsalahtimes.com/downloads into `scripts/data/lupt` (not
-  committed). Those sheets change their clocks on the real dates, and the
-  script refuses one that does not. The 2026 file only has a 12-hour sheet,
-  which the script turns back into 24-hour times.
-- **2022 to 2025** come from the CSVs in `scripts/data`, through
-  `scripts/spreadsheet-to-utc-json.js`. 2025's sheet moves its clocks on
-  1 April and 28 October, not on the real dates, so that script converts each
-  row with the offset the sheet itself is using, read off its own hour jumps.
-  Converting with the calendar's offset left days each spring and autumn an
-  hour out.
+  `node scripts/timetables/lupt-to-utc-json.js 2026 2076`, which downloads
+  each year's .xlsx from londonsalahtimes.com/downloads into
+  `scripts/timetables/data/lupt` (not committed). Those sheets change their
+  clocks on the real dates, and the script refuses one that does not. The
+  2026 file only has a 12-hour sheet, which the script turns back into
+  24-hour times.
+- **2022 to 2025** come from the CSVs in `scripts/timetables/data`, through
+  `scripts/timetables/spreadsheet-to-utc-json.js`. 2025's sheet moves its
+  clocks on 1 April and 28 October, not on the real dates, so that script
+  converts each row with the offset the sheet itself is using, read off its
+  own hour jumps. Converting with the calendar's offset left days each spring
+  and autumn an hour out.
 
 Every number the tests pin is read out of these files, so a re-import moves
 them; 2026's official times differ from the old ones by a minute on most

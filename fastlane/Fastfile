@@ -1,44 +1,220 @@
+# Builds both apps and moves them through the stores, for release.yml and
+# promote.yml (see RELEASING.md). The lanes read the release from the
+# environment:
+#
+#   RELEASE_VERSION       4.0.2     the tag, without its v
+#   RELEASE_BUILD_NUMBER  4000002   the same on both stores
+#   RELEASE_NOTES_FILE    "What's new" as plain text (scripts/release/notes.mjs)
+#
+# and credentials, which the workflows provide:
+#
+#   iOS      APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID and
+#            APP_STORE_CONNECT_KEY_PATH, the .p8 file; for the build,
+#            APPLE_DEVELOPMENT_P12_BASE64 and APPLE_DEVELOPMENT_P12_PASSWORD,
+#            the Apple Development certificate the archive is signed with
+#   Android  ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS
+#            and ANDROID_KEY_PASSWORD, which android/app/build.gradle signs
+#            with; GOOGLE_APPLICATION_CREDENTIALS for Google Play, written by
+#            google-github-actions/auth
+#
+# Every lane that changes a store first asks whether the store already has the
+# change, so rerunning a failed job is always safe. With dry_run:true a lane
+# checks everything a real run would and changes nothing:
+#
+#   bundle exec fastlane android beta dry_run:true
+
+require "fileutils"
+require "open3"
+require "openssl"
 require "shellwords"
+require "tmpdir"
+
+# No usage analytics, and no fastlane/README.md written after every run.
+opt_out_usage
+skip_docs
+
+APP_IDENTIFIER = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+TEAM_ID = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
+IPA = "build/ios/App.ipa"
+AAB = "android/app/build/outputs/bundle/release/app-release.aab"
+
+# The keychain setup_ci makes on a runner, which Xcode signs the archive from.
+CI_KEYCHAIN = "fastlane_tmp_keychain"
+
+# Google Play takes release notes per language, and shows the listing's
+# default language for the rest. This listing's is en-GB; if Play Console's
+# default language ever changes, change it here too.
+PLAY_NOTES_LANGUAGE = "en-GB"
+
+# fastlane runs each lane from inside fastlane/, though it resolves the paths
+# given to actions from the repository root. Files a lane reads itself are
+# found from the root too, so paths mean the same everywhere in here.
+ROOT = File.expand_path("..", File.expand_path(FastlaneCore::FastlaneFolder.path))
+
+def release_version
+  ENV.fetch("RELEASE_VERSION")
+end
+
+def release_build
+  Integer(ENV.fetch("RELEASE_BUILD_NUMBER"))
+end
+
+def release_notes
+  File.read(File.expand_path(ENV.fetch("RELEASE_NOTES_FILE"), ROOT)).strip
+end
+
+def dry_run?(options)
+  options[:dry_run].to_s == "true"
+end
+
+# A paragraph in the job's summary on GitHub Actions, and a line in the log.
+def job_summary(markdown)
+  UI.message(markdown)
+  File.write(ENV["GITHUB_STEP_SUMMARY"], "#{markdown}\n\n", mode: "a") if ENV["GITHUB_STEP_SUMMARY"]
+end
+
+# A warning on the run's page and in the job's summary, as well as the log.
+# The message has to be one line.
+def job_warning(title, message)
+  UI.important(message)
+  $stdout.puts("::warning title=#{title}::#{message}") if ENV["GITHUB_ACTIONS"]
+  File.write(ENV["GITHUB_STEP_SUMMARY"], "⚠️ #{message}\n\n", mode: "a") if ENV["GITHUB_STEP_SUMMARY"]
+end
 
 default_platform(:ios)
 
 platform :ios do
-  desc "Build a signed IPA and upload it to TestFlight"
-  lane :beta do
-    # A temporary keychain on CI, for the development certificate Xcode makes
-    # to sign the archive; it is thrown away with the runner.
-    setup_ci if ENV["CI"]
-
-    key_id = ENV.fetch("APP_STORE_CONNECT_KEY_ID")
-    issuer_id = ENV.fetch("APP_STORE_CONNECT_ISSUER_ID")
-    key_path = ENV.fetch("APP_STORE_CONNECT_KEY_PATH")
-
-    api_key = app_store_connect_api_key(
-      key_id: key_id,
-      issuer_id: issuer_id,
-      key_filepath: key_path,
+  def app_store_api_key
+    app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+      key_filepath: ENV.fetch("APP_STORE_CONNECT_KEY_PATH"),
       in_house: false
     )
+  end
 
-    # Cloud signing: the project uses automatic signing, and these let
+  # OpenSSL hands back a subject's fields as bytes, which in Apple's
+  # certificates are UTF-8: a name like Zoë would otherwise break the messages.
+  def subject_field(certificate, field)
+    certificate.subject.to_a.find { |key, _| key == field }&.at(1).to_s.dup.force_encoding(Encoding::UTF_8)
+  end
+
+  def common_name(certificate)
+    subject_field(certificate, "CN")
+  end
+
+  def team_of(certificate)
+    subject_field(certificate, "OU")
+  end
+
+  # Apple and OpenSSL write a serial number differently.
+  def certificate_serial(number)
+    number.to_s.downcase.sub(/\A0+/, "")
+  end
+
+  # The team's development certificates, as Apple has them.
+  def development_certificates
+    types = Spaceship::ConnectAPI::Certificate::CertificateType
+    Spaceship::ConnectAPI::Certificate.all(filter: { certificateType: [types::DEVELOPMENT, types::IOS_DEVELOPMENT].join(",") })
+  end
+
+  def keychain_certificates(keychain)
+    pem, = Open3.capture2("security", "find-certificate", "-a", "-p", keychain)
+    pem.scan(/-----BEGIN CERTIFICATE-----.+?-----END CERTIFICATE-----/m).map { |text| OpenSSL::X509::Certificate.new(text) }
+  end
+
+  # Whether the keychain has the certificate's private key too, so can sign
+  # with it.
+  def can_sign?(certificate, keychain)
+    identities, = Open3.capture2("security", "find-identity", "-p", "codesigning", keychain)
+    identities.include?(OpenSSL::Digest::SHA1.hexdigest(certificate.to_der).upcase)
+  end
+
+  # Imports the Apple Development certificate the archive is signed with,
+  # APPLE_DEVELOPMENT_P12_BASE64 opened with APPLE_DEVELOPMENT_P12_PASSWORD,
+  # into the keychain setup_ci made. Returns it, or nil when neither secret is
+  # set: Xcode then makes a new certificate for the build, as it does whenever
+  # it has none to sign with. known is the team's development certificates.
+  def import_development_certificate(known)
+    p12 = ENV["APPLE_DEVELOPMENT_P12_BASE64"].to_s
+    password = ENV["APPLE_DEVELOPMENT_P12_PASSWORD"].to_s
+    if p12.empty? && password.empty?
+      job_warning("iOS signing", "No Apple Development certificate is stored - APPLE_DEVELOPMENT_P12_BASE64 and APPLE_DEVELOPMENT_P12_PASSWORD are not set - so Xcode makes a new one for this build.")
+      return nil
+    end
+    UI.user_error!("APPLE_DEVELOPMENT_P12_PASSWORD is not set, though APPLE_DEVELOPMENT_P12_BASE64 is.") if password.empty?
+    UI.user_error!("APPLE_DEVELOPMENT_P12_BASE64 is not set, though APPLE_DEVELOPMENT_P12_PASSWORD is.") if p12.empty?
+
+    # import_certificate only logs it when security refuses the file, so what
+    # reached the keychain is checked after.
+    Dir.mktmpdir("signing-", ENV["RUNNER_TEMP"]) do |directory|
+      path = File.join(directory, "development.p12")
+      File.binwrite(path, p12.unpack1("m"))
+      import_certificate(certificate_path: path, certificate_password: password, keychain_name: CI_KEYCHAIN, keychain_password: "")
+    end
+    keychain = FastlaneCore::Helper.keychain_path(CI_KEYCHAIN)
+    certificates = keychain_certificates(keychain)
+    UI.user_error!("APPLE_DEVELOPMENT_P12_BASE64 did not import: it is not a .p12, or APPLE_DEVELOPMENT_P12_PASSWORD does not open it.") if certificates.empty?
+    certificate = certificates.find { |candidate| can_sign?(candidate, keychain) }
+    UI.user_error!("The .p12 in APPLE_DEVELOPMENT_P12_BASE64 has no private key. Export the certificate from My Certificates in Keychain Access, which includes it.") unless certificate
+
+    name = common_name(certificate)
+    unless name.start_with?("Apple Development:", "iPhone Developer:")
+      UI.user_error!("APPLE_DEVELOPMENT_P12_BASE64 holds #{name}, which is not an Apple Development certificate.")
+    end
+    UI.user_error!("#{name} belongs to team #{team_of(certificate)}, not #{TEAM_ID}.") unless team_of(certificate) == TEAM_ID
+
+    # Xcode cannot sign with a certificate that has expired or been revoked,
+    # and quietly makes one per build again, so both are warned about, and so
+    # is an expiry a month away.
+    expires = certificate.not_after.utc.strftime("%Y-%m-%d")
+    left = certificate.not_after - Time.now
+    serial = certificate_serial(certificate.serial.to_s(16))
+    if left.negative?
+      job_warning("iOS signing", "#{name} expired on #{expires}, so Xcode makes a new certificate for this build. Store a new one with scripts/release/ios-signing-secrets.sh.")
+    elsif known.none? { |other| certificate_serial(other.serial_number) == serial }
+      job_warning("iOS signing", "#{name} is not among the team's certificates any more, as happens when one is revoked, so Xcode makes a new certificate for this build. Store a new one with scripts/release/ios-signing-secrets.sh.")
+    elsif left < 30 * 86_400
+      days = (left / 86_400).ceil
+      job_warning("iOS signing", "#{name} expires on #{expires}, in #{days} #{days == 1 ? 'day' : 'days'}; after that Xcode makes a new certificate for every build. Store a new one with scripts/release/ios-signing-secrets.sh before then.")
+    end
+    UI.success("Imported #{name}, which expires on #{expires}.")
+    certificate
+  end
+
+  desc "Build the IPA for the App Store, carrying the release's version"
+  lane :build do |options|
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: app_store_api_key)
+    known = development_certificates
+
+    # Signing the archive takes an Apple Development certificate, and a
+    # runner's keychains start empty: setup_ci makes a keychain for the stored
+    # one. With none to sign with, Xcode makes a new certificate, which stays
+    # registered with Apple until it expires a year later.
+    certificate = nil
+    if ENV["CI"]
+      setup_ci(keychain_name: CI_KEYCHAIN)
+      certificate = import_development_certificate(known)
+    end
+
+    # Cloud signing. The project uses automatic signing, and these let
     # xcodebuild register profiles and use a cloud-managed distribution
-    # certificate with no Apple account signed in. Both the archive and the
-    # export need them, and gym passes xcargs to both - adding them to
-    # export_xcargs as well makes xcodebuild refuse the duplicates.
+    # certificate with no Apple account signed in; that needs a key with the
+    # Admin role. gym passes xcargs to the archive and the export alike, which
+    # both need them; repeating them in export_xcargs makes xcodebuild refuse
+    # the duplicates.
+    key_path = ENV.fetch("APP_STORE_CONNECT_KEY_PATH")
     auth = [
       "-allowProvisioningUpdates",
       "-authenticationKeyPath #{key_path.shellescape}",
-      "-authenticationKeyID #{key_id.shellescape}",
-      "-authenticationKeyIssuerID #{issuer_id.shellescape}"
+      "-authenticationKeyID #{ENV.fetch('APP_STORE_CONNECT_KEY_ID').shellescape}",
+      "-authenticationKeyIssuerID #{ENV.fetch('APP_STORE_CONNECT_ISSUER_ID').shellescape}"
     ].join(" ")
 
-    # Build numbers have to be unique per marketing version in TestFlight, so
-    # the workflow run number is used rather than a value committed to git.
-    # Set as a build setting rather than with agvtool, which needs a
-    # versioning system the project does not declare; this way it reaches
-    # the widget extension too, whose Info.plist is generated from it.
-    build_number = ENV.fetch("BUILD_NUMBER", Time.now.to_i.to_s)
-
+    # The version is a build setting rather than agvtool's, which needs a
+    # versioning system the project does not declare. As a setting it also
+    # reaches the widget extension, whose Info.plist is generated from it.
+    #
     # Capacitor 8 uses Swift Package Manager rather than CocoaPods, so there
     # is no .xcworkspace to point at - the project builds directly.
     build_app(
@@ -46,19 +222,266 @@ platform :ios do
       scheme: "App",
       configuration: "Release",
       export_method: "app-store",
-      export_options: {
-        signingStyle: "automatic",
-        teamID: CredentialsManager::AppfileConfig.try_fetch_value(:team_id) # FMTYKM5F9P
-      },
-      xcargs: "#{auth} CURRENT_PROJECT_VERSION=#{build_number}",
-      output_directory: "build/ios",
+      export_options: { signingStyle: "automatic", teamID: TEAM_ID },
+      xcargs: "#{auth} MARKETING_VERSION=#{release_version} CURRENT_PROJECT_VERSION=#{release_build}",
+      output_directory: File.dirname(IPA),
+      output_name: File.basename(IPA, ".ipa"),
       clean: true
     )
 
+    # Whether the stored certificate really signed it: Apple would have a new
+    # development certificate if Xcode had to make one. A dry run fails on
+    # that, as the proof; a release goes ahead, with a warning.
+    serials = known.map(&:serial_number)
+    made = development_certificates.reject { |other| serials.include?(other.serial_number) }
+    if made.empty?
+      signer = certificate ? "*#{common_name(certificate)}*, which expires on #{certificate.not_after.utc.strftime('%Y-%m-%d')}" : "a development certificate Apple already had"
+      job_summary("The iOS archive was signed with #{signer}.")
+    else
+      names = made.map { |other| "#{other.name} (#{other.serial_number})" }.join(", ")
+      job_summary("The iOS archive was signed with a development certificate Xcode made for it, #{names}.")
+      if certificate
+        message = "Xcode made a development certificate, #{names}, instead of signing with #{common_name(certificate)}."
+        UI.user_error!(message) if dry_run?(options)
+        job_warning("iOS signing", message)
+      end
+    end
+  end
+
+  # Has Apple check the IPA as it checks an upload - the version and build
+  # number, Info.plist, icons, entitlements and signing - though nothing
+  # reaches TestFlight. What Apple reports by email after processing a real
+  # upload is not covered.
+  def validate_with_apple
+    key_id = ENV.fetch("APP_STORE_CONNECT_KEY_ID")
+    # altool takes the key by its ID, and looks for AuthKey_<ID>.p8 in the
+    # directory this names - here one of its own, gone when the block ends.
+    Dir.mktmpdir("altool-keys-") do |keys|
+      FileUtils.cp(ENV.fetch("APP_STORE_CONNECT_KEY_PATH"), File.join(keys, "AuthKey_#{key_id}.p8"))
+      sh(
+        { "API_PRIVATE_KEYS_DIR" => keys },
+        "xcrun", "altool", "--validate-app", "-f", File.join(ROOT, IPA), "-t", "ios",
+        "--apiKey", key_id, "--apiIssuer", ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+        step_name: "Validate the IPA with Apple"
+      ) do |status, output|
+        # A non-zero exit or any ERROR line is a failure, as it is to fastlane
+        # when it uploads with altool.
+        errors = output.lines.grep(/ERROR:\s/i).map(&:strip)
+        unless status.success? && errors.empty?
+          reasons = errors.empty? ? output.lines.last(15).map(&:strip) : errors
+          UI.user_error!("Apple did not validate #{release_version} (#{release_build}):\n#{reasons.join("\n")}")
+        end
+      end
+    end
+    UI.success("Apple validated #{release_version} (#{release_build}).")
+  end
+
+  desc "Upload the IPA to TestFlight, or as a dry run have Apple validate it"
+  lane :beta do |options|
+    api_key = app_store_api_key
+    uploaded = latest_testflight_build_number(
+      api_key: api_key,
+      app_identifier: APP_IDENTIFIER,
+      version: release_version,
+      initial_build_number: 0
+    ).to_i
+
+    if dry_run?(options)
+      UI.success("App Store Connect answered: the latest TestFlight build of #{release_version} is #{uploaded}.")
+      validate_with_apple
+      UI.success("Dry run, so nothing was uploaded.")
+      next
+    end
+    if uploaded >= release_build
+      UI.important("TestFlight already has #{release_version} (#{uploaded}), so it is not uploaded again.")
+      next
+    end
+
+    # Internal testers get it straight away: their group distributes every
+    # build automatically. External testing would need Beta App Review.
     upload_to_testflight(
       api_key: api_key,
+      ipa: IPA,
+      changelog: release_notes,
       skip_waiting_for_build_processing: true,
       distribute_external: false
     )
+  end
+
+  desc "Submit the release's build for App Store review, or as a dry run check it could be"
+  lane :promote do |options|
+    api_key = app_store_api_key
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: api_key)
+    app = Spaceship::ConnectAPI::App.find(APP_IDENTIFIER)
+    UI.user_error!("App Store Connect has no app #{APP_IDENTIFIER}.") unless app
+    platform = Spaceship::ConnectAPI::Platform::IOS
+    states = Spaceship::ConnectAPI::AppStoreVersion::AppVersionState
+
+    version = app.get_app_store_versions(filter: { versionString: release_version, platform: platform }).first
+    state = version&.app_version_state
+    UI.message("App Store version #{release_version}: #{state || 'not created yet'}")
+    if [states::ACCEPTED, states::PENDING_APPLE_RELEASE, states::PENDING_DEVELOPER_RELEASE,
+        states::PROCESSING_FOR_DISTRIBUTION, states::READY_FOR_DISTRIBUTION].include?(state)
+      UI.success("#{release_version} has already been approved; there is nothing to submit.")
+      next
+    end
+    if [states::WAITING_FOR_REVIEW, states::IN_REVIEW].include?(state)
+      UI.success("#{release_version} is already in App Store review.")
+      next
+    end
+
+    # Apple reviews one version at a time. A rejected version's submission
+    # stays open, with unresolved issues, until it is cancelled; promoting a
+    # release means sending this build instead, so it is cancelled, and the
+    # rejected version becomes this one when it is submitted.
+    submission_states = Spaceship::ConnectAPI::ReviewSubmission::ReviewSubmissionState
+    in_review = app.get_in_progress_review_submission(platform: platform, includes: "appStoreVersionForReview")
+    if in_review
+      other = in_review.app_store_version_for_review&.version_string || "Another version"
+      unless in_review.state == submission_states::UNRESOLVED_ISSUES
+        UI.user_error!("#{other} is in App Store review already, and Apple takes one version at a time. Once it is approved or withdrawn in App Store Connect, promote this release again from Actions -> Promote.")
+      end
+      UI.important("#{other} was rejected, and its submission is still open.")
+    end
+
+    build = Spaceship::ConnectAPI::Build.all(
+      app_id: app.id, version: release_version, build_number: release_build.to_s, platform: platform
+    ).first
+    UI.user_error!("TestFlight has no build #{release_build} of #{release_version}; the release run that made it did not upload it.") unless build
+    unless build.processing_state == "VALID"
+      UI.user_error!("Build #{release_build} is #{build.processing_state} in TestFlight. Promote again once Apple has finished processing it.")
+    end
+
+    if dry_run?(options)
+      UI.success("Build #{release_build} would be submitted for review as #{release_version}#{in_review ? ', after cancelling that submission' : ''}. Dry run, so nothing was submitted.")
+      next
+    end
+
+    if in_review
+      UI.message("Cancelling the rejected submission, so this build can go for review.")
+      in_review.cancel_submission
+      20.times do
+        break unless Spaceship::ConnectAPI::ReviewSubmission.get(review_submission_id: in_review.id).state == submission_states::CANCELING
+
+        sleep(15)
+      end
+    end
+
+    # Only the release notes are sent: the listing's text and screenshots
+    # stay as they are in App Store Connect. An empty metadata folder keeps
+    # deliver from looking for more.
+    Dir.mktmpdir do |metadata|
+      upload_to_app_store(
+        api_key: api_key,
+        app_identifier: APP_IDENTIFIER,
+        app_version: release_version,
+        build_number: release_build.to_s,
+        skip_binary_upload: true,
+        skip_screenshots: true,
+        metadata_path: metadata,
+        release_notes: { "default" => release_notes },
+        submit_for_review: true,
+        automatic_release: true,
+        submission_information: { export_compliance_uses_encryption: false },
+        # precheck cannot see in-app purchases with an API key, and this app
+        # has none; it would only add a step that can fail on its own.
+        run_precheck_before_submit: false,
+        precheck_include_in_app_purchases: false,
+        force: true
+      )
+    end
+  end
+end
+
+platform :android do
+  def play_credentials
+    path = ENV["GOOGLE_APPLICATION_CREDENTIALS"].to_s
+    UI.user_error!("No Google Play credentials: GOOGLE_APPLICATION_CREDENTIALS is not set.") if path.empty?
+    path
+  end
+
+  # Release notes go to Google Play as files, one per language.
+  def play_release_notes(dir)
+    changelogs = File.join(dir, PLAY_NOTES_LANGUAGE, "changelogs")
+    FileUtils.mkdir_p(changelogs)
+    File.write(File.join(changelogs, "#{release_build}.txt"), release_notes)
+  end
+
+  def on_play_track?(track)
+    google_play_track_version_codes(package_name: APP_IDENTIFIER, track: track, json_key: play_credentials)
+      .map(&:to_i).include?(release_build)
+  end
+
+  desc "Build the signed bundle and APK, carrying the release's version"
+  lane :build do
+    gradle(
+      project_dir: "android",
+      tasks: ["bundleRelease", "assembleRelease"],
+      properties: { "versionCode" => release_build, "versionName" => release_version },
+      flags: "--no-daemon"
+    )
+  end
+
+  desc "Upload the bundle to internal testing, or as a dry run have Google Play validate it"
+  lane :beta do |options|
+    dry_run = dry_run?(options)
+    if !dry_run && on_play_track?("internal")
+      UI.important("Internal testing already has #{release_build}, so it is not uploaded again.")
+      next
+    end
+
+    # A dry run uploads too, into an edit that is validated and then thrown
+    # away: Google Play checks the credentials, the permissions, the upload
+    # key and the version code, and nothing is published.
+    Dir.mktmpdir do |metadata|
+      play_release_notes(metadata)
+      upload_to_play_store(
+        package_name: APP_IDENTIFIER,
+        json_key: play_credentials,
+        track: "internal",
+        release_status: "completed",
+        aab: AAB,
+        version_name: release_version,
+        metadata_path: metadata,
+        skip_upload_apk: true,
+        skip_upload_metadata: true,
+        skip_upload_images: true,
+        skip_upload_screenshots: true,
+        validate_only: dry_run
+      )
+    end
+  end
+
+  desc "Promote the release from internal testing to production, or as a dry run validate that"
+  lane :promote do |options|
+    dry_run = dry_run?(options)
+    if !dry_run && on_play_track?("production")
+      UI.important("Production already has #{release_build}; there is nothing to promote.")
+      next
+    end
+    # Internal testing keeps only its newest build, and Play can only promote
+    # what a track has.
+    unless on_play_track?("internal")
+      UI.user_error!("Internal testing no longer has build #{release_build}: a newer build has replaced it. Ship the newest release instead.")
+    end
+
+    Dir.mktmpdir do |metadata|
+      play_release_notes(metadata)
+      upload_to_play_store(
+        package_name: APP_IDENTIFIER,
+        json_key: play_credentials,
+        track: "internal",
+        track_promote_to: "production",
+        track_promote_release_status: "completed",
+        version_code: release_build,
+        metadata_path: metadata,
+        skip_upload_aab: true,
+        skip_upload_apk: true,
+        skip_upload_metadata: true,
+        skip_upload_images: true,
+        skip_upload_screenshots: true,
+        validate_only: dry_run
+      )
+    end
   end
 end

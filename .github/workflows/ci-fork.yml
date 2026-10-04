@@ -1,0 +1,21 @@
+name: CI for forks
+
+# A pull request from a fork runs CI here: its pushes happen in the fork, so
+# ci.yml's push run never sees them. A branch of this repository gets that
+# push run already, so for its pull requests this one job is skipped - a
+# single "Fork CI" check, rather than a skipped copy of every CI job beside
+# the real one.
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Fork CI
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read

@@ -1,7 +1,0 @@
-{
-  "name": "Prayer Times",
-  "integrations": {
-    "capacitor": {}
-  },
-  "type": "react-vite"
-}

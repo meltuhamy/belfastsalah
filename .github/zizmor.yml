@@ -1,0 +1,8 @@
+# zizmor configuration.
+rules:
+  # Suggests writing local actions and workflows as `uses: $/...`, GitHub's
+  # self-repository form, instead of `./...`. Every workflow here checks the
+  # repository out before using one, which is all `./` needs, and with `./`
+  # actionlint can still check each call against the action's inputs.
+  self-repository:
+    disable: true
