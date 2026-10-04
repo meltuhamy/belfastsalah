@@ -138,7 +138,12 @@ jobs:
   android:
     name: Android
     needs: plan
-    if: needs.plan.outputs.build == 'true'
+    # !cancelled() because CI is skipped on a dry run, and GitHub skips every
+    # job downstream of a skipped one unless its condition says otherwise -
+    # even when the job in between succeeded.
+    if: >-
+      !cancelled() && needs.plan.result == 'success' &&
+      needs.plan.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     # A deployment on the repository's Deployments page, except for dry runs.
@@ -259,7 +264,10 @@ jobs:
   ios:
     name: iOS
     needs: plan
-    if: needs.plan.outputs.build == 'true'
+    # !cancelled(): see the Android job.
+    if: >-
+      !cancelled() && needs.plan.result == 'success' &&
+      needs.plan.outputs.build == 'true'
     # macOS runners are free and unmetered on public repositories.
     runs-on: macos-26
     timeout-minutes: 60
@@ -350,7 +358,11 @@ jobs:
   publish:
     name: GitHub release
     needs: [plan, android, ios]
-    if: needs.plan.outputs.release == 'true' && needs.plan.outputs.dry_run != 'true'
+    # Only once both builds reached their stores; !cancelled(): see Android.
+    if: >-
+      !cancelled() &&
+      needs.plan.outputs.release == 'true' && needs.plan.outputs.dry_run != 'true' &&
+      needs.android.result == 'success' && needs.ios.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
