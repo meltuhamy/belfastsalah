@@ -239,15 +239,25 @@ to make them.
 Each later upload needs a higher build number (the target's **Build** field),
 and a new App Store version needs a higher **Version** as well.
 
-## Later: releasing from CI
+## Releasing from CI
 
-`release-ios.yml` builds and uploads to TestFlight on a `v*` tag. It needs the
-committed `DEVELOPMENT_TEAM` and its secrets (listed at the top of the
-workflow). Set it up after the first manual release, when the certificates
-and the App Store Connect API key exist.
+`release-ios.yml` builds and uploads to TestFlight on a `v*` tag, or by hand
+from **Actions → Release iOS → Run workflow**. It uses cloud signing: the
+project's automatic signing, authorised by an App Store Connect API key, so
+Xcode registers the profiles for the app and the widget extension and signs
+with a cloud-managed distribution certificate. There is no certificate or
+profile to export or renew.
 
-The widget extension is signed separately, so CI needs a second App Store
-provisioning profile, for `com.meltuhamy.londonsalah.widgets`, in
-`IOS_WIDGET_PROVISIONING_PROFILE_BASE64`. Both profiles have to be made after
-the App Group is on both bundle ids - a profile made before it does not
-carry the entitlement, and the upload is rejected.
+One-time setup:
+
+1. App Store Connect → Users and Access → Integrations → App Store Connect
+   API → **+**, with the **Admin** role (cloud-managed certificates need it).
+   Download the `.p8` - Apple only offers it once.
+2. Three repository secrets: `APP_STORE_CONNECT_KEY_ID`,
+   `APP_STORE_CONNECT_ISSUER_ID` (top of the same page), and
+   `APP_STORE_CONNECT_KEY_CONTENT`, from `base64 -i AuthKey_XXXX.p8 | pbcopy`.
+
+The build number is the workflow's run number, so it only ever goes up; it
+has to be higher than any build uploaded by hand for the same version.
+TestFlight takes no more builds of a version once it is released, so bump
+`MARKETING_VERSION` first.
