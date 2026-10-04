@@ -1,0 +1,139 @@
+{
+  "version": 3,
+  "generatedAt": 1768435200000,
+  "locationLabel": "London",
+  "days": [
+    {
+      "dateLabel": "Thu 15 Jan",
+      "prayers": [
+        {
+          "name": "Fajr",
+          "time": "06:20"
+        },
+        {
+          "name": "Shuruq",
+          "time": "07:57"
+        },
+        {
+          "name": "Duhr",
+          "time": "12:15"
+        },
+        {
+          "name": "Asr",
+          "time": "14:02"
+        },
+        {
+          "name": "Maghrib",
+          "time": "16:24"
+        },
+        {
+          "name": "Isha",
+          "time": "18:01"
+        }
+      ]
+    },
+    {
+      "dateLabel": "Fri 16 Jan",
+      "prayers": [
+        {
+          "name": "Fajr",
+          "time": "06:19"
+        },
+        {
+          "name": "Shuruq",
+          "time": "07:56"
+        },
+        {
+          "name": "Duhr",
+          "time": "12:15"
+        },
+        {
+          "name": "Asr",
+          "time": "14:03"
+        },
+        {
+          "name": "Maghrib",
+          "time": "16:26"
+        },
+        {
+          "name": "Isha",
+          "time": "18:03"
+        }
+      ]
+    }
+  ],
+  "upcoming": [
+    {
+      "name": "Fajr",
+      "at": 1768458000000,
+      "time": "06:20",
+      "day": 0
+    },
+    {
+      "name": "Shuruq",
+      "at": 1768463820000,
+      "time": "07:57",
+      "day": 0
+    },
+    {
+      "name": "Duhr",
+      "at": 1768479300000,
+      "time": "12:15",
+      "day": 0
+    },
+    {
+      "name": "Asr",
+      "at": 1768485720000,
+      "time": "14:02",
+      "day": 0
+    },
+    {
+      "name": "Maghrib",
+      "at": 1768494240000,
+      "time": "16:24",
+      "day": 0
+    },
+    {
+      "name": "Isha",
+      "at": 1768500060000,
+      "time": "18:01",
+      "day": 0
+    },
+    {
+      "name": "Fajr",
+      "at": 1768544340000,
+      "time": "06:19",
+      "day": 1
+    },
+    {
+      "name": "Shuruq",
+      "at": 1768550160000,
+      "time": "07:56",
+      "day": 1
+    },
+    {
+      "name": "Duhr",
+      "at": 1768565700000,
+      "time": "12:15",
+      "day": 1
+    },
+    {
+      "name": "Asr",
+      "at": 1768572180000,
+      "time": "14:03",
+      "day": 1
+    },
+    {
+      "name": "Maghrib",
+      "at": 1768580760000,
+      "time": "16:26",
+      "day": 1
+    },
+    {
+      "name": "Isha",
+      "at": 1768586580000,
+      "time": "18:03",
+      "day": 1
+    }
+  ]
+}

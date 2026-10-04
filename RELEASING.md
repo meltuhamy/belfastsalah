@@ -178,7 +178,30 @@ Run it on your own iPhone, not just the simulator, and check:
 iOS keeps at most 64 pending notifications per app, which is exactly what the
 app schedules - ten days or so of reminders, then one asking to open the app.
 
-The widgets are Android-only; the iOS app has none.
+### The widgets
+
+The widgets are a separate target, **PrayerWidgets** (bundle id
+`com.meltuhamy.londonsalah.widgets`), embedded in the app. They read what
+the app writes through an App Group, `group.com.meltuhamy.londonsalah`, which
+both targets' `.entitlements` files already name.
+
+With automatic signing there is nothing to set up by hand: select the
+**PrayerWidgets** target too, check the team is the same, and Xcode registers
+the widget's bundle id and the App Group when it next signs. In
+**Signing & Capabilities** both targets should show **App Groups** with that
+group ticked; if one shows it in red, tick it again.
+
+On the phone, also check:
+
+- A widget added from the home screen shows the times, not "No times". If it
+  says "No times" after the app has been opened, the App Group is missing
+  from one of the targets.
+- **Edit Widget** (touch and hold the widget) changes the countdown and
+  colours, and each copy of the widget keeps its own.
+- The lock screen widgets: **Customize** the lock screen → add widgets.
+
+The widgets need iOS 17. On older iOS the app works as before and simply has
+no widgets to offer.
 
 ## App Store Connect
 
@@ -222,3 +245,9 @@ and a new App Store version needs a higher **Version** as well.
 committed `DEVELOPMENT_TEAM` and its secrets (listed at the top of the
 workflow). Set it up after the first manual release, when the certificates
 and the App Store Connect API key exist.
+
+The widget extension is signed separately, so CI needs a second App Store
+provisioning profile, for `com.meltuhamy.londonsalah.widgets`, in
+`IOS_WIDGET_PROVISIONING_PROFILE_BASE64`. Both profiles have to be made after
+the App Group is on both bundle ids - a profile made before it does not
+carry the entitlement, and the upload is rejected.

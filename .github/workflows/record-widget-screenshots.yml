@@ -1,16 +1,17 @@
 name: Record widget screenshots
 
-# Rewrites the reference images the widget screenshot tests compare against,
-# and commits them back to the branch.
+# Rewrites the reference images the widget screenshot tests compare against -
+# Android's and iOS's - and commits them back to the branch.
 #
 # For when a change to how the widgets look is intended. Either push the
 # change with "[record screenshots]" in the commit message, or run this by
 # hand from the Actions tab. Then look at the images in the commit this makes:
 # that commit is the review of the change.
 #
-# The images are Robolectric's rendering on this runner, so they have to be
-# recorded here rather than on a laptop - a different machine draws
-# different pixels, and every comparison in CI would fail.
+# The images are Robolectric's rendering on this runner, and the iOS
+# simulator's on a macOS one, so they have to be recorded here rather than on
+# a laptop - a different machine draws different pixels, and every comparison
+# in CI would fail.
 
 on:
   push:
@@ -80,3 +81,71 @@ jobs:
         run: |
           echo "::error::Some widget tests failed while recording. The images were committed anyway; see the Record step for what failed."
           exit 1
+
+  # After the Android job, so the two commits land one after the other rather
+  # than racing each other to the branch.
+  record-ios:
+    name: Record and commit (iOS)
+    needs: record
+    if: >-
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       contains(github.event.head_commit.message, '[record screenshots]'))
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build web assets and sync
+        run: |
+          npx vite build
+          npx cap sync ios
+
+      - name: Boot a simulator
+        id: sim
+        run: echo "udid=$(scripts/ios/boot-simulator.sh)" >> "$GITHUB_OUTPUT"
+
+      # Recording makes every snapshot assertion fail by design ("recorded,
+      # check it"), so this step always does; the images are what matter.
+      - name: Record
+        working-directory: ios/App
+        env:
+          TEST_RUNNER_SNAPSHOT_TESTING_RECORD: all
+        run: |
+          rm -rf PrayerWidgetsTests/__Snapshots__
+          xcodebuild test \
+            -project App.xcodeproj \
+            -scheme PrayerWidgetsTests \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath build \
+            -only-testing:PrayerWidgetsTests/WidgetSnapshotTests \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= \
+            || true
+          find PrayerWidgetsTests/__Snapshots__ -name '*.png' | sort
+
+      - name: Commit the images
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ ! -d ios/App/PrayerWidgetsTests/__Snapshots__ ]; then
+            echo "::error::No iOS screenshots were recorded; see the Record step."
+            exit 1
+          fi
+          git add ios/App/PrayerWidgetsTests/__Snapshots__
+          if git diff --cached --quiet; then
+            echo "The iOS screenshots are unchanged."
+            exit 0
+          fi
+          git commit \
+            -m "Record iOS widget screenshots" \
+            -m "Recorded by the record-widget-screenshots workflow from ${GITHUB_SHA}."
+          # The Android job may have pushed its own commit since checkout.
+          # --autostash: cap sync leaves the working tree modified.
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

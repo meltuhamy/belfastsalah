@@ -149,38 +149,17 @@ jobs:
             || sudo ln -sf /usr/share/zoneinfo/Europe/London /etc/localtime
           date
 
-      # The newest "iPhone N Pro Max" on the newest iOS: its screenshots are
-      # the 6.9" size the App Store asks for, so master's can go straight
-      # into a listing.
+      # The same model every iOS job uses; see the script.
       - name: Boot a simulator
         id: sim
-        run: |
-          set -euo pipefail
-          udid="$(xcrun simctl list devices available -j | python3 -c '
-          import json, re, sys
-          best = None
-          for runtime, devices in json.load(sys.stdin)["devices"].items():
-              version = re.search(r"iOS-(\d+)-(\d+)", runtime)
-              if not version:
-                  continue
-              for device in devices:
-                  model = re.fullmatch(r"iPhone (\d+) Pro Max", device["name"])
-                  if model:
-                      key = (int(version[1]), int(version[2]), int(model[1]))
-                      if best is None or key > best[0]:
-                          best = (key, device["udid"], device["name"], runtime)
-          print(best[1])
-          print("Using", best[2], "on", best[3], file=sys.stderr)
-          ')"
-          xcrun simctl bootstatus "$udid" -b
-          xcrun simctl ui "$udid" appearance light
-          xcrun simctl status_bar "$udid" override \
-            --time 9:41 --dataNetwork wifi --wifiMode active --wifiBars 3 \
-            --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
-          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+        run: echo "udid=$(scripts/ios/boot-simulator.sh)" >> "$GITHUB_OUTPUT"
 
       # TEST_RUNNER_-prefixed variables reach the test runner without the
       # prefix. Allowed to fail: see the header.
+      #
+      # Signed ad hoc: a simulator only grants an app its entitlements - the
+      # App Group the widgets read from among them - when it is signed, and
+      # ad hoc needs no certificate. Unsigned, the widgets would have no times.
       - name: Capture
         working-directory: ios/App
         env:
@@ -192,9 +171,36 @@ jobs:
             -destination "id=${{ steps.sim.outputs.udid }}" \
             -derivedDataPath build \
             -resultBundlePath "$RUNNER_TEMP/PreviewCapture.xcresult" \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= \
             || echo "::warning title=iOS previews::Some captures failed; the comment lists which. The xcresult bundle is in the preview-ios-result artifact."
           ls -l "$TEST_RUNNER_PREVIEW_DIR" || true
+
+      # What the plugin and the widget extension logged: whether the app
+      # wrote a payload, and why a widget is empty if one is.
+      - name: What the app and widgets said
+        if: always()
+        run: |
+          xcrun simctl spawn "${{ steps.sim.outputs.udid }}" log show --last 60m --style compact \
+            --predicate 'eventMessage CONTAINS "PrayerWidget:"' | tail -40 || true
+
+      # The lock screen cannot be edited from a test, so those widgets come
+      # from the snapshot references instead - as does one of each home
+      # screen size, all on one page.
+      - name: Add the rendered widgets
+        run: |
+          snapshots=ios/App/PrayerWidgetsTests/__Snapshots__/WidgetSnapshotTests
+          mkdir -p previews-out/ios
+          while read -r source name; do
+            cp "$snapshots/$source" "previews-out/ios/$name.png" || true
+          done <<'EOF'
+          testHomeScreen.small-light.png rendered-small
+          testHomeScreen.medium-light.png rendered-medium
+          testHomeScreen.large-light.png rendered-large
+          testHomeScreen.medium-dark.png rendered-medium-dark
+          testLockScreen.rectangular.png rendered-rectangular
+          testLockScreen.circular.png rendered-circular
+          testLockScreen.inline.png rendered-inline
+          EOF
 
       - uses: actions/upload-artifact@v7
         with:

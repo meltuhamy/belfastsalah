@@ -36,9 +36,30 @@ export async function refreshWidgets(
   }
 }
 
-/** Whether home screen widgets exist on this platform at all. */
-export function widgetsSupported(): boolean {
-  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
+/**
+ * How this platform lets people change a widget's look, which decides what
+ * the settings screen offers.
+ *
+ * - "screen": Android. The app can open the appearance screen itself, and
+ *   has to, because launchers differ on whether they reopen it.
+ * - "edit-widget": iOS. Only the home screen can - long-press, Edit Widget -
+ *   so the app can only say where to look.
+ * - null: no widgets, as on the web.
+ */
+export type WidgetSettingsRoute = "screen" | "edit-widget" | null;
+
+export function widgetSettingsRoute(): WidgetSettingsRoute {
+  if (!Capacitor.isNativePlatform()) {
+    return null;
+  }
+  switch (Capacitor.getPlatform()) {
+    case "android":
+      return "screen";
+    case "ios":
+      return "edit-widget";
+    default:
+      return null;
+  }
 }
 
 /**
@@ -49,7 +70,7 @@ export function widgetsSupported(): boolean {
  * the Pixel launcher does not. This is the way back in.
  */
 export async function openWidgetSettings(): Promise<void> {
-  if (!widgetsSupported()) {
+  if (widgetSettingsRoute() !== "screen") {
     return;
   }
   try {
