@@ -1,0 +1,431 @@
+name: Release
+
+# Every merge to master that changes the app is released to testers: a tag,
+# TestFlight, Google Play internal testing, and a GitHub pre-release carrying
+# the notes and the Android builds. Making that pre-release a full release
+# ships it to users - promote.yml. See RELEASING.md.
+#
+#   push to master   CI first, then a release if anything in the app changed
+#   Run workflow     the same by hand: choose the bump, force it, or dry-run it
+#   pull request     a dry run, when it changes how releases are made
+#
+# A dry run builds and signs both apps with the version a release would get,
+# has App Store Connect and Google Play check them, and tags, uploads and
+# publishes nothing. GitHub only lets "Run workflow" start a workflow that is
+# already on master, so the pull request trigger is how a change to this file
+# gets tried before it merges.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump - auto follows the merged pull request's labels
+        type: choice
+        options: [auto, patch, minor, major]
+        default: auto
+      force:
+        description: Release even if nothing in the app changed
+        type: boolean
+        default: false
+      dry_run:
+        description: Build and check everything, release nothing
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - .github/actions/**
+      - fastlane/**
+      - Gemfile
+      - Gemfile.lock
+      - .ruby-version
+      - scripts/release/**
+      - android/app/build.gradle
+      - android/build.gradle
+      - android/variables.gradle
+      - android/gradle/wrapper/gradle-wrapper.properties
+      - ios/App/App.xcodeproj/project.pbxproj
+
+permissions:
+  contents: read
+
+# One release at a time, and never cancelled half way through an upload: a
+# burst of merges queues only the newest, which includes all of them. Dry runs
+# for the same pull request replace each other.
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('release-dry-run-{0}', github.event.pull_request.number) || 'release' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # fastlane wants a UTF-8 locale.
+  LC_ALL: en_US.UTF-8
+  LANG: en_US.UTF-8
+
+jobs:
+  ci:
+    name: CI
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run)
+    uses: $/.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  plan:
+    name: Plan
+    needs: ci
+    # Once CI has passed, or without it for a dry run, which releases nothing.
+    # A fork's pull request gets no secrets, so it is not dry-run here.
+    if: >-
+      !cancelled() &&
+      (needs.ci.result == 'success' || needs.ci.result == 'skipped') &&
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # generating the release notes, and the tag
+      pull-requests: read # the merged pull request's labels
+      issues: write # making the release labels, the first time
+    outputs:
+      release: ${{ steps.plan.outputs.release }}
+      build: ${{ steps.plan.outputs.build }}
+      dry_run: ${{ steps.plan.outputs.dry_run }}
+      tagged: ${{ steps.plan.outputs.tagged }}
+      version: ${{ steps.plan.outputs.version }}
+      build_number: ${{ steps.plan.outputs.build_number }}
+      tag: ${{ steps.plan.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # every tag, to count from the last release
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false # the release scripts need no packages
+
+      - name: Plan
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUMP: ${{ inputs.bump || 'auto' }}
+          FORCE: ${{ inputs.force || false }}
+          DRY_RUN: ${{ github.event_name == 'pull_request' || inputs.dry_run || false }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: node scripts/release/plan.mjs --out release-plan
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: steps.plan.outputs.build == 'true'
+        with:
+          name: release-plan
+          path: release-plan
+          retention-days: 30
+
+      # Before anything is built, so a version is never used twice: a run that
+      # fails later leaves its tag behind, and the next one takes the next
+      # number. The stores do not mind the gap.
+      - name: Tag
+        if: steps.plan.outputs.release == 'true' && steps.plan.outputs.tagged != 'true' && steps.plan.outputs.dry_run != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.plan.outputs.tag }}
+        run: gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$TAG" -f sha="$GITHUB_SHA"
+
+  android:
+    name: Android
+    needs: plan
+    if: needs.plan.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # A deployment on the repository's Deployments page, except for dry runs.
+    environment:
+      name: ${{ needs.plan.outputs.dry_run != 'true' && 'google-play-internal' || '' }}
+      url: https://play.google.com/console
+    permissions:
+      contents: read
+      id-token: write # keyless sign-in to Google Play
+    outputs:
+      where: ${{ steps.upload.outputs.where }}
+    env:
+      RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+      RELEASE_BUILD_NUMBER: ${{ needs.plan.outputs.build_number }}
+      RELEASE_NOTES_FILE: release-plan/store-notes.txt
+      DRY_RUN: ${{ needs.plan.outputs.dry_run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: $/.github/actions/setup
+        with:
+          platform: android
+          fastlane: "true"
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-plan
+          path: release-plan
+
+      - name: Decode the upload key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 is not set; see RELEASING.md."
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
+
+      - name: Build and sign
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/upload-keystore.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: bundle exec fastlane android build
+
+      - name: Remove the upload key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload-keystore.jks"
+
+      # The version the build actually carries, and the key it is signed
+      # with - Play only takes builds signed with the upload key it has on
+      # file, under Test and release -> App integrity.
+      - name: Check the build
+        run: |
+          aab=android/app/build/outputs/bundle/release/app-release.aab
+          apk=android/app/build/outputs/apk/release/app-release.apk
+          aapt2="$(find "$ANDROID_HOME/build-tools" -name aapt2 | sort -V | tail -1)"
+          badging="$("$aapt2" dump badging "$apk" | head -1)"
+          echo "$badging"
+          if ! grep -q "versionCode='$RELEASE_BUILD_NUMBER' versionName='$RELEASE_VERSION'" <<< "$badging"; then
+            echo "::error::The APK is not $RELEASE_VERSION ($RELEASE_BUILD_NUMBER)."
+            exit 1
+          fi
+          fingerprint="$(keytool -printcert -jarfile "$aab" | grep -m1 'SHA256:' | sed 's/^[[:space:]]*SHA256:[[:space:]]*//')"
+          echo "Signed with the upload key $fingerprint"
+          echo "Android $RELEASE_VERSION ($RELEASE_BUILD_NUMBER), signed with the upload key \`$fingerprint\`." >> "$GITHUB_STEP_SUMMARY"
+
+      # Variables, as RELEASING.md sets them up; secrets are read too, in case
+      # they were saved there instead.
+      - name: Check for Google Play
+        id: play
+        env:
+          PROVIDER: ${{ vars.GOOGLE_WORKLOAD_IDENTITY_PROVIDER || secrets.GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
+          SERVICE_ACCOUNT: ${{ vars.GOOGLE_SERVICE_ACCOUNT || secrets.GOOGLE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -n "$PROVIDER" ] && [ -n "$SERVICE_ACCOUNT" ]; then
+            echo "connected=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "connected=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Google Play::Google Play is not connected, so the bundle is not uploaded; it is attached to the GitHub release instead. RELEASING.md says how to connect it."
+          fi
+
+      - name: Sign in to Google Play
+        if: steps.play.outputs.connected == 'true'
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.GOOGLE_WORKLOAD_IDENTITY_PROVIDER || secrets.GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GOOGLE_SERVICE_ACCOUNT || secrets.GOOGLE_SERVICE_ACCOUNT }}
+
+      - name: Upload to internal testing
+        id: upload
+        env:
+          CONNECTED: ${{ steps.play.outputs.connected }}
+        run: |
+          if [ "$CONNECTED" != "true" ]; then
+            echo "where=Not uploaded - Google Play is not connected yet; the .aab below uploads by hand" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          bundle exec fastlane android beta dry_run:"$DRY_RUN"
+          echo "where=Google Play internal testing" >> "$GITHUB_OUTPUT"
+
+      - name: Name the files for the release
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/bundle/release/app-release.aab "dist/prayer-times-$RELEASE_VERSION.aab"
+          cp android/app/build/outputs/apk/release/app-release.apk "dist/prayer-times-$RELEASE_VERSION.apk"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-release
+          path: dist
+          retention-days: 30
+
+  ios:
+    name: iOS
+    needs: plan
+    if: needs.plan.outputs.build == 'true'
+    # macOS runners are free and unmetered on public repositories.
+    runs-on: macos-26
+    timeout-minutes: 60
+    environment:
+      name: ${{ needs.plan.outputs.dry_run != 'true' && 'testflight' || '' }}
+      url: https://appstoreconnect.apple.com/apps/993461657/testflight/ios
+    permissions:
+      contents: read
+    outputs:
+      where: ${{ steps.upload.outputs.where }}
+    env:
+      RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+      RELEASE_BUILD_NUMBER: ${{ needs.plan.outputs.build_number }}
+      RELEASE_NOTES_FILE: release-plan/store-notes.txt
+      DRY_RUN: ${{ needs.plan.outputs.dry_run }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: $/.github/actions/setup
+        with:
+          platform: ios
+          fastlane: "true"
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-plan
+          path: release-plan
+
+      # The App Store Connect API key signs in to Apple for everything here:
+      # cloud signing, TestFlight and App Store Connect. xcodebuild only takes
+      # it as a file.
+      - name: Write the App Store Connect key
+        env:
+          APP_STORE_CONNECT_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
+        run: |
+          for name in APP_STORE_CONNECT_KEY_ID APP_STORE_CONNECT_ISSUER_ID APP_STORE_CONNECT_KEY_CONTENT; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is not set; see RELEASING.md."
+              exit 1
+            fi
+          done
+          echo "APP_STORE_CONNECT_KEY_PATH=$RUNNER_TEMP/AuthKey.p8" >> "$GITHUB_ENV"
+          echo "$APP_STORE_CONNECT_KEY_CONTENT" | base64 -d > "$RUNNER_TEMP/AuthKey.p8"
+          if ! grep -q "BEGIN PRIVATE KEY" "$RUNNER_TEMP/AuthKey.p8"; then
+            echo "::error::APP_STORE_CONNECT_KEY_CONTENT is not the base64 of a .p8 file."
+            exit 1
+          fi
+
+      - name: Build and sign
+        run: bundle exec fastlane ios build
+
+      # The version each bundle in the IPA carries - the app and its widget
+      # extension both, which the App Store requires to agree.
+      - name: Check the build
+        run: |
+          unpacked="$(mktemp -d)"
+          unzip -q build/ios/App.ipa -d "$unpacked"
+          for plist in "$unpacked"/Payload/*.app/Info.plist "$unpacked"/Payload/*.app/PlugIns/*.appex/Info.plist; do
+            version="$(plutil -extract CFBundleShortVersionString raw "$plist")"
+            build="$(plutil -extract CFBundleVersion raw "$plist")"
+            echo "${plist#"$unpacked"/}: $version ($build)"
+            if [ "$version" != "$RELEASE_VERSION" ] || [ "$build" != "$RELEASE_BUILD_NUMBER" ]; then
+              echo "::error::${plist#"$unpacked"/} is $version ($build), not $RELEASE_VERSION ($RELEASE_BUILD_NUMBER)."
+              exit 1
+            fi
+          done
+
+      - name: Upload to TestFlight
+        id: upload
+        run: |
+          bundle exec fastlane ios beta dry_run:"$DRY_RUN"
+          echo "where=TestFlight" >> "$GITHUB_OUTPUT"
+
+      - name: Remove the App Store Connect key
+        if: always()
+        run: rm -f "$APP_STORE_CONNECT_KEY_PATH"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-release
+          path: build/ios/App.ipa
+          retention-days: 30
+
+  publish:
+    name: GitHub release
+    needs: [plan, android, ios]
+    if: needs.plan.outputs.release == 'true' && needs.plan.outputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # the release
+      id-token: write # signing the provenance attestations
+      attestations: write
+      artifact-metadata: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ needs.plan.outputs.tag }}
+      VERSION: ${{ needs.plan.outputs.version }}
+      BUILD_NUMBER: ${{ needs.plan.outputs.build_number }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false # the release scripts need no packages
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-plan
+          path: release-plan
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: android-release
+          path: dist
+
+      # Who built these files, from what: gh attestation verify <file> -R
+      # meltuhamy/belfastsalah checks a download against it.
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: |
+            dist/*.aab
+            dist/*.apk
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum -- * > SHA256SUMS
+
+      - name: Release notes
+        env:
+          IOS_WHERE: ${{ needs.ios.outputs.where }}
+          ANDROID_WHERE: ${{ needs.android.outputs.where }}
+        run: |
+          node scripts/release/notes.mjs body \
+            --version "$VERSION" \
+            --build "$BUILD_NUMBER" \
+            --whats-new release-plan/whats-new.md \
+            --changes release-plan/changes.md \
+            --ios "$IOS_WHERE" \
+            --android "$ANDROID_WHERE" \
+            --commit-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$GITHUB_SHA" \
+            --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            > release-notes.md
+
+      # A draft first, the files attached, and then published: once out, an
+      # immutable release takes no more files. A draft an earlier attempt left
+      # behind is replaced; a published release is left alone.
+      - name: Publish the pre-release
+        run: |
+          if draft="$(gh release view "$TAG" --json isDraft --jq .isDraft 2>/dev/null)"; then
+            if [ "$draft" = "false" ]; then
+              echo "$TAG is already published."
+              exit 0
+            fi
+            gh release delete "$TAG" --yes
+          fi
+          gh release create "$TAG" --verify-tag --draft --prerelease \
+            --title "$TAG" --notes-file release-notes.md dist/*
+          gh release edit "$TAG" --draft=false
+          url="$(gh release view "$TAG" --json url --jq .url)"
+          echo "Released $VERSION ($BUILD_NUMBER) to testers: $url" >> "$GITHUB_STEP_SUMMARY"

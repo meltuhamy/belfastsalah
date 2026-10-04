@@ -1,44 +1,90 @@
+# Builds both apps and moves them through the stores, for release.yml and
+# promote.yml (see RELEASING.md). The lanes read the release from the
+# environment:
+#
+#   RELEASE_VERSION       4.0.2     the tag, without its v
+#   RELEASE_BUILD_NUMBER  4000002   the same on both stores
+#   RELEASE_NOTES_FILE    "What's new" as plain text (scripts/release/notes.mjs)
+#
+# and credentials, which the workflows provide:
+#
+#   iOS      APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID and
+#            APP_STORE_CONNECT_KEY_PATH, the .p8 file
+#   Android  ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS
+#            and ANDROID_KEY_PASSWORD, which android/app/build.gradle signs
+#            with; GOOGLE_APPLICATION_CREDENTIALS for Google Play, written by
+#            google-github-actions/auth
+#
+# Every lane that changes a store first asks whether the store already has the
+# change, so rerunning a failed job is always safe. With dry_run:true a lane
+# checks everything a real run would and changes nothing:
+#
+#   bundle exec fastlane android beta dry_run:true
+
+require "fileutils"
 require "shellwords"
+require "tmpdir"
+
+# No usage analytics, and no fastlane/README.md written after every run.
+opt_out_usage
+skip_docs
+
+APP_IDENTIFIER = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+TEAM_ID = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
+IPA = "build/ios/App.ipa"
+AAB = "android/app/build/outputs/bundle/release/app-release.aab"
+
+def release_version
+  ENV.fetch("RELEASE_VERSION")
+end
+
+def release_build
+  Integer(ENV.fetch("RELEASE_BUILD_NUMBER"))
+end
+
+def release_notes
+  File.read(ENV.fetch("RELEASE_NOTES_FILE")).strip
+end
+
+def dry_run?(options)
+  options[:dry_run].to_s == "true"
+end
 
 default_platform(:ios)
 
 platform :ios do
-  desc "Build a signed IPA and upload it to TestFlight"
-  lane :beta do
-    # A temporary keychain on CI, for the development certificate Xcode makes
-    # to sign the archive; it is thrown away with the runner.
-    setup_ci if ENV["CI"]
-
-    key_id = ENV.fetch("APP_STORE_CONNECT_KEY_ID")
-    issuer_id = ENV.fetch("APP_STORE_CONNECT_ISSUER_ID")
-    key_path = ENV.fetch("APP_STORE_CONNECT_KEY_PATH")
-
-    api_key = app_store_connect_api_key(
-      key_id: key_id,
-      issuer_id: issuer_id,
-      key_filepath: key_path,
+  def app_store_api_key
+    app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+      key_filepath: ENV.fetch("APP_STORE_CONNECT_KEY_PATH"),
       in_house: false
     )
+  end
 
-    # Cloud signing: the project uses automatic signing, and these let
+  desc "Build the IPA for the App Store, carrying the release's version"
+  lane :build do
+    # A temporary keychain for the development certificate Xcode makes to sign
+    # the archive; it goes with the runner.
+    setup_ci if ENV["CI"]
+
+    # Cloud signing. The project uses automatic signing, and these let
     # xcodebuild register profiles and use a cloud-managed distribution
-    # certificate with no Apple account signed in. Both the archive and the
-    # export need them, and gym passes xcargs to both - adding them to
-    # export_xcargs as well makes xcodebuild refuse the duplicates.
+    # certificate with no Apple account signed in. gym passes xcargs to the
+    # archive and the export alike, which both need them; repeating them in
+    # export_xcargs makes xcodebuild refuse the duplicates.
+    key_path = ENV.fetch("APP_STORE_CONNECT_KEY_PATH")
     auth = [
       "-allowProvisioningUpdates",
       "-authenticationKeyPath #{key_path.shellescape}",
-      "-authenticationKeyID #{key_id.shellescape}",
-      "-authenticationKeyIssuerID #{issuer_id.shellescape}"
+      "-authenticationKeyID #{ENV.fetch('APP_STORE_CONNECT_KEY_ID').shellescape}",
+      "-authenticationKeyIssuerID #{ENV.fetch('APP_STORE_CONNECT_ISSUER_ID').shellescape}"
     ].join(" ")
 
-    # Build numbers have to be unique per marketing version in TestFlight, so
-    # the workflow run number is used rather than a value committed to git.
-    # Set as a build setting rather than with agvtool, which needs a
-    # versioning system the project does not declare; this way it reaches
-    # the widget extension too, whose Info.plist is generated from it.
-    build_number = ENV.fetch("BUILD_NUMBER", Time.now.to_i.to_s)
-
+    # The version is a build setting rather than agvtool's, which needs a
+    # versioning system the project does not declare. As a setting it also
+    # reaches the widget extension, whose Info.plist is generated from it.
+    #
     # Capacitor 8 uses Swift Package Manager rather than CocoaPods, so there
     # is no .xcworkspace to point at - the project builds directly.
     build_app(
@@ -46,19 +92,207 @@ platform :ios do
       scheme: "App",
       configuration: "Release",
       export_method: "app-store",
-      export_options: {
-        signingStyle: "automatic",
-        teamID: CredentialsManager::AppfileConfig.try_fetch_value(:team_id) # FMTYKM5F9P
-      },
-      xcargs: "#{auth} CURRENT_PROJECT_VERSION=#{build_number}",
-      output_directory: "build/ios",
+      export_options: { signingStyle: "automatic", teamID: TEAM_ID },
+      xcargs: "#{auth} MARKETING_VERSION=#{release_version} CURRENT_PROJECT_VERSION=#{release_build}",
+      output_directory: File.dirname(IPA),
+      output_name: File.basename(IPA, ".ipa"),
       clean: true
     )
+  end
 
+  desc "Upload the IPA to TestFlight, or as a dry run check the API key works"
+  lane :beta do |options|
+    api_key = app_store_api_key
+    uploaded = latest_testflight_build_number(
+      api_key: api_key,
+      app_identifier: APP_IDENTIFIER,
+      version: release_version,
+      initial_build_number: 0
+    ).to_i
+
+    if dry_run?(options)
+      UI.success("App Store Connect answered: the latest TestFlight build of #{release_version} is #{uploaded}. Dry run, so nothing was uploaded.")
+      next
+    end
+    if uploaded >= release_build
+      UI.important("TestFlight already has #{release_version} (#{uploaded}), so it is not uploaded again.")
+      next
+    end
+
+    # Internal testers get it straight away: their group distributes every
+    # build automatically. External testing would need Beta App Review.
     upload_to_testflight(
       api_key: api_key,
+      ipa: IPA,
+      changelog: release_notes,
       skip_waiting_for_build_processing: true,
       distribute_external: false
     )
+  end
+
+  desc "Submit the release's build for App Store review, or as a dry run check it could be"
+  lane :promote do |options|
+    api_key = app_store_api_key
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: api_key)
+    app = Spaceship::ConnectAPI::App.find(APP_IDENTIFIER)
+    UI.user_error!("App Store Connect has no app #{APP_IDENTIFIER}.") unless app
+    platform = Spaceship::ConnectAPI::Platform::IOS
+    states = Spaceship::ConnectAPI::AppStoreVersion::AppVersionState
+
+    version = app.get_app_store_versions(filter: { versionString: release_version, platform: platform }).first
+    state = version&.app_version_state
+    UI.message("App Store version #{release_version}: #{state || 'not created yet'}")
+    if [states::ACCEPTED, states::PENDING_APPLE_RELEASE, states::PENDING_DEVELOPER_RELEASE,
+        states::PROCESSING_FOR_DISTRIBUTION, states::READY_FOR_DISTRIBUTION].include?(state)
+      UI.success("#{release_version} has already been approved; there is nothing to submit.")
+      next
+    end
+    if [states::WAITING_FOR_REVIEW, states::IN_REVIEW].include?(state)
+      UI.success("#{release_version} is already in App Store review.")
+      next
+    end
+
+    # Apple reviews one version at a time.
+    in_review = app.get_in_progress_review_submission(platform: platform, includes: "appStoreVersionForReview")
+    if in_review
+      other = in_review.app_store_version_for_review&.version_string || "Another version"
+      UI.user_error!("#{other} is in App Store review already, and Apple takes one version at a time. Once it is approved or withdrawn in App Store Connect, promote this release again from Actions -> Promote.")
+    end
+
+    build = Spaceship::ConnectAPI::Build.all(
+      app_id: app.id, version: release_version, build_number: release_build.to_s, platform: platform
+    ).first
+    UI.user_error!("TestFlight has no build #{release_build} of #{release_version}; the release run that made it did not upload it.") unless build
+    unless build.processing_state == "VALID"
+      UI.user_error!("Build #{release_build} is #{build.processing_state} in TestFlight. Promote again once Apple has finished processing it.")
+    end
+
+    if dry_run?(options)
+      UI.success("Build #{release_build} would be submitted for review as #{release_version}. Dry run, so nothing was submitted.")
+      next
+    end
+
+    # Only the release notes are sent: the listing's text and screenshots
+    # stay as they are in App Store Connect. An empty metadata folder keeps
+    # deliver from looking for more.
+    Dir.mktmpdir do |metadata|
+      upload_to_app_store(
+        api_key: api_key,
+        app_identifier: APP_IDENTIFIER,
+        app_version: release_version,
+        build_number: release_build.to_s,
+        skip_binary_upload: true,
+        skip_screenshots: true,
+        metadata_path: metadata,
+        release_notes: { "default" => release_notes },
+        submit_for_review: true,
+        automatic_release: true,
+        submission_information: { export_compliance_uses_encryption: false },
+        # precheck cannot see in-app purchases with an API key, and this app
+        # has none; it would only add a step that can fail on its own.
+        run_precheck_before_submit: false,
+        precheck_include_in_app_purchases: false,
+        force: true
+      )
+    end
+  end
+end
+
+platform :android do
+  def play_credentials
+    path = ENV["GOOGLE_APPLICATION_CREDENTIALS"].to_s
+    UI.user_error!("No Google Play credentials: GOOGLE_APPLICATION_CREDENTIALS is not set.") if path.empty?
+    path
+  end
+
+  # Release notes go to Google Play as files, one per language; these are in
+  # the listing's default language, which Play falls back to for the rest.
+  def play_release_notes(dir)
+    require "supply"
+    Supply.config = FastlaneCore::Configuration.create(
+      Supply::Options.available_options,
+      { package_name: APP_IDENTIFIER, json_key: play_credentials }
+    )
+    client = Supply::Client.make_from_config
+    client.begin_edit(package_name: APP_IDENTIFIER)
+    language = client.client.get_edit_detail(APP_IDENTIFIER, client.current_edit.id).default_language
+    client.abort_current_edit
+    UI.message("Release notes in #{language}, the listing's default language.")
+    changelogs = File.join(dir, language, "changelogs")
+    FileUtils.mkdir_p(changelogs)
+    File.write(File.join(changelogs, "#{release_build}.txt"), release_notes)
+  end
+
+  def on_play_track?(track)
+    google_play_track_version_codes(package_name: APP_IDENTIFIER, track: track, json_key: play_credentials)
+      .map(&:to_i).include?(release_build)
+  end
+
+  desc "Build the signed bundle and APK, carrying the release's version"
+  lane :build do
+    gradle(
+      project_dir: "android",
+      tasks: ["bundleRelease", "assembleRelease"],
+      properties: { "versionCode" => release_build, "versionName" => release_version },
+      flags: "--no-daemon"
+    )
+  end
+
+  desc "Upload the bundle to internal testing, or as a dry run have Google Play validate it"
+  lane :beta do |options|
+    dry_run = dry_run?(options)
+    if !dry_run && on_play_track?("internal")
+      UI.important("Internal testing already has #{release_build}, so it is not uploaded again.")
+      next
+    end
+
+    # A dry run uploads too, into an edit that is validated and then thrown
+    # away: Google Play checks the credentials, the permissions, the upload
+    # key and the version code, and nothing is published.
+    Dir.mktmpdir do |metadata|
+      play_release_notes(metadata)
+      upload_to_play_store(
+        package_name: APP_IDENTIFIER,
+        json_key: play_credentials,
+        track: "internal",
+        release_status: "completed",
+        aab: AAB,
+        version_name: release_version,
+        metadata_path: metadata,
+        skip_upload_apk: true,
+        skip_upload_metadata: true,
+        skip_upload_images: true,
+        skip_upload_screenshots: true,
+        validate_only: dry_run
+      )
+    end
+  end
+
+  desc "Promote the release from internal testing to production, or as a dry run validate that"
+  lane :promote do |options|
+    dry_run = dry_run?(options)
+    if !dry_run && on_play_track?("production")
+      UI.important("Production already has #{release_build}; there is nothing to promote.")
+      next
+    end
+
+    Dir.mktmpdir do |metadata|
+      play_release_notes(metadata)
+      upload_to_play_store(
+        package_name: APP_IDENTIFIER,
+        json_key: play_credentials,
+        track: "internal",
+        track_promote_to: "production",
+        track_promote_release_status: "completed",
+        version_code: release_build,
+        metadata_path: metadata,
+        skip_upload_aab: true,
+        skip_upload_apk: true,
+        skip_upload_metadata: true,
+        skip_upload_images: true,
+        skip_upload_screenshots: true,
+        validate_only: dry_run
+      )
+    end
   end
 end

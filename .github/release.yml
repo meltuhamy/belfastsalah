@@ -1,0 +1,24 @@
+# How GitHub groups pull requests in the release notes it generates, which
+# release.yml asks for (scripts/release/plan.mjs). A pull request goes under
+# the first category whose labels it has.
+changelog:
+  exclude:
+    labels:
+      - release:skip
+  categories:
+    - title: Breaking changes
+      labels:
+        - release:major
+    - title: New
+      labels:
+        - release:minor
+        - enhancement
+    - title: Fixes
+      labels:
+        - bug
+    - title: Dependencies
+      labels:
+        - dependencies
+    - title: Other changes
+      labels:
+        - "*"
