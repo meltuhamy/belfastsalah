@@ -150,6 +150,7 @@ export function releaseBody({ version, build, whatsNew, ios, android, changes, c
     { platform: "Android", version, build, where: android },
   ]);
   const commit = commitUrl.split("/").at(-1).slice(0, 7);
+  const repository = commitUrl.replace(/\/commit\/[^/]+$/, "");
   return `## What's new
 
 ${MARKERS.whatsNew[0]}
@@ -157,7 +158,7 @@ ${whatsNew.trim()}
 ${MARKERS.whatsNew[1]}
 
 > [!NOTE]
-> The App Store and Google Play show **What's new** to users, so edit it before shipping - Google Play takes up to ${PLAY_LIMIT} characters. To ship, edit this release and untick **Set as a pre-release**: the iOS build goes to App Store review and the Android build to production. See RELEASING.md.
+> **To ship this release**, edit it and rewrite **What's new** for users - both stores show it, and Google Play takes at most ${PLAY_LIMIT} characters. Then untick **Set as a pre-release**: the iOS build goes to App Store review and the Android build to production. [RELEASING.md](${repository}/blob/master/RELEASING.md) has the details.
 
 ## Builds
 

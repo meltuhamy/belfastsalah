@@ -75,9 +75,10 @@ platform :ios do
 
     # Cloud signing. The project uses automatic signing, and these let
     # xcodebuild register profiles and use a cloud-managed distribution
-    # certificate with no Apple account signed in. gym passes xcargs to the
-    # archive and the export alike, which both need them; repeating them in
-    # export_xcargs makes xcodebuild refuse the duplicates.
+    # certificate with no Apple account signed in; that needs a key with the
+    # Admin role. gym passes xcargs to the archive and the export alike, which
+    # both need them; repeating them in export_xcargs makes xcodebuild refuse
+    # the duplicates.
     key_path = ENV.fetch("APP_STORE_CONNECT_KEY_PATH")
     auth = [
       "-allowProvisioningUpdates",

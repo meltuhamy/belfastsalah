@@ -180,7 +180,7 @@ jobs:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
-            echo "::error::ANDROID_KEYSTORE_BASE64 is not set; see RELEASING.md."
+            echo "::error::ANDROID_KEYSTORE_BASE64 is not set. Load the upload key with scripts/release/android-signing-secrets.sh."
             exit 1
           fi
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
@@ -215,8 +215,8 @@ jobs:
           echo "Signed with the upload key $fingerprint"
           echo "Android $RELEASE_VERSION ($RELEASE_BUILD_NUMBER), signed with the upload key \`$fingerprint\`." >> "$GITHUB_STEP_SUMMARY"
 
-      # Variables, as RELEASING.md sets them up; secrets are read too, in case
-      # they were saved there instead.
+      # Repository variables; secrets are read too, in case they were saved
+      # there instead.
       - name: Check for Google Play
         id: play
         env:
@@ -227,7 +227,7 @@ jobs:
             echo "connected=true" >> "$GITHUB_OUTPUT"
           else
             echo "connected=false" >> "$GITHUB_OUTPUT"
-            echo "::warning title=Google Play::Google Play is not connected, so the bundle is not uploaded; it is attached to the GitHub release instead. RELEASING.md says how to connect it."
+            echo "::warning title=Google Play::Google Play is not connected - GOOGLE_WORKLOAD_IDENTITY_PROVIDER and GOOGLE_SERVICE_ACCOUNT are not set - so the bundle is not uploaded; it is attached to the GitHub release instead."
           fi
 
       - name: Sign in to Google Play
@@ -309,7 +309,7 @@ jobs:
         run: |
           for name in APP_STORE_CONNECT_KEY_ID APP_STORE_CONNECT_ISSUER_ID APP_STORE_CONNECT_KEY_CONTENT; do
             if [ -z "${!name}" ]; then
-              echo "::error::$name is not set; see RELEASING.md."
+              echo "::error::$name is not set. It is one of the three secrets for the App Store Connect API key, which needs the Admin role."
               exit 1
             fi
           done

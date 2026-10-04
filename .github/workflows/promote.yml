@@ -189,7 +189,7 @@ jobs:
             echo "connected=true" >> "$GITHUB_OUTPUT"
           else
             echo "connected=false" >> "$GITHUB_OUTPUT"
-            echo "::warning title=Google Play::Google Play is not connected, so promote this release by hand in Play Console. RELEASING.md says how to connect it."
+            echo "::warning title=Google Play::Google Play is not connected - GOOGLE_WORKLOAD_IDENTITY_PROVIDER and GOOGLE_SERVICE_ACCOUNT are not set - so promote this release by hand in Play Console."
           fi
 
       - name: Sign in to Google Play

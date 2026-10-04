@@ -32,7 +32,6 @@ Supported locations:
 | Tests | Vitest, Playwright; Robolectric and XCTest for the widgets |
 | Lint | oxlint |
 | Native | Capacitor 8 (Android SDK 36, iOS 15+; widgets iOS 17+) |
-| Releases | GitHub Actions and fastlane, from merge to both stores |
 
 ## Development
 
@@ -65,71 +64,56 @@ npx cap open ios        # opens Xcode
 
 Android builds need JDK 21 and Android SDK 36. iOS builds need Xcode 26 or
 newer; Capacitor 8 uses Swift Package Manager, so there is no `pod install`
-step. A build made this way reports version `0.0.0-dev`: the real version
-comes from the release (below).
+step. A build made this way reports version `0.0.0-dev`; only releases carry
+a real version.
 
-## Releases
+## Releasing
 
-Every merge to `master` that changes the app is released to testers -
-TestFlight, Google Play internal testing, and a pre-release on
-[GitHub Releases](https://github.com/meltuhamy/belfastsalah/releases) with the
-release notes and the Android builds. Shipping it to users is one click:
-edit that release and untick **Set as a pre-release**. The iOS build then goes
-to App Store review and the Android build to production.
+Merging to `master` releases the app to testers: TestFlight, Google Play
+internal testing, and a pre-release on
+[GitHub Releases](https://github.com/meltuhamy/belfastsalah/releases). To ship
+it to users, edit that release and untick **Set as a pre-release**.
 
-Versions bump the patch by default. Label a pull request `release:minor` or
-`release:major` for more, or `release:skip` to leave it out. The git tags are
-the only record of the version; nothing in the repository is bumped by hand.
+Each merge bumps the patch version. Label the pull request `release:minor` or
+`release:major` for a bigger bump, or `release:skip` to hold it back. Never
+bump a version or create a tag by hand.
 
-[RELEASING.md](RELEASING.md) has the whole story: trying a beta, shipping,
-what to do when something fails, the one-time store setup, and the store
-listing forms.
-
-## CI
-
-Everything runs on GitHub Actions, which is free and unmetered for this repo
-because it is public - including the macOS runners used for iOS.
-
-| Workflow | Runs on | Does |
-|---|---|---|
-| `ci.yml` | every push to a branch; inside `release.yml` on master | lint, typecheck, unit tests in five zones, browser tests, Android and iOS builds with their widget tests, and the workflows linted (actionlint, zizmor) |
-| `release.yml` | merge to master, or by hand | CI, then a release to TestFlight, Play internal testing and GitHub; a dry run on pull requests that change the release machinery |
-| `promote.yml` | a release made a full release, or by hand | App Store review and Play production |
-| `previews.yml` | pull requests, and master | screenshots of the real app and widgets, in a comment on the pull request |
-| `android-device-tests.yml` | pull requests, nightly | the widgets on an Android emulator |
-| `record-widget-screenshots.yml` | a commit with `[record screenshots]` | new reference images for the widget screenshot tests |
-
-Actions are pinned to commit SHAs, and Dependabot keeps them, the npm packages
-and fastlane up to date with a pull request a week each.
+[RELEASING.md](RELEASING.md) has the steps, and what to do when one fails.
 
 ## Contributing
 
 You're welcome to modify the project as you wish and contribute back to this project.
 
 - If you spot a bug, please create an issue on GitHub for it
-- If you're fixing a bug or adding a feature, please create a PR and I'll be happy to review and merge your changes. Merged changes reach testers straight away, and users once a release is promoted.
+- If you're fixing a bug or adding a feature, please create a PR and I'll be happy to review and merge your changes. Merged changes reach testers straight away, and users once the release is shipped.
 - If you're thinking of creating your own app with this app as a base, you're welcome to do so, but that app must also be open source. See the LICENSE file for more information.
+
+### Pull requests
+
+CI runs on every push: lint, typecheck, unit and browser tests, and the
+Android and iOS builds with their widget tests. A pull request also gets a
+comment with screenshots of the app and its widgets on an iPhone and an
+Android phone, and its widgets are tested on an Android emulator.
+
+If you change how a widget looks, put `[record screenshots]` in the commit
+message. CI then records new reference screenshots and commits them to your
+branch.
 
 ### How do I add my own prayer times?
 
-The prayer data lives in `src/prayer_data`, named `LOCATION-YEAR.json` — for
-example `london-2024.json`. Those files are the single source of truth for
-which years exist: to add a year, drop the file in, and nothing else needs
-updating.
-
-London's timetable from 2026 on is the
-[London Unified Prayer Timetable](https://londonsalahtimes.com/downloads/),
-imported by `scripts/timetables/lupt-to-utc-json.js` — `node
-scripts/timetables/lupt-to-utc-json.js 2026 2076` downloads each year's
-spreadsheet and converts its UK clock times to the UTC instants the app
-stores. The years before that came from mosque CSVs in
-`scripts/timetables/data`, through `scripts/timetables/spreadsheet-to-utc-json.js`.
-
-Adding a new location the user can choose takes four edits: a `PrayerLocation`
-value named like its files, plus `locationTimeZones` and `locationNames` beside
-it in `src/lib/PrayerTimeData.ts`, and an `IonSelectOption` in
-`src/components/LocationSelector.tsx` — the one picker shared by the setup and
-settings screens.
+- **A year**: add `src/prayer_data/LOCATION-YEAR.json`, for example
+  `belfast-2027.json`. Nothing else needs updating: those files are the only
+  list of which years exist.
+- **London's timetable**: run
+  `node scripts/timetables/lupt-to-utc-json.js 2026 2076`. It downloads the
+  official [London Unified Prayer Timetable](https://londonsalahtimes.com/downloads/)
+  for those years and writes their files, with the UK clock times converted
+  to the UTC instants the app stores.
+- **A location**: add a `PrayerLocation` value named like its files, with
+  `locationTimeZones` and `locationNames` beside it in
+  `src/lib/PrayerTimeData.ts`, and an `IonSelectOption` in
+  `src/components/LocationSelector.tsx`, the picker shared by the setup and
+  settings screens.
 
 ## Known issues
 

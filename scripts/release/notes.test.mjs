@@ -144,6 +144,11 @@ describe("the release notes", () => {
     expect(body).toContain("### New Contributors");
   });
 
+  it("Should say how to ship it, linking the release guide", () => {
+    expect(body).toContain("**To ship this release**");
+    expect(body).toContain("[RELEASING.md](https://github.com/meltuhamy/belfastsalah/blob/master/RELEASING.md)");
+  });
+
   it("Should link the commit it was built from by its short hash", () => {
     expect(body).toContain("Built from [`abc`](https://github.com/meltuhamy/belfastsalah/commit/abc)");
   });
