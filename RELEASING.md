@@ -70,8 +70,10 @@ Check on real phones before shipping:
 
 The **Promote** run under Actions then sends the Android build to
 production, and the iOS build to App Store review; Apple releases it as soon
-as it is approved. When the run finishes, the release's **Builds** table says
-where each build went.
+as it is approved. The release shows as a pre-release again while Promote
+runs, and becomes a full release once a store has it. When the run finishes,
+the release's **Builds** table says where each build went. If neither store
+took it, it stays a pre-release: fix the cause, then untick it again.
 
 Only the newest release can be shipped: Google Play's internal testing keeps
 only the newest build. A newer release includes everything in the older ones.
@@ -146,7 +148,7 @@ change since the last release that was published.
 - **Promote says What's new is too long.** Shorten it on the release, then
   run Promote again.
 - **Promote says a newer release exists.** Ship that one instead: it has
-  everything the older one had.
+  everything the older one had. The older release stays a pre-release.
 - **Promote says another version is in App Store review.** Apple reviews one
   version at a time. Run Promote again once that one has been approved, or
   after withdrawing it in App Store Connect.

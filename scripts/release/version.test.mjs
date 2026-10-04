@@ -7,6 +7,7 @@ import {
   formatVersion,
   isAppFile,
   latestVersion,
+  nextVersion,
   packageChangesTheApp,
   parseVersion,
 } from "./version.mjs";
@@ -40,6 +41,30 @@ describe("bumpVersion", () => {
 
   it("Should refuse a bump it does not know", () => {
     expect(() => bumpVersion(v, "skip")).toThrow(/Unknown version bump/);
+  });
+});
+
+describe("nextVersion", () => {
+  const v = (major, minor, patch) => ({ major, minor, patch });
+
+  it("Should bump the last published release when it is the highest tag", () => {
+    expect(nextVersion({ published: v(4, 0, 1), latest: v(4, 0, 1), kind: "patch" })).toEqual(v(4, 0, 2));
+    expect(nextVersion({ published: v(4, 0, 1), latest: v(4, 0, 1), kind: "minor" })).toEqual(v(4, 1, 0));
+  });
+
+  it("Should not count a failed release's bump twice", () => {
+    // v4.1.0 was tagged and its run failed; the next merge carries it.
+    expect(nextVersion({ published: v(4, 0, 1), latest: v(4, 1, 0), kind: "minor" })).toEqual(v(4, 1, 1));
+    expect(nextVersion({ published: v(4, 0, 1), latest: v(5, 0, 0), kind: "major" })).toEqual(v(5, 0, 1));
+  });
+
+  it("Should stay above a failed patch release, and take a bigger bump over it", () => {
+    expect(nextVersion({ published: v(4, 0, 1), latest: v(4, 0, 2), kind: "patch" })).toEqual(v(4, 0, 3));
+    expect(nextVersion({ published: v(4, 0, 1), latest: v(4, 0, 2), kind: "minor" })).toEqual(v(4, 1, 0));
+  });
+
+  it("Should count from the highest tag when nothing has been published", () => {
+    expect(nextVersion({ published: null, latest: v(4, 0, 0), kind: "patch" })).toEqual(v(4, 0, 1));
   });
 });
 

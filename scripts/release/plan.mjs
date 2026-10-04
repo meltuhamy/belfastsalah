@@ -42,7 +42,9 @@ import {
   formatVersion,
   isAppFile,
   latestVersion,
+  nextVersion,
   packageChangesTheApp,
+  parseVersion,
 } from "./version.mjs";
 
 const env = process.env;
@@ -188,7 +190,9 @@ async function main() {
     force,
     dryRun,
   });
-  const next = decision.tagged ? alreadyTagged : bumpVersion(latest, decision.kind);
+  const next = decision.tagged
+    ? alreadyTagged
+    : nextVersion({ published: parseVersion(published), latest, kind: decision.kind });
   const version = formatVersion(next);
   const build = buildNumber(next);
   const tag = `v${version}`;

@@ -53,6 +53,20 @@ export function bumpVersion(version, kind) {
   }
 }
 
+/**
+ * The version a release takes: the bump applied to what was last published,
+ * kept above every tag. The bump is worked out from the pull requests since
+ * the last published release, so it belongs on that release's version, not
+ * on the highest tag: a minor release whose run failed after tagging v4.1.0
+ * would otherwise be counted again, and its fix would come out as v4.2.0
+ * rather than v4.1.1. When the bumped version is not above the highest tag,
+ * the release is the patch after that tag.
+ */
+export function nextVersion({ published, latest, kind }) {
+  const wanted = bumpVersion(published ?? latest, kind);
+  return compare(wanted, latest) > 0 ? wanted : bumpVersion(latest, "patch");
+}
+
 // Google Play refuses a versionCode above 2,100,000,000.
 const PLAY_MAX_VERSION_CODE = 2_100_000_000;
 

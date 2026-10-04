@@ -68,7 +68,10 @@ has the steps. When working on the code:
 - **Promotion always runs from master.** `promote-on-release.yml` hands a
   released pre-release to `promote.yml` on master, so a fix to the promote
   lanes reaches releases made before it, and a dry run tries the same code.
-  Only the newest release can ship, Google Play first.
+  Only the newest release can ship, Google Play first. A release is a full
+  release only once a store has it - the hand-over makes it a pre-release
+  again while Promote runs - because `plan.mjs` drafts What's new from the
+  last full release.
 - **Change the release notes' format only in `scripts/release/notes.mjs`**:
   promotion reads "What's new" back from between its markers, and
   `notes.test.mjs` pins them.

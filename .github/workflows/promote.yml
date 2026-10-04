@@ -225,9 +225,11 @@ jobs:
         run: rm -f "$APP_STORE_CONNECT_KEY_PATH"
 
   # The release says where its builds went. It becomes a full release, and
-  # the latest one, once either store has it; if neither does, it is left as
-  # it was. Edited with the workflow's own token, which starts no further
-  # workflows.
+  # the latest one, once either store has it. If neither does it is left as
+  # it was: a pre-release when unticking started this, as
+  # promote-on-release.yml makes it one again while Promote runs, and a
+  # release that shipped before stays shipped. Edited with the workflow's own
+  # token, which starts no further workflows.
   finish:
     name: Update the release
     needs: [prepare, google-play, app-store]
