@@ -4,7 +4,7 @@
 # it. Use this when requesting an upload key reset - because the old key was
 # lost, or its password was.
 #
-#   ./scripts/new-upload-key.sh
+#   ./scripts/release/new-upload-key.sh
 #
 # Produces two files:
 #   upload-keystore.jks       the private key. Back this up. Losing it means
@@ -82,7 +82,7 @@ echo "  $CERT   <- attach this to the reset request."
 echo
 echo "Next:"
 echo "  1. Save both somewhere safe, and the password in a password manager."
-echo "  2. ./scripts/android-signing-secrets.sh $KEYSTORE"
+echo "  2. ./scripts/release/android-signing-secrets.sh $KEYSTORE"
 echo "  3. Play Console → Protected with Play → Play Store protection →"
 echo "     Manage Play app signing → Request upload key reset, attaching"
 echo "     $CERT"

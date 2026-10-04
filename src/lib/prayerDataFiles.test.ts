@@ -22,8 +22,9 @@ describe("Prayer data files", () => {
   // minutes from one day to the next. A jump of an hour is a row converted
   // with the wrong clock: a spreadsheet can change its clocks on dates of
   // its own, and days in 2025 and 2026 were an hour out until
-  // scripts/spreadsheet-to-utc-json.js read the offset off the sheet. A
-  // single wrong digit, like Belfast's Fajr on 8 October, shows up the same way.
+  // scripts/timetables/spreadsheet-to-utc-json.js read the offset off the
+  // sheet. A single wrong digit, like Belfast's Fajr on 8 October, shows up
+  // the same way.
   it.each(Object.keys(files))("Should have no jumps between days in %s", file => {
     const rows = files[file].default;
     const jumps: Array<string> = [];

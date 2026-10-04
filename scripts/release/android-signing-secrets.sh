@@ -3,7 +3,7 @@
 # Loads an Android upload keystore into this repo's GitHub secrets, without the
 # key or its passwords ever leaving your machine.
 #
-#   ./scripts/android-signing-secrets.sh path/to/upload-keystore.jks
+#   ./scripts/release/android-signing-secrets.sh path/to/upload-keystore.jks
 #
 # Needs `keytool` (ships with any JDK) and the GitHub CLI (`gh auth login`).
 # Bash, so on Windows run it from Git Bash or WSL.
@@ -108,4 +108,6 @@ printf '%s' "$KEY_PASSWORD"   | gh secret set ANDROID_KEY_PASSWORD --repo "$REPO
 
 echo
 echo "Done. Four secrets set; no key or password was written to disk."
-echo "Next: git tag v4.0.0 && git push origin v4.0.0"
+echo "The next release signs with this key. To check it before then, run"
+echo "Actions -> Release -> Run workflow with dry_run ticked: it signs a bundle"
+echo "and has Google Play validate it without publishing anything."

@@ -1,11 +1,11 @@
 // Imports the London Unified Prayer Timetable's own spreadsheets, from
 // https://londonsalahtimes.com/downloads/, into src/prayer_data as UTC.
 //
-//   node scripts/lupt-to-utc-json.js 2026 2076
+//   node scripts/timetables/lupt-to-utc-json.js 2026 2076
 //
 // imports every year from the first to the last, inclusive. Downloads are
-// kept in scripts/data/lupt (not committed), so a rerun works offline; delete
-// a file there to fetch it again.
+// kept in scripts/timetables/data/lupt (not committed), so a rerun works
+// offline; delete a file there to fetch it again.
 //
 // These sheets change their clocks on the real dates, unlike the older
 // spreadsheets that spreadsheet-to-utc-json.js reads, so each time is
@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const cacheDir = path.resolve(scriptDir, "data", "lupt");
-const outputDir = path.resolve(scriptDir, "..", "src", "prayer_data");
+const outputDir = path.resolve(scriptDir, "..", "..", "src", "prayer_data");
 const downloadUrl = (year) =>
   `https://londonsalahtimes.com/downloads/LUPT-${year}.xlsx`;
 
@@ -145,7 +145,7 @@ async function importYear(year) {
 
 const [first, last = first] = process.argv.slice(2).map(Number);
 if (!first) {
-  console.error("Usage: node scripts/lupt-to-utc-json.js <first year> [last year]");
+  console.error("Usage: node scripts/timetables/lupt-to-utc-json.js <first year> [last year]");
   process.exit(1);
 }
 for (let year = first; year <= last; year++) {

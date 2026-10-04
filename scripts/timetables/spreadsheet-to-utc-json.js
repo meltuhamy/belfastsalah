@@ -100,6 +100,7 @@ function writeJSONFile(data, location, year) {
   const filePath = path.resolve(
     scriptDir,
     "..",
+    "..",
     "src",
     "prayer_data",
     `${location}-${year}.json`

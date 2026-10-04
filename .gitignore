@@ -13,6 +13,8 @@
 
 # misc
 .DS_Store
+# Gradle's cache, if it is ever run from the root rather than android/
+/.gradle/
 .env.local
 .env.development.local
 .env.test.local
@@ -38,5 +40,10 @@ yarn-error.log*
 *.mobileprovision
 *.b64
 
-# Downloads cached by scripts/lupt-to-utc-json.js
-scripts/data/lupt/
+# Downloads cached by scripts/timetables/lupt-to-utc-json.js
+scripts/timetables/data/lupt/
+
+# fastlane's leftovers
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/test_output/
