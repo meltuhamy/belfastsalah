@@ -34,6 +34,11 @@ TEAM_ID = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
 IPA = "build/ios/App.ipa"
 AAB = "android/app/build/outputs/bundle/release/app-release.aab"
 
+# fastlane runs each lane from inside fastlane/, though it resolves the paths
+# given to actions from the repository root. Files a lane reads itself are
+# found from the root too, so paths mean the same everywhere in here.
+ROOT = File.expand_path("..", File.expand_path(FastlaneCore::FastlaneFolder.path))
+
 def release_version
   ENV.fetch("RELEASE_VERSION")
 end
@@ -43,7 +48,7 @@ def release_build
 end
 
 def release_notes
-  File.read(ENV.fetch("RELEASE_NOTES_FILE")).strip
+  File.read(File.expand_path(ENV.fetch("RELEASE_NOTES_FILE"), ROOT)).strip
 end
 
 def dry_run?(options)
