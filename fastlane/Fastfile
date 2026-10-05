@@ -359,6 +359,7 @@ platform :ios do
     listing = app.get_edit_app_store_version(platform: platform) || app.get_live_app_store_version(platform: platform)
     locales = listing ? listing.get_app_store_version_localizations.map(&:locale) : []
     locales = [app.primary_locale] if locales.empty?
+    notes = release_notes
 
     if dry_run?(options)
       UI.success("Build #{release_build} would be submitted for review as #{release_version}, with What's new in #{locales.join(', ')}#{in_review ? ', after cancelling that submission' : ''}. Dry run, so nothing was submitted.")
@@ -387,7 +388,7 @@ platform :ios do
         skip_binary_upload: true,
         skip_screenshots: true,
         metadata_path: metadata,
-        release_notes: locales.to_h { |locale| [locale, release_notes] },
+        release_notes: locales.to_h { |locale| [locale, notes] },
         submit_for_review: true,
         automatic_release: true,
         submission_information: { export_compliance_uses_encryption: false },
@@ -397,6 +398,18 @@ platform :ios do
         precheck_include_in_app_purchases: false,
         force: true
       )
+    end
+
+    # deliver reports success whether or not What's new reached a language,
+    # as it did when 4.0.1 went for review with 4.0.0's, so the version is
+    # read back. It is in review by now, so this warns rather than fails.
+    submitted = app.get_app_store_versions(filter: { versionString: release_version, platform: platform }).first
+    localizations = submitted ? submitted.get_app_store_version_localizations : []
+    stale = localizations.empty? ? ["any language"] : localizations.reject { |localization| localization.whats_new.to_s.strip == notes }.map(&:locale)
+    if stale.empty?
+      job_summary("What's new reached the App Store in #{localizations.map(&:locale).join(', ')}.")
+    else
+      job_warning("App Store", "#{release_version} went for review without this release's What's new in #{stale.join(', ')}. To correct it, remove the version from review in App Store Connect, change What's New there, and submit it again.")
     end
   end
 end
