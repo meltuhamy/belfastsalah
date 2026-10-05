@@ -352,8 +352,16 @@ platform :ios do
       UI.user_error!("Build #{release_build} is #{build.processing_state} in TestFlight. Promote again once Apple has finished processing it.")
     end
 
+    # What's new goes to each of the listing's languages by name. deliver
+    # gives a "default" only to the languages in its metadata folder, which
+    # is empty here, so the version would keep its old text. A version that
+    # deliver has yet to make starts with the live one's languages.
+    listing = app.get_edit_app_store_version(platform: platform) || app.get_live_app_store_version(platform: platform)
+    locales = listing ? listing.get_app_store_version_localizations.map(&:locale) : []
+    locales = [app.primary_locale] if locales.empty?
+
     if dry_run?(options)
-      UI.success("Build #{release_build} would be submitted for review as #{release_version}#{in_review ? ', after cancelling that submission' : ''}. Dry run, so nothing was submitted.")
+      UI.success("Build #{release_build} would be submitted for review as #{release_version}, with What's new in #{locales.join(', ')}#{in_review ? ', after cancelling that submission' : ''}. Dry run, so nothing was submitted.")
       next
     end
 
@@ -379,7 +387,7 @@ platform :ios do
         skip_binary_upload: true,
         skip_screenshots: true,
         metadata_path: metadata,
-        release_notes: { "default" => release_notes },
+        release_notes: locales.to_h { |locale| [locale, release_notes] },
         submit_for_review: true,
         automatic_release: true,
         submission_information: { export_compliance_uses_encryption: false },
