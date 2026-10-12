@@ -38,7 +38,7 @@
     "@capacitor/android": "^8.5.0",
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.5.0",
-    "@capacitor/ios": "^8.5.0",
+    "@capacitor/ios": "^8.5.1",
     "@playwright/test": "^1.62.1",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
