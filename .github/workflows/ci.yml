@@ -71,7 +71,7 @@ jobs:
       - name: Build
         run: npx vite build
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: web-build
           path: build
@@ -94,7 +94,7 @@ jobs:
       - name: Run Playwright tests
         run: npm run test:e2e
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: playwright-report
@@ -139,7 +139,7 @@ jobs:
 
       # What a failure looks like: the test report, and for a screenshot that
       # changed, the new image and a diff against the reference.
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: android-unit-test-results
@@ -156,7 +156,7 @@ jobs:
         working-directory: android
         run: ./gradlew bundleRelease --no-daemon
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: app-debug.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
@@ -247,7 +247,7 @@ jobs:
 
       # What a failure looks like: the result bundle, and for a snapshot that
       # changed, the new image beside the reference.
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: ios-widget-test-results
