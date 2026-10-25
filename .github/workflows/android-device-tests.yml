@@ -57,7 +57,7 @@ jobs:
             ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.size=medium --no-daemon
             ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.size=large --no-daemon || echo "::warning title=Launcher smoke test::LauncherPinTest failed after its retries. It drives the emulator's own launcher and is allowed to be flaky; its report is in the device-test-results artifact."
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: device-test-results
