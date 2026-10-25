@@ -16,7 +16,7 @@ runs:
   using: composite
   steps:
     # The Node version lives in .nvmrc and nowhere else.
-    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         node-version-file: .nvmrc
         cache: npm
@@ -25,7 +25,7 @@ runs:
     # from setup-java rather than gradle/actions, whose caching became a
     # proprietary component with terms of its own in v6.
     - if: inputs.platform == 'android'
-      uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
       with:
         distribution: temurin
         java-version: 21
@@ -36,7 +36,7 @@ runs:
 
     # Ruby from .ruby-version, fastlane from Gemfile.lock, both cached.
     - if: inputs.fastlane == 'true'
-      uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+      uses: ruby/setup-ruby@651ff0d62c5c79bed6d53ec518387aae20e72c1a # v1.329.0
       with:
         bundler-cache: true
 
