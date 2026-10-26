@@ -53,6 +53,6 @@
     "read-excel-file": "^9.3.10",
     "typescript": "^7.0.2",
     "vite": "^8.2.0",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.12"
   }
 }
