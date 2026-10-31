@@ -1,0 +1,40 @@
+{
+  "ok": true,
+  "baseURL": "http://127.0.0.1:3010",
+  "londonDate": {
+    "year": 2026,
+    "month": 10,
+    "day": 31,
+    "label": "Sat 31 Oct"
+  },
+  "dayDate": "Sat 31 Oct",
+  "timetableUtc": {
+    "Fajr": "05:12",
+    "Shuruq": "06:49",
+    "Duhr": "11:49",
+    "Asr": "14:08",
+    "Maghrib": "16:39",
+    "Isha": "18:06"
+  },
+  "expected": {
+    "Fajr": "05:12",
+    "Shuruq": "06:49",
+    "Duhr": "11:49",
+    "Asr": "14:08",
+    "Maghrib": "16:39",
+    "Isha": "18:06"
+  },
+  "times": {
+    "Fajr": "05:12",
+    "Shuruq": "06:49",
+    "Duhr": "11:49",
+    "Asr": "14:08",
+    "Maghrib": "16:39",
+    "Isha": "18:06"
+  },
+  "mismatches": [],
+  "countdown": "1h 49m",
+  "highlighted": "Duhr",
+  "storedLocation": "london",
+  "reloadOk": true
+}
