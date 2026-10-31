@@ -98,7 +98,7 @@ Other features are driven with the same browser settings. Journeys and selectors
 
 ## Evidence
 
-`drive.mjs today` writes all of these and does not delete them:
+`drive.mjs today` writes all of these and does not delete them. `.cursor/skills/verify-london-prayer-times/.gitignore` ignores `evidence/` and `vite.pid`, so a later run cannot commit them.
 
 - `.cursor/skills/verify-london-prayer-times/evidence/today-setup.png` — setup before **Done**
 - `.cursor/skills/verify-london-prayer-times/evidence/today-home.png` — home after **Done**, strip visible
