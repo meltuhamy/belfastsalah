@@ -16,7 +16,7 @@ Shown whenever `CapacitorStorage.settings` is missing. The same list as Settings
 
 Open the app before ever pressing **Done**. A fresh browser profile always lands here. Completing setup and then clearing site data brings it back.
 
-## Driving it with Playwright
+## Driving it with the verify skill
 
 Fresh context, then `page.goto("/")` and wait for `[data-testid=location-select]`.
 
@@ -34,6 +34,8 @@ await page.locator("[data-testid=location-select]").evaluate((el) => el.value)
 ```
 
 Open the picker the way `chooseFromSelect` does in `e2e/support/app.ts`: tap the `ion-item` that contains the select, near its trailing edge, then `ion-alert` role `radio` by name (`London` or `Belfast`, exact) and the button named `Choose`.
+
+Native, in the same `pass` command: a cleared app shows **Set up**, **Location**, **London**, **Privacy policy**, **No data leaves your device**, and **Done**. Screenshot `evidence/<platform>-setup.png`. **Done** is below the fold; the pass scrolls to it. After **Done** and a relaunch, **Done** is gone.
 
 ## Gotchas
 

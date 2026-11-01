@@ -13,10 +13,11 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium, devices } from "@playwright/test";
+import { londonTimes } from "./timetable.mjs";
 
 const skillDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(skillDir, "..", "..", "..");
@@ -27,53 +28,6 @@ const command = process.argv[2];
 if (command !== "doctor" && command !== "today") {
   console.error("usage: drive.mjs doctor|today");
   process.exit(2);
-}
-
-function repoPath(...parts) {
-  return join(repoRoot, ...parts);
-}
-
-/**
- * London timetable row for a calendar date, formatted the way the app shows it.
- *
- * The JSON stores UTC instants (month, day, fajr, shuruq, duhr, shafi asr,
- * hanafi asr, maghrib, isha). The screen prints those instants in
- * Europe/London, which is the JSON clock time in winter and an hour later
- * during British Summer Time. Shafi asr is the first asr column.
- */
-function londonTimes(year, month, day) {
-  const file = repoPath("src", "prayer_data", `london-${year}.json`);
-  const rows = JSON.parse(readFileSync(file, "utf8"));
-  const row = rows.find(
-    (entry) => Number(entry[0]) === month && Number(entry[1]) === day
-  );
-  if (!row) {
-    throw new Error(`london-${year}.json has no row for ${month}/${day}`);
-  }
-  const asLondon = (hhmm) => {
-    const [hours, minutes] = hhmm.split(":").map(Number);
-    const instant = new Date(Date.UTC(year, month - 1, day, hours, minutes));
-    return new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Europe/London",
-      hourCycle: "h23",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(instant);
-  };
-  const utc = {
-    Fajr: row[2],
-    Shuruq: row[3],
-    Duhr: row[4],
-    Asr: row[5],
-    Maghrib: row[7],
-    Isha: row[8],
-  };
-  return {
-    utc,
-    expected: Object.fromEntries(
-      Object.entries(utc).map(([name, hhmm]) => [name, asLondon(hhmm)])
-    ),
-  };
 }
 
 async function launch() {
@@ -189,7 +143,7 @@ async function today() {
     await page.waitForTimeout(700);
 
     const when = await londonNow(page);
-    const { utc, expected } = londonTimes(when.year, when.month, when.day);
+    const { utc, expected } = londonTimes(repoRoot, when.year, when.month, when.day);
     const times = await readStrip(page);
     const dayDate = (await page.getByTestId("day-date").innerText()).trim();
     const countdown = (await page.getByTestId("countdown").innerText()).trim();

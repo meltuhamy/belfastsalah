@@ -15,7 +15,7 @@ The card under the prayer strip on the home screen. It opens on the current Lond
 
 Finish setup (**Done** on **Set up**). Scroll the home screen. The month card sits under the six times. The current month is already selected. Tap the calendar icon to change month.
 
-## Driving it with Playwright
+## Driving it with the verify skill
 
 Complete the today journey first (fresh context, **Done**, `[data-testid=prayer-strip]` visible) so the table has a location.
 
@@ -29,6 +29,10 @@ End state that proves it works, for the London month the card is showing:
 - After changing month, the subtitle updates, the row count matches the new month, and the first row's times equal that month's day 1 in `src/prayer_data/london-<year>.json`, formatted in `Europe/London` the same way as [today.md](today.md). Shafi asr.
 
 Read rows with the page, the same way `monthRows` does in `e2e/support/app.ts`: every `td` text in `.MonthPrayerTable tbody tr`.
+
+`npm run test:e2e` (`e2e/month-table.spec.ts`) is the web regression for row counts and for changing month.
+
+Native, in `pass`: scroll until the open month's full name is visible (`November`, not the abbreviated date) and screenshot `evidence/<platform>-month.png`. Changing month is `verified-unreachable` here. `MonthPicker` is an `IonIcon` with no accessible name, and the pass does not tap by coordinate. Do not treat the month name as proof that another month's rows were checked.
 
 ## Gotchas
 

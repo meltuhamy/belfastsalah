@@ -16,7 +16,7 @@ The screen at `/settings`. Same list as setup, without **Done**. Changes save on
 
 Finish setup. On the home screen, press the settings icon (the link named **Settings**) in the toolbar. Press the home icon (the link named **Home**) to come back.
 
-## Driving it with Playwright
+## Driving it with the verify skill
 
 Complete setup first (**Done**, strip visible). Click the link named `Settings`. Wait until `[data-testid=location-select]` is visible and an `ion-title` contains `Settings`.
 
@@ -29,6 +29,10 @@ End state that proves settings work:
 - Choose Dark in the theme alert. `<html>` has `ion-palette-dark` and `body`'s computed background colour changes from the light value. Reload. The class is still present. Choose Light. The class is absent even if the host prefers dark. To see that second case, launch the context with `colorScheme: "dark"`; the default for this skill is `light`.
 
 Select values are DOM properties (`el.value`), which survive the once-a-second re-render. The stored blob is `JSON.parse(localStorage.getItem("CapacitorStorage.settings"))`.
+
+Native, in `pass`: open Settings. Turn on **Use Hanafi Asr**, go Home, and require the strip's Asr to be the second asr column formatted in `Europe/London`. Turn it off and require the Shafi time again. Choose **Belfast**, require **Use Hanafi Asr** to disappear, go Home, and require Fajr to match `belfast-2019.json` applied to today's London date (that is the only Belfast file). Choose **London** again. Choose **Dark**, relaunch, and require the theme row to still read Dark, then choose **Light** so later screenshots stay readable. Screenshots: `evidence/<platform>-settings.png`, `evidence/<platform>-hanafi.png`, `evidence/<platform>-belfast.png`, `evidence/<platform>-theme-dark.png`.
+
+On a phone whose zone is not London, the display-zone row is on this screen. The pass settles the home notice with **Keep London time** before it opens Settings, so the strip stays on the timetable's clock.
 
 ## Gotchas
 

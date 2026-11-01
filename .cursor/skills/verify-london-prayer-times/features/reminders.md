@@ -14,7 +14,7 @@ The notifications group on setup and on settings. Off by default. On when the br
 
 On **Set up**, or on **Settings** after **Done**, find the Notifications group under Prayer time settings. Turn on **Notify before prayer**. The browser asks for permission. The line under the toggle then states how many minutes before the prayer the reminder fires. Drag the slider to change it.
 
-## Driving it with Playwright
+## Driving it with the verify skill
 
 Create the context with `permissions: ["notifications"]` in addition to the skill's usual Pixel 7 / `Europe/London` / light settings. Without that grant the toggle will not stay on, and the journey has not reached the slider.
 
@@ -29,10 +29,12 @@ End state that proves reminders work:
 
 The long-press diagnostic is not part of the end state. Prayer reminders themselves fire at a prayer time minus the offset. Do not wait for a real prayer time, and do not treat a toast from the hidden long-press as proof that the five-minute default was saved.
 
+Native, in `pass`: the first launch grants the notification permission through the simulator or emulator permission store (`launchApp` permissions `notifications: allow`), which is the OS grant, not a stub of the scheduler. On Settings, tap **Notify before prayer**. If the system sheet is still there, tap **Allow**. The line must read `Notify 5 minutes before prayer`. Relaunch without clearing the app and require the same line. Screenshots: `evidence/<platform>-reminders.png` and `evidence/<platform>-reminders-persisted.png`.
+
 ## Gotchas
 
 - A context without notification permission fails this journey on purpose. Do not assert the slider in that context, and do not skip the permission so the toggle "works" without a grant. The grant is the browser's real permission prompt, which Playwright answers up front; it is not a stub of the reminder scheduler.
 - On setup, a reload before **Done** discards the toggle. That is setup's rule, not a broken reminder. Commit with **Done**, then reload.
 - The timer icon is wrapped so it can take a long-press, which takes it out of Ionic's `ion-icon[slot=start]` rules. If the journey is only checking layout, the icon is 24px wide and lines up with the other row icons (`e2e/notification-settings.spec.ts`). A missing slider label is the functional failure; a 16px icon is the layout failure.
-- Headless Chromium will not show an OS notification banner. The proof is the control, the label, and the stored settings, not a pixel of a system banner.
+- Headless Chromium will not show an OS notification banner. The proof is the control, the label, and the stored settings, not a pixel of a system banner. On a phone the same rule holds: the label after a relaunch is the proof, not a banner pixel.
 - Ids: a test notification uses 9999. Prayer reminders use 0–64. Do not schedule 9999 as part of proving the default offset.

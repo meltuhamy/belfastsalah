@@ -20,7 +20,7 @@ The home screen after setup: a card counting down to the next prayer, and the da
 2. Press **Done**.
 3. The title becomes **Prayer Times**. The blue card and the six times are on the page background under it. The month table is further down.
 
-## Driving it with Playwright
+## Driving it with the verify skill
 
 ```bash
 node .cursor/skills/verify-london-prayer-times/drive.mjs today
@@ -34,6 +34,8 @@ It then reads `localStorage["CapacitorStorage.settings"]`, reloads, and requires
 
 Screenshots: `evidence/today-setup.png` before the click, `evidence/today-home.png` after the strip is up. `evidence/today.json` is the comparison.
 
+Native: `node .cursor/skills/verify-london-prayer-times/native.mjs pass ios` (or `android`) taps **Done**, and when the device zone is not London it taps **Keep London time** before reading the strip. Each prayer's time must be the London-formatted timetable value, below that prayer's name. A relaunch without clearing the app must still show those times and must not show **Done**. Screenshots: `evidence/<platform>-today-home.png` and `evidence/<platform>-after-relaunch.png`. The comparison is in `evidence/<platform>-pass.json`.
+
 ## Gotchas
 
 - Do not assert a hardcoded countdown. The app ticks every second and the figure depends on the real clock. Assert that the countdown matches `/^\d/` and that one strip cell is `data-next="true"`.
@@ -42,3 +44,4 @@ Screenshots: `evidence/today-setup.png` before the click, `evidence/today-home.p
 - The card and the strip must stay the same width. The tail is placed at `(column + 0.5) × (100% / 6)` of the card. Horizontal padding on the strip itself moves the columns off the tail.
 - `[data-testid=tomorrow-badge]` at 23:30 London time is right. The same badge for someone whose device is already on the next calendar day, while still showing London's clock, is wrong. This journey forces `Europe/London`, so that case does not come up. Do not "fix" a missing badge by changing the device zone.
 - Belfast is a different timetable. This feature is London, the default after **Done**.
+- A simulator uses the Mac's timezone. Do not change the Mac's timezone to hide the notice. Dismiss it with **Keep London time**, then compare to `Europe/London`. Comparing the strip to Istanbul (or whatever the Mac is set to) fails this journey.
