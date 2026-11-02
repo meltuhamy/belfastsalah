@@ -7,9 +7,11 @@
  *   node .cursor/skills/verify-london-prayer-times/native.mjs pass ios
  *   node .cursor/skills/verify-london-prayer-times/native.mjs cleanup ios
  *
- * Android uses the same four commands with `android`. Launch refuses to
- * install JDK or SDK packages. On a machine that does not already have them
- * it prints the gap and exits 1.
+ * Android uses the same four commands with `android`. When the machine has
+ * no JDK 21, launch downloads a Temurin JDK 21 into .tools and uses it as
+ * JAVA_HOME for Gradle and for Maestro. It does not install SDK packages.
+ * On a machine that still cannot compile or boot, it prints the gap and
+ * exits 1.
  *
  * Web checks stay in drive.mjs. This file does not start Vite.
  */
@@ -18,7 +20,9 @@ import { spawn, spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
@@ -70,17 +74,99 @@ function maestroEnv() {
   };
 }
 
-function resolveJavaHome() {
+let buildJdkHome = null;
+
+function javacMajor(home) {
+  const javac = join(home, "bin", "javac");
+  if (!existsSync(javac)) return 0;
+  const result = spawnSync(javac, ["-version"], { encoding: "utf8" });
+  const text = `${result.stdout || ""}${result.stderr || ""}`;
+  return Number((text.match(/javac (\d+)/) || [])[1] || 0);
+}
+
+function bundledJdkHome() {
   const candidates = [
-    join(toolsDir, "jre", "Contents", "Home"),
-    join(toolsDir, "jre"),
+    join(toolsDir, "jdk", "Contents", "Home"),
+    join(toolsDir, "jdk"),
   ];
-  for (const home of candidates) {
-    if (existsSync(join(home, "bin", "java"))) {
-      return home;
-    }
+  return candidates.find((home) => existsSync(join(home, "bin", "javac"))) ?? null;
+}
+
+function jdkHomesUnder(root) {
+  if (!existsSync(root)) return [];
+  const homes = [];
+  for (const name of readdirSync(root)) {
+    const home = join(root, name, "Contents", "Home");
+    if (existsSync(join(home, "bin", "javac"))) homes.push(home);
   }
-  return null;
+  return homes;
+}
+
+// Gradle 8.14 runs on JDK 21 and rejects Android Studio's JBR 25
+// (class file major version 69). Only a JDK 21 counts.
+function findSystemJdk21() {
+  const candidates = [];
+  if (process.platform === "darwin") {
+    const found = spawnSync("/usr/libexec/java_home", ["-v", "21"], { encoding: "utf8" });
+    const home = (found.stdout || "").trim();
+    if (found.status === 0 && home) candidates.push(home);
+  }
+  if (process.env.JAVA_HOME) candidates.push(process.env.JAVA_HOME);
+  candidates.push(
+    ...jdkHomesUnder("/Library/Java/JavaVirtualMachines"),
+    ...jdkHomesUnder(join(process.env.HOME || "", "Library", "Java", "JavaVirtualMachines"))
+  );
+  return candidates.find((home) => javacMajor(home) === 21) ?? null;
+}
+
+function downloadTemurinJdk21() {
+  // Apple Silicon gets the macOS aarch64 tarball. A linux cloud VM gets x64
+  // unless that machine is itself arm64.
+  const arch = process.arch === "arm64" ? "aarch64" : "x64";
+  const os = process.platform === "darwin" ? "mac" : "linux";
+  const tar = join(toolsDir, "temurin-jdk21.tar.gz");
+  const url =
+    `https://api.adoptium.net/v3/binary/latest/21/ga/${os}/${arch}/jdk/hotspot/normal/eclipse?project=jdk`;
+  console.log(
+    `No JDK 21 on this machine. Downloading a Temurin 21 JDK (${os}/${arch}) into ${toolsDir}. Gradle 8.14 cannot run on JDK 25, and Maestro uses this same JDK.`
+  );
+  const curl = spawnSync("curl", ["--fail", "--location", "-o", tar, url], {
+    stdio: "inherit",
+  });
+  if (curl.status !== 0) {
+    throw new Error("Could not download a Temurin JDK 21.");
+  }
+  const dest = join(toolsDir, "jdk");
+  rmSync(dest, { recursive: true, force: true });
+  mkdirSync(dest, { recursive: true });
+  const extract = spawnSync(
+    "tar",
+    ["-xzf", tar, "-C", dest, "--strip-components=1"],
+    { stdio: "inherit" }
+  );
+  const home = bundledJdkHome();
+  if (extract.status !== 0 || !home || javacMajor(home) !== 21) {
+    throw new Error("The Temurin JDK archive did not contain javac 21.");
+  }
+  return home;
+}
+
+function ensureJdk21() {
+  const bundled = bundledJdkHome();
+  const home =
+    findSystemJdk21() ??
+    (bundled && javacMajor(bundled) === 21 ? bundled : downloadTemurinJdk21());
+  // The old Maestro JRE is a second runtime. Gradle and Maestro share this JDK.
+  rmSync(join(toolsDir, "jre"), { recursive: true, force: true });
+  buildJdkHome = home;
+  return home;
+}
+
+function resolveJavaHome() {
+  if (buildJdkHome && existsSync(join(buildJdkHome, "bin", "java"))) {
+    return buildJdkHome;
+  }
+  return bundledJdkHome();
 }
 
 function maestroBin() {
@@ -111,29 +197,7 @@ function ensureTools() {
       throw new Error("Could not unzip Maestro.");
     }
   }
-  if (!resolveJavaHome()) {
-    const arch = process.arch === "arm64" ? "aarch64" : "x64";
-    const os = process.platform === "darwin" ? "mac" : "linux";
-    const tar = join(toolsDir, "temurin-jre21.tar.gz");
-    const url =
-      `https://api.adoptium.net/v3/binary/latest/21/ga/${os}/${arch}/jre/hotspot/normal/eclipse?project=jdk`;
-    console.log(`Downloading a Temurin 21 JRE into ${toolsDir} (Maestro 2 requires Java 17+).`);
-    const curl = spawnSync("curl", ["--fail", "--location", "-o", tar, url], {
-      stdio: "inherit",
-    });
-    if (curl.status !== 0) {
-      throw new Error("Could not download a Java 21 runtime for Maestro.");
-    }
-    mkdirSync(join(toolsDir, "jre"), { recursive: true });
-    const extract = spawnSync(
-      "tar",
-      ["-xzf", tar, "-C", join(toolsDir, "jre"), "--strip-components=1"],
-      { stdio: "inherit" }
-    );
-    if (extract.status !== 0 || !resolveJavaHome()) {
-      throw new Error("The Temurin archive did not contain a java binary.");
-    }
-  }
+  ensureJdk21();
   const version = spawnSync(maestroBin(), ["--version"], {
     env: maestroEnv(),
     encoding: "utf8",
@@ -288,6 +352,23 @@ function writeFlow(name, steps) {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, `appId: ${APP_ID}\n---\n${steps.trim()}\n`);
   return path;
+}
+
+// Android WebView text is only in the accessibility tree for the Maestro
+// process that launched the app. A later process must launch again. iOS
+// keeps the tree, so these prefixes are empty there.
+function androidLaunch() {
+  return platform === "android" ? "- launchApp\n" : "";
+}
+
+function androidOpenSettings() {
+  if (platform !== "android") return "";
+  return `- launchApp
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Location"
+    timeout: 20000
+`;
 }
 
 function maestroTest(flowFile) {
@@ -452,13 +533,16 @@ function androidPreflight() {
     lines.push("Installed JDKs (`/usr/libexec/java_home -V`):");
     lines.push(javaList);
   }
-  const javac = spawnSync("javac", ["-version"], { encoding: "utf8" });
+  const jdkHome = buildJdkHome;
+  const javacBin = jdkHome ? join(jdkHome, "bin", "javac") : "javac";
+  const javac = spawnSync(javacBin, ["-version"], { encoding: "utf8" });
   const javacText = `${javac.stdout || ""}${javac.stderr || ""}`.trim();
-  lines.push(`javac: ${javacText || "not on PATH"}`);
-  const javacMajor = Number((javacText.match(/javac (\d+)/) || [])[1] || 0);
-  if (javacMajor < 21) {
+  lines.push(`JAVA_HOME for Gradle: ${jdkHome || "(none)"}`);
+  lines.push(`javac: ${javacText || "not found"}`);
+  const gradleJdkMajor = Number((javacText.match(/javac (\d+)/) || [])[1] || 0);
+  if (gradleJdkMajor !== 21) {
     missing.push(
-      "Android builds need JDK 21 (android/app/build.gradle sets JavaVersion.VERSION_21 and jvmTarget 21; README says JDK 21). A JRE used to run Maestro does not compile the app. This skill does not install a JDK."
+      "Android builds need JDK 21 (android/app/build.gradle sets JavaVersion.VERSION_21 and jvmTarget 21; Gradle 8.14 cannot run on JDK 25). This skill downloads a Temurin JDK 21 into .tools when none is installed."
     );
   }
 
@@ -506,7 +590,7 @@ function androidPreflight() {
     lines.push("");
     lines.push("Linux cloud VM, once KVM and the toolchain are already there (do not install them from a verification run):");
     lines.push("- `ls -l /dev/kvm` must succeed for this user. `egrep -c '(vmx|svm)' /proc/cpuinfo` is non-zero when the CPU exposes virtualization.");
-    lines.push("- JDK 21 on PATH (`javac -version` prints 21).");
+    lines.push("- JDK 21 (`javac -version` prints 21). This skill downloads a Temurin JDK 21 into .tools when the machine has none, and points Gradle and Maestro at it.");
     lines.push("- ANDROID_HOME with platform-tools, emulator, platforms/android-36, the build-tools version AGP 8.13 asks for, and a system image (google_apis, arm64 on Apple Silicon hosts or x86_64 on a Linux VM).");
     lines.push("- An AVD, then `emulator -avd <name> -no-window -no-audio -gpu swiftshader_indirect -no-boot-anim` and `adb wait-for-device`.");
     lines.push("- Then the same command as a prepared Mac: `node .cursor/skills/verify-london-prayer-times/native.mjs launch android`.");
@@ -532,13 +616,23 @@ async function launchAndroid() {
   const androidHome = report.androidHome;
   const emulator = join(androidHome, "emulator", "emulator");
   const adb = join(androidHome, "platform-tools", "adb");
-  const avd = spawnSync(emulator, ["-list-avds"], { encoding: "utf8" })
+  const avds = spawnSync(emulator, ["-list-avds"], { encoding: "utf8" })
     .stdout.split("\n")
     .map((line) => line.trim())
-    .filter(Boolean)[0];
+    .filter(Boolean);
+  const avd = avds.includes("Pixel_3a_API_33_arm64-v8a")
+    ? "Pixel_3a_API_33_arm64-v8a"
+    : avds[0];
+  const javaHome = buildJdkHome;
   await run(join(repoRoot, "android", "gradlew"), ["assembleDebug"], {
     cwd: join(repoRoot, "android"),
-    env: { ...process.env, ANDROID_HOME: androidHome, ANDROID_SDK_ROOT: androidHome },
+    env: {
+      ...process.env,
+      JAVA_HOME: javaHome,
+      PATH: `${join(javaHome, "bin")}:${process.env.PATH}`,
+      ANDROID_HOME: androidHome,
+      ANDROID_SDK_ROOT: androidHome,
+    },
     log: join(evidenceDir, "android-gradle.log"),
   });
   const emuArgs = ["-avd", avd, "-netdelay", "none", "-netspeed", "full", "-no-boot-anim"];
@@ -553,8 +647,24 @@ async function launchAndroid() {
   emu.unref();
   writeFileSync(join(buildDir, "emulator.pid"), String(emu.pid));
   await run(adb, ["wait-for-device"], { env: { ...process.env, ANDROID_HOME: androidHome } });
+  const bootDeadline = Date.now() + 180000;
+  let bootCompleted = false;
+  while (Date.now() < bootDeadline) {
+    const prop = spawnSync(adb, ["shell", "getprop", "sys.boot_completed"], { encoding: "utf8" });
+    if ((prop.stdout || "").trim() === "1") {
+      bootCompleted = true;
+      break;
+    }
+    sleep(2000);
+  }
+  if (!bootCompleted) {
+    throw new Error("The emulator connected to adb but sys.boot_completed never became 1.");
+  }
   const apk = join(repoRoot, "android", "app", "build", "outputs", "apk", "debug", "app-debug.apk");
-  await run(adb, ["install", "-r", apk]);
+  // -d allows replacing a store build already on the AVD. Its versionCode
+  // (for example 30006) is higher than this debug build's 1, and plain -r
+  // then fails with INSTALL_FAILED_VERSION_DOWNGRADE.
+  await run(adb, ["install", "-r", "-d", apk]);
   writeSession({
     platform: "android",
     androidHome,
@@ -697,16 +807,19 @@ async function pass(session) {
       "setup"
     );
 
-    // "Showing {location} time" and "Your device isn't on {location} time"
-    // are several React text nodes. iOS exposes each one ("Showing", the
-    // name, "time"), not the joined sentence. IonButton still joins
-    // "Keep London time" into one label.
-    const notice = foreignZone
+    // iOS exposes "Showing {location} time" as three text nodes. Android
+    // exposes one node, "Showing London time". IonButton joins
+    // "Keep London time" on both.
+    const caption = platform === "android"
       ? `
 - extendedWaitUntil:
-    visible: "Keep London time"
+    visible: "Showing London time"
     timeout: 20000
-- tapOn: "Keep London time"
+- assertVisible:
+    text: "Showing London time"
+    below: "${when.label}"
+`
+      : `
 - extendedWaitUntil:
     visible: "Showing"
     timeout: 20000
@@ -718,7 +831,14 @@ async function pass(session) {
     text: "time"
     rightOf: "London"
     below: "${when.label}"
-`
+`;
+    const notice = foreignZone
+      ? `
+- extendedWaitUntil:
+    visible: "Keep London time"
+    timeout: 20000
+- tapOn: "Keep London time"
+${caption}`
       : `
 - assertNotVisible: "Your device isn't on"
 `;
@@ -726,10 +846,15 @@ async function pass(session) {
     runStep(
       "today",
       `
+${androidLaunch()}- scrollUntilVisible:
+    element: "Done"
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
 - tapOn: "Done"
 ${notice}
 - extendedWaitUntil:
-    visible: "Fajr"
+    visible: "${london.expected.Fajr}"
     timeout: 20000
 - assertVisible:
     text: "in"
@@ -743,7 +868,7 @@ ${stripAsserts(london.expected)}
     runStep(
       "month",
       `
-- scrollUntilVisible:
+${androidLaunch()}- scrollUntilVisible:
     element: "${when.monthName}"
     direction: DOWN
     timeout: 20000
@@ -770,7 +895,7 @@ ${stripAsserts(london.expected)}
     runStep(
       "settings-open",
       `
-- tapOn: "Settings"
+${androidLaunch()}- tapOn: "Settings"
 - extendedWaitUntil:
     visible: "Use Hanafi Asr"
     timeout: 15000
@@ -783,7 +908,7 @@ ${stripAsserts(london.expected)}
     runStep(
       "hanafi",
       `
-- tapOn: "Use Hanafi Asr"
+${androidOpenSettings()}- tapOn: "Use Hanafi Asr"
 - waitForAnimationToEnd:
     timeout: 2000
 - tapOn: "Home"
@@ -799,7 +924,7 @@ ${below(london.hanafiAsr, "Asr")}
     runStep(
       "hanafi-off",
       `
-- tapOn: "Settings"
+${androidLaunch()}- tapOn: "Settings"
 - extendedWaitUntil:
     visible: "Use Hanafi Asr"
     timeout: 15000
@@ -817,7 +942,7 @@ ${below(london.expected.Asr, "Asr")}
     runStep(
       "belfast",
       `
-- tapOn: "Settings"
+${androidLaunch()}- tapOn: "Settings"
 - extendedWaitUntil:
     visible: "Location"
     timeout: 15000
@@ -842,7 +967,7 @@ ${below(belfast.expected.Fajr, "Fajr")}
     runStep(
       "london-again",
       `
-- tapOn: "Settings"
+${androidLaunch()}- tapOn: "Settings"
 - tapOn: "Location"
 - tapOn:
     text: "^London$"
@@ -865,7 +990,7 @@ ${below(london.expected.Fajr, "Fajr")}
     runStep(
       "widgets",
       `
-- tapOn: "Settings"
+${androidLaunch()}- tapOn: "Settings"
 - scrollUntilVisible:
     element: "${widgetText}"
     direction: DOWN
@@ -879,9 +1004,9 @@ ${below(london.expected.Fajr, "Fajr")}
     runStep(
       "theme-dark",
       `
-- scrollUntilVisible:
+${androidOpenSettings()}- scrollUntilVisible:
     element: "Theme"
-    direction: UP
+    direction: ${platform === "android" ? "DOWN" : "UP"}
     timeout: 20000
 - tapOn: "Theme"
 - tapOn:
@@ -918,7 +1043,7 @@ ${below(london.expected.Fajr, "Fajr")}
     runStep(
       "reminders",
       `
-- scrollUntilVisible:
+${androidOpenSettings()}- scrollUntilVisible:
     element: "Notify before prayer"
     direction: DOWN
     timeout: 20000

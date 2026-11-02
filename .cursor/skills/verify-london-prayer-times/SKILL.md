@@ -76,9 +76,9 @@ Ready means the command prints `"ok": true` with the simulator name and udid. Th
 node .cursor/skills/verify-london-prayer-times/native.mjs launch android
 ```
 
-The command prints a preflight and exits 1 when the machine cannot compile or boot the app. It does not install a JDK, an SDK package, or an emulator image.
+The command prints a preflight and exits 1 when the machine cannot compile or boot the app. It does not install an SDK package or an emulator image.
 
-The app needs JDK **21** (`javac -version`, `android/app/build.gradle` sets `JavaVersion.VERSION_21`) and Android SDK platform **36** (`android/variables.gradle`). A JRE downloaded for Maestro does not compile Gradle. README also states JDK 21 and SDK 36.
+The app needs JDK **21** (`javac -version`, `android/app/build.gradle` sets `JavaVersion.VERSION_21`) and Android SDK platform **36** (`android/variables.gradle`). README also states JDK 21 and SDK 36. Gradle 8.14 cannot run on Android Studio's JBR 25. When `java_home -v 21` and the usual JDK directories have no JDK 21, `launch` downloads a Temurin JDK 21 (full JDK, with `javac`) into `.tools/jdk`. macOS Apple Silicon gets the aarch64 tarball; a linux cloud VM gets the x64 tarball. `JAVA_HOME` for the Gradle build is that JDK, and Maestro uses it too, so there is not a separate JRE.
 
 On Linux the emulator also needs KVM. Check both of these and stop if either fails. Do not load kernel modules from this skill.
 
@@ -89,7 +89,9 @@ egrep -c '(vmx|svm)' /proc/cpuinfo
 
 `/dev/kvm` must exist and be readable and writable by this user. The `egrep` count is non-zero when the CPU exposes virtualization. A cloud VM with a count of zero, or no `/dev/kvm`, cannot run the emulator until nested virtualization is turned on for that VM.
 
-When the preflight passes, the same command builds the debug APK, boots the first listed AVD, and installs it. On Linux, or when `DISPLAY` is unset, the emulator is started with `-no-window -no-audio -gpu swiftshader_indirect`. On a Mac the hypervisor is Hypervisor.framework (`sysctl -n kern.hv_support`), not KVM. Say which one the run used.
+When the preflight passes, the same command builds the debug APK, boots the first listed AVD (preferring `Pixel_3a_API_33_arm64-v8a` when it exists), and installs it with `adb install -r -d` so a debug build can replace a store build that has a higher versionCode. On Linux, or when `DISPLAY` is unset, the emulator is started with `-no-window -no-audio -gpu swiftshader_indirect`. On a Mac the hypervisor is Hypervisor.framework (`sysctl -n kern.hv_support`), not KVM. Say which one the run used.
+
+The API 33 system image ships Chrome/WebView 101, which has no `Array.prototype.toSorted`. `getAvailableYears` uses `toSorted`, so on that image the shell opens and the timetable stays on its skeleton. The console error is `TypeError: Object.keys(...).map(...).toSorted is not a function`. A newer system image is required before the prayer times can be checked. This skill does not patch the app.
 
 ## Doctor
 
@@ -141,7 +143,7 @@ Empty storage, **Set up**, **Done**, read the six times, compare them to today's
 
 ### iOS and Android
 
-Playwright cannot attach to the Capacitor WKWebView, so the native pass does not go through `drive.mjs`. The driver is [Maestro](https://maestro.dev) 2.12.0, which taps and asserts the words on screen (Done, Fajr, Keep London time, Notify 5 minutes before prayer). It is not an npm dependency. `launch` downloads the CLI and a Temurin 21 JRE into `.cursor/skills/verify-london-prayer-times/.tools/` when they are missing. That directory is gitignored. Maestro 2 needs Java 17 or newer, and the Mac this skill was written on only had Java 11 on `PATH`. The JRE is for Maestro. Android compilation still needs a separate JDK 21.
+Playwright cannot attach to the Capacitor WKWebView, so the native pass does not go through `drive.mjs`. The driver is [Maestro](https://maestro.dev) 2.12.0, which taps and asserts the words on screen (Done, Fajr, Keep London time, Notify 5 minutes before prayer). It is not an npm dependency. `launch` downloads the CLI and, when the machine has no JDK 21, a Temurin JDK 21 into `.cursor/skills/verify-london-prayer-times/.tools/`. That directory is gitignored. Maestro and the Android Gradle build share that JDK. Gradle 8.14 cannot run on JDK 25, which is what Android Studio's JBR is, so a newer studio runtime is not a substitute.
 
 The regression pass walks the feature map: setup, today's times against the timetable, the open month's name, setup still there after a relaunch, Hanafi asr and back, Belfast and back to London, the widget row, dark theme still dark after a relaunch, and the five-minute reminder still on after a relaunch.
 
