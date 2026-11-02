@@ -34,7 +34,7 @@ It then reads `localStorage["CapacitorStorage.settings"]`, reloads, and requires
 
 Screenshots: `evidence/today-setup.png` before the click, `evidence/today-home.png` after the strip is up. `evidence/today.json` is the comparison.
 
-Native: `node .cursor/skills/verify-london-prayer-times/native.mjs pass ios` (or `android`) taps **Done**, and when the device zone is not London it taps **Keep London time** before reading the strip. Each prayer's time must be the London-formatted timetable value, below that prayer's name. A relaunch without clearing the app must still show those times and must not show **Done**. Screenshots: `evidence/<platform>-today-home.png` and `evidence/<platform>-after-relaunch.png`. The comparison is in `evidence/<platform>-pass.json`.
+Native: `node .cursor/skills/verify-london-prayer-times/native.mjs pass ios` (or `android`) taps **Done**, and when the device zone is not London it taps **Keep London time** before reading the strip. The caption is the three text nodes `Showing`, the location name, and `time` (the JSX is `Showing {location} time`), so the pass checks that order under the date rather than one joined string. The countdown is the prayer name with `in` to its right; iOS does not expose `Duhr in` as a single label. Each prayer's time must be the London-formatted timetable value, below that prayer's name. A relaunch without clearing the app must still show those times and must not show **Done**. Screenshots: `evidence/<platform>-today-home.png` and `evidence/<platform>-after-relaunch.png`. The comparison is in `evidence/<platform>-pass.json`.
 
 ## Gotchas
 

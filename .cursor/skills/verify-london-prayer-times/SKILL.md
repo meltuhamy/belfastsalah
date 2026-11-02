@@ -66,7 +66,7 @@ Needs Xcode, already installed. This skill does not install Xcode and does not a
 node .cursor/skills/verify-london-prayer-times/native.mjs launch ios
 ```
 
-That command builds the web bundle, runs `npx cap sync ios`, builds the `App` scheme for a shutdown iPhone 16 (or iPhone 17 if no iPhone 16 exists) with `xcodebuild`, boots that simulator, and installs `App.app`. It refuses to boot anything if a simulator is already booted. Derived data goes to `.cursor/skills/verify-london-prayer-times/.build/`, which is gitignored. `cap sync` copies the web build into `ios/App/App/public`, which `ios/.gitignore` already ignores. Do not commit native project drift from the sync.
+That command builds the web bundle, runs `npx cap sync ios`, builds the `App` scheme for a shutdown iPhone 16 (or iPhone 17 if no iPhone 16 exists) with `xcodebuild`, boots that simulator, and installs `App.app`. The first `simctl boot` after `xcodebuild` can exit 53 while SimLaunchHost is still coming up (`Connection invalid`). Launch retries that transient XPC failure. It refuses to boot anything if a simulator is already booted. Derived data goes to `.cursor/skills/verify-london-prayer-times/.build/`, which is gitignored. `cap sync` copies the web build into `ios/App/App/public`, which `ios/.gitignore` already ignores. Do not commit native project drift from the sync.
 
 Ready means the command prints `"ok": true` with the simulator name and udid. The app is installed and not yet driven.
 

@@ -35,7 +35,7 @@ await page.locator("[data-testid=location-select]").evaluate((el) => el.value)
 
 Open the picker the way `chooseFromSelect` does in `e2e/support/app.ts`: tap the `ion-item` that contains the select, near its trailing edge, then `ion-alert` role `radio` by name (`London` or `Belfast`, exact) and the button named `Choose`.
 
-Native, in the same `pass` command: a cleared app shows **Set up**, **Location**, **London**, **Privacy policy**, **No data leaves your device**, and **Done**. Screenshot `evidence/<platform>-setup.png`. **Done** is below the fold; the pass scrolls to it. After **Done** and a relaunch, **Done** is gone.
+Native, in the same `pass` command: a cleared app shows **Set up**, **Location**, **London**, **Privacy policy**, **No data leaves your device**, and **Done**. On iOS the select value is the row's accessibility label `Location, London`, not a separate text node, so the pass accepts that label or a standalone `London`. A bare `London` would also match **London time**. Screenshot `evidence/<platform>-setup.png`. **Done** is below the fold; the pass scrolls to it. After **Done** and a relaunch, **Done** is gone.
 
 ## Gotchas
 

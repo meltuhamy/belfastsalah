@@ -212,6 +212,27 @@ function simctl(args, { allowFail = false } = {}) {
   return result;
 }
 
+// The first boot after xcodebuild often hits SimLaunchHost before it is
+// listening (simctl exit 53, "Connection invalid"). A second boot works.
+function bootSimulator(udid) {
+  const attempts = 4;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const result = simctl(["boot", udid], { allowFail: true });
+    if (result.status === 0) return;
+    const text = `${result.stdout || ""}\n${result.stderr || ""}`;
+    const transient =
+      result.status === 53 ||
+      /Connection invalid|Software caused connection abort|XPC error/i.test(text);
+    if (!transient || attempt === attempts) {
+      throw new Error(`simctl boot ${udid} exited ${result.status}\n${text}`);
+    }
+    console.log(
+      `simctl boot exited ${result.status} (SimLaunchHost not ready). Retry ${attempt} of ${attempts - 1}.`
+    );
+    sleep(2000);
+  }
+}
+
 function pickIphone() {
   const listed = simctl(["list", "devices", "available", "-j"]);
   const parsed = JSON.parse(listed.stdout);
@@ -298,6 +319,13 @@ function below(time, name) {
   return `- assertVisible:\n    text: "${time}"\n    below: "${name}"`;
 }
 
+// Maestro matches the whole accessibility string. On iOS an ion-select's
+// value is only the row label ("Location, London"). Android often exposes
+// the value as its own text node ("London"). Either one is that row.
+function rowValue(label, value) {
+  return `^(${value}|${label}, ${value})$`;
+}
+
 function stripAsserts(times) {
   return PRAYER_NAMES.map((name) => below(times[name], name)).join("\n");
 }
@@ -373,7 +401,7 @@ async function launchIos() {
     throw new Error("xcodebuild finished but Debug-iphonesimulator/App.app was not found.");
   }
 
-  simctl(["boot", device.udid]);
+  bootSimulator(device.udid);
   simctl(["bootstatus", device.udid, "-b"]);
   simctl(["install", device.udid, app]);
   const session = {
@@ -653,7 +681,7 @@ async function pass(session) {
     visible: "Set up"
     timeout: 40000
 - assertVisible: "Location"
-- assertVisible: "London"
+- assertVisible: "${rowValue("Location", "London")}"
 - scrollUntilVisible:
     element: "Privacy policy"
     direction: DOWN
@@ -669,6 +697,10 @@ async function pass(session) {
       "setup"
     );
 
+    // "Showing {location} time" and "Your device isn't on {location} time"
+    // are several React text nodes. iOS exposes each one ("Showing", the
+    // name, "time"), not the joined sentence. IonButton still joins
+    // "Keep London time" into one label.
     const notice = foreignZone
       ? `
 - extendedWaitUntil:
@@ -676,12 +708,19 @@ async function pass(session) {
     timeout: 20000
 - tapOn: "Keep London time"
 - extendedWaitUntil:
-    visible: "Showing London time"
+    visible: "Showing"
     timeout: 20000
-- assertVisible: "Showing London time"
+- assertVisible:
+    text: "London"
+    rightOf: "Showing"
+    below: "${when.label}"
+- assertVisible:
+    text: "time"
+    rightOf: "London"
+    below: "${when.label}"
 `
       : `
-- assertNotVisible: "Your device isn't on London time"
+- assertNotVisible: "Your device isn't on"
 `;
 
     runStep(
@@ -693,7 +732,8 @@ ${notice}
     visible: "Fajr"
     timeout: 20000
 - assertVisible:
-    text: "(Fajr|Shuruq|Duhr|Asr|Maghrib|Isha) in"
+    text: "in"
+    rightOf: "(Fajr|Shuruq|Duhr|Asr|Maghrib|Isha)"
 ${stripAsserts(london.expected)}
 - assertVisible: "${when.label}"
 `,
@@ -786,7 +826,7 @@ ${below(london.expected.Asr, "Asr")}
     text: "^Belfast$"
 - tapOn: "Choose"
 - extendedWaitUntil:
-    visible: "Belfast"
+    visible: "${rowValue("Location", "Belfast")}"
     timeout: 15000
 - assertNotVisible: "Use Hanafi Asr"
 - tapOn: "Home"
@@ -847,7 +887,7 @@ ${below(london.expected.Fajr, "Fajr")}
 - tapOn:
     text: "^Dark$"
 - tapOn: "Choose"
-- assertVisible: "Dark"
+- assertVisible: "${rowValue("Theme", "Dark")}"
 `,
       "theme-dark"
     );
@@ -863,14 +903,14 @@ ${below(london.expected.Fajr, "Fajr")}
     timeout: 30000
 - tapOn: "Settings"
 - extendedWaitUntil:
-    visible: "Dark"
+    visible: "${rowValue("Theme", "Dark")}"
     timeout: 15000
-- assertVisible: "Dark"
+- assertVisible: "${rowValue("Theme", "Dark")}"
 - tapOn: "Theme"
 - tapOn:
     text: "^Light$"
 - tapOn: "Choose"
-- assertVisible: "Light"
+- assertVisible: "${rowValue("Theme", "Light")}"
 `,
       "theme-light"
     );
