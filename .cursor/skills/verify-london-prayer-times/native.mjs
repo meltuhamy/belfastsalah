@@ -18,6 +18,8 @@
 
 import { spawn, spawnSync } from "node:child_process";
 import {
+  accessSync,
+  constants,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -30,9 +32,8 @@ import { fileURLToPath } from "node:url";
 import {
   PRAYER_NAMES,
   UK_TIME_ZONE,
-  belfastTimes,
   londonNow,
-  londonTimes,
+  stripDay,
   zonesAgree,
 } from "./timetable.mjs";
 
@@ -479,6 +480,11 @@ async function launchIos() {
     `platform=iOS Simulator,id=${device.udid}`,
     "-derivedDataPath",
     derived,
+    // Signed ad hoc, as CI's simulator builds are. A simulator only grants
+    // the App Group to a signed app; an unsigned one runs, and every widget
+    // says "No times".
+    "-xcconfig",
+    "ios/App/AdHocSigning.xcconfig",
     "build",
   ];
   const xcodeEnv = { ...process.env, DEVELOPER_DIR };
@@ -496,16 +502,7 @@ async function launchIos() {
         { cause: error }
       );
     }
-    console.log("Debug build failed. Retrying with simulator ad-hoc signing disabled.");
-    await run(
-      XCODEBUILD,
-      xcodeArgs.concat([
-        "CODE_SIGNING_ALLOWED=NO",
-        "CODE_SIGNING_REQUIRED=NO",
-        "CODE_SIGN_IDENTITY=",
-      ]),
-      { env: xcodeEnv, log: join(evidenceDir, "ios-xcodebuild.log") }
-    );
+    throw error;
   }
 
   const found = spawnSync(
@@ -522,9 +519,6 @@ async function launchIos() {
     throw new Error("xcodebuild finished but Debug-iphonesimulator/App.app was not found.");
   }
 
-  bootSimulator(device.udid);
-  simctl(["bootstatus", device.udid, "-b"]);
-  simctl(["install", device.udid, app]);
   const session = {
     platform: "ios",
     udid: device.udid,
@@ -533,7 +527,12 @@ async function launchIos() {
     bootedByUs: true,
     app,
   };
+  // Written before the boot, so cleanup can shut the simulator down when the
+  // boot or the install fails part way.
   writeSession(session);
+  bootSimulator(device.udid);
+  simctl(["bootstatus", device.udid, "-b"]);
+  simctl(["install", device.udid, app]);
   console.log(JSON.stringify({ ok: true, ...session }));
 }
 
@@ -556,11 +555,9 @@ function androidPreflight() {
       );
     } else {
       try {
-        readFileSync("/dev/kvm");
-      } catch (error) {
-        if (error.code === "EACCES") {
-          missing.push("/dev/kvm exists but this user cannot read it.");
-        }
+        accessSync("/dev/kvm", constants.R_OK | constants.W_OK);
+      } catch {
+        missing.push("/dev/kvm exists but this user cannot read and write it.");
       }
     }
   } else {
@@ -589,7 +586,9 @@ function androidPreflight() {
   const androidHome =
     process.env.ANDROID_HOME ||
     process.env.ANDROID_SDK_ROOT ||
-    join(process.env.HOME || "", "Library", "Android", "sdk");
+    (darwin
+      ? join(process.env.HOME || "", "Library", "Android", "sdk")
+      : join(process.env.HOME || "", "Android", "Sdk"));
   lines.push(`Android SDK: ${androidHome}`);
   if (!existsSync(androidHome)) {
     missing.push(`Android SDK directory does not exist: ${androidHome}`);
@@ -652,6 +651,15 @@ function chooseAvd(avds) {
   return avds.includes(preferred) ? preferred : avds[0];
 }
 
+function attachedAndroidDevices(adb) {
+  const listed = spawnSync(adb, ["devices"], { encoding: "utf8" });
+  return (listed.stdout || "")
+    .split("\n")
+    .slice(1)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("*"));
+}
+
 async function launchAndroid() {
   ensureTools();
   const report = androidPreflight();
@@ -675,6 +683,14 @@ async function launchAndroid() {
     .map((line) => line.trim())
     .filter(Boolean);
   const avd = chooseAvd(avds);
+  // adb is used without a serial, so anything already attached would be the
+  // device that gets the APK, the taps, and cleanup's `adb emu kill`.
+  const attached = attachedAndroidDevices(adb);
+  if (attached.length > 0) {
+    throw new Error(
+      `adb already has a device: ${attached.join(", ")}. Refusing to drive it. Shut that emulator down or unplug the phone, then launch again.`
+    );
+  }
   const javaHome = buildJdkHome;
   await run(join(repoRoot, "android", "gradlew"), ["assembleDebug"], {
     cwd: join(repoRoot, "android"),
@@ -697,7 +713,15 @@ async function launchAndroid() {
     env: { ...process.env, ANDROID_HOME: androidHome },
   });
   emu.unref();
-  writeFileSync(join(buildDir, "emulator.pid"), String(emu.pid));
+  // Written as soon as the emulator exists, so cleanup can stop it when the
+  // boot or the install fails.
+  writeSession({
+    platform: "android",
+    androidHome,
+    avd,
+    emulatorPid: emu.pid,
+    bootedByUs: true,
+  });
   await run(adb, ["wait-for-device"], { env: { ...process.env, ANDROID_HOME: androidHome } });
   const bootDeadline = Date.now() + 180000;
   let bootCompleted = false;
@@ -717,13 +741,6 @@ async function launchAndroid() {
   // (for example 30006) is higher than this debug build's 1, and plain -r
   // then fails with INSTALL_FAILED_VERSION_DOWNGRADE.
   await run(adb, ["install", "-r", "-d", apk]);
-  writeSession({
-    platform: "android",
-    androidHome,
-    avd,
-    emulatorPid: emu.pid,
-    bootedByUs: true,
-  });
   console.log(JSON.stringify({ ok: true, platform: "android", avd }));
 }
 
@@ -773,21 +790,24 @@ function startRecording(session) {
   return child;
 }
 
-function stopRecording(child) {
-  if (!child || child.killed) return;
+// simctl finishes the file on SIGINT. The exit only reaches this process
+// through the event loop, so wait for the event instead of polling exitCode
+// from a blocking loop, which never sees it change.
+async function stopRecording(child) {
+  if (!child || child.exitCode !== null || child.signalCode !== null) return;
+  let timer;
+  const exited = new Promise((resolve) => child.once("exit", resolve));
+  const gaveUp = new Promise((resolve) => {
+    timer = setTimeout(resolve, 15000);
+  });
   child.kill("SIGINT");
-  const started = Date.now();
-  while (child.exitCode === null && Date.now() - started < 15000) {
-    spawnSync("sleep", ["0.2"]);
-  }
+  await Promise.race([exited, gaveUp]);
+  clearTimeout(timer);
 }
 
 async function pass(session) {
   ensureTools();
   mkdirSync(evidenceDir, { recursive: true });
-  const when = londonNow();
-  const london = londonTimes(repoRoot, when.year, when.month, when.day);
-  const belfast = belfastTimes(repoRoot, when.year, when.month, when.day);
   const deviceZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const foreignZone = !zonesAgree(UK_TIME_ZONE, deviceZone);
   const recorder = startRecording(session);
@@ -800,11 +820,6 @@ async function pass(session) {
       udid: session.udid ?? null,
       timeZone: deviceZone,
     },
-    londonDate: when,
-    expectedLondon: london.expected,
-    expectedHanafiAsr: london.hanafiAsr,
-    expectedBelfastFajr: belfast.expected.Fajr,
-    belfastFile: belfast.file,
     foreignZone,
     monthChange: {
       status: "verified-unreachable",
@@ -814,12 +829,46 @@ async function pass(session) {
     steps: [],
   };
 
+  // What the strip should say is asked again before every step, not once for
+  // the pass: after Isha the strip and the date on the card are tomorrow's,
+  // London and Belfast pass their Isha at different moments, and a pass is
+  // long enough to cross either one.
+  let today;
+  let when;
+  let london;
+  let belfast;
+  const refresh = () => {
+    const now = new Date();
+    const londonStrip = stripDay(repoRoot, "london", now);
+    const belfastStrip = stripDay(repoRoot, "belfast", now);
+    today = londonNow(now);
+    when = londonStrip.date;
+    london = londonStrip.times;
+    belfast = belfastStrip.times;
+    Object.assign(report, {
+      londonDate: today,
+      stripDate: when,
+      rolledToTomorrow: londonStrip.rolled,
+      expectedLondon: london.expected,
+      expectedHanafiAsr: london.hanafiAsr,
+      expectedBelfastFajr: belfast.expected.Fajr,
+      belfastStripDate: belfastStrip.date,
+      belfastFile: belfast.file,
+    });
+  };
+
   const runStep = (name, steps, shot) => {
     console.log(`\n--- ${name} ---`);
     try {
-      maestroTest(writeFlow(name, steps));
+      refresh();
+      maestroTest(writeFlow(name, steps()));
       if (shot) screenshot(session, shot);
-      report.steps.push({ name, ok: true, screenshot: shot ? `${session.platform}-${shot}.png` : null });
+      report.steps.push({
+        name,
+        ok: true,
+        stripDate: when.label,
+        screenshot: shot ? `${session.platform}-${shot}.png` : null,
+      });
     } catch (error) {
       try {
         screenshot(session, "failure");
@@ -834,7 +883,7 @@ async function pass(session) {
   try {
     runStep(
       "setup",
-      `
+      () => `
 - launchApp:
     clearState: true
     permissions:
@@ -862,7 +911,7 @@ async function pass(session) {
     // iOS exposes "Showing {location} time" as three text nodes. Android
     // exposes one node, "Showing London time". IonButton joins
     // "Keep London time" on both.
-    const caption = platform === "android"
+    const caption = () => platform === "android"
       ? `
 - extendedWaitUntil:
     visible: "Showing London time"
@@ -899,27 +948,27 @@ async function pass(session) {
     text: "in"
     rightOf: "(Fajr|Shuruq|Duhr|Asr|Maghrib|Isha)"
 `;
-    const notice = foreignZone
+    const notice = () => foreignZone
       ? `
 - extendedWaitUntil:
     visible: "Keep London time"
     timeout: 20000
 - tapOn: "Keep London time"
-${caption}`
+${caption()}`
       : `
-- assertNotVisible: "Your device isn't on"
+- assertNotVisible: "Your device isn't on.*"
 `;
 
     runStep(
       "today",
-      `
+      () => `
 ${androidLaunch()}- scrollUntilVisible:
     element: "Done"
     direction: DOWN
     timeout: 20000
     centerElement: true
 - tapOn: "Done"
-${notice}
+${notice()}
 - extendedWaitUntil:
     visible: "${london.expected.Fajr}"
     timeout: 20000
@@ -932,12 +981,12 @@ ${stripAsserts(london.expected)}
 
     runStep(
       "month",
-      `
+      () => `
 ${androidLaunch()}- scrollUntilVisible:
-    element: "${when.monthName}"
+    element: "${today.monthName}"
     direction: DOWN
     timeout: 20000
-- assertVisible: "${when.monthName}"
+- assertVisible: "${today.monthName}"
 `,
       "month"
     );
@@ -945,7 +994,7 @@ ${androidLaunch()}- scrollUntilVisible:
     sleep(1000);
     runStep(
       "setup-persists",
-      `
+      () => `
 - stopApp
 - launchApp
 - extendedWaitUntil:
@@ -959,7 +1008,7 @@ ${stripAsserts(london.expected)}
 
     runStep(
       "settings-open",
-      `
+      () => `
 ${androidLaunch()}- tapOn: "Settings"
 - extendedWaitUntil:
     visible: "Use Hanafi Asr"
@@ -972,7 +1021,7 @@ ${androidLaunch()}- tapOn: "Settings"
 
     runStep(
       "hanafi",
-      `
+      () => `
 ${androidOpenSettings()}- tapOn: "Use Hanafi Asr"
 - waitForAnimationToEnd:
     timeout: 2000
@@ -988,7 +1037,7 @@ ${below(london.hanafiAsr, "Asr")}
     sleep(1000);
     runStep(
       "hanafi-off",
-      `
+      () => `
 ${androidLaunch()}- tapOn: "Settings"
 - extendedWaitUntil:
     visible: "Use Hanafi Asr"
@@ -1006,7 +1055,7 @@ ${below(london.expected.Asr, "Asr")}
 
     runStep(
       "belfast",
-      `
+      () => `
 ${androidLaunch()}- tapOn: "Settings"
 - extendedWaitUntil:
     visible: "Location"
@@ -1031,7 +1080,7 @@ ${below(belfast.expected.Fajr, "Fajr")}
     sleep(1000);
     runStep(
       "london-again",
-      `
+      () => `
 ${androidLaunch()}- tapOn: "Settings"
 - tapOn: "Location"
 - tapOn:
@@ -1058,7 +1107,7 @@ ${below(london.expected.Fajr, "Fajr")}
       session.platform === "ios" ? '\n- assertVisible: "Widget appearance"' : "";
     runStep(
       "widgets",
-      `
+      () => `
 ${androidLaunch()}- tapOn: "Settings"
 - scrollUntilVisible:
     element: "${widgetText}"
@@ -1071,7 +1120,7 @@ ${androidLaunch()}- tapOn: "Settings"
 
     runStep(
       "theme-dark",
-      `
+      () => `
 ${androidOpenSettings()}- scrollUntilVisible:
     element: "Theme"
     direction: ${platform === "android" ? "DOWN" : "UP"}
@@ -1088,7 +1137,7 @@ ${androidOpenSettings()}- scrollUntilVisible:
     sleep(1000);
     runStep(
       "theme-persists",
-      `
+      () => `
 - stopApp
 - launchApp
 - extendedWaitUntil:
@@ -1110,7 +1159,7 @@ ${androidOpenSettings()}- scrollUntilVisible:
 
     runStep(
       "reminders",
-      `
+      () => `
 ${androidOpenSettings()}- scrollUntilVisible:
     element: "Notify before prayer"
     direction: DOWN
@@ -1130,7 +1179,7 @@ ${androidOpenSettings()}- scrollUntilVisible:
     sleep(1000);
     runStep(
       "reminders-persist",
-      `
+      () => `
 - stopApp
 - launchApp
 - extendedWaitUntil:
@@ -1151,7 +1200,7 @@ ${androidOpenSettings()}- scrollUntilVisible:
     report.ok = false;
     report.error = String(error.message || error).slice(-2000);
   } finally {
-    stopRecording(recorder);
+    await stopRecording(recorder);
     writeFileSync(join(evidenceDir, `${session.platform}-pass.json`), `${JSON.stringify(report, null, 2)}\n`);
     console.log(JSON.stringify({ ok: report.ok, steps: report.steps.map((step) => ({ name: step.name, ok: step.ok })) }, null, 2));
   }
@@ -1160,8 +1209,15 @@ ${androidOpenSettings()}- scrollUntilVisible:
   }
 }
 
+// A pid in the session file can be stale by the time cleanup runs, and the
+// number may belong to something else by then.
+function pidRuns(pid, pattern) {
+  const ps = spawnSync("ps", ["-p", String(pid), "-o", "command="], { encoding: "utf8" });
+  return pattern.test(ps.stdout || "");
+}
+
 function cleanup(session) {
-  if (session.recordPid) {
+  if (session.recordPid && pidRuns(session.recordPid, /simctl/)) {
     try {
       process.kill(session.recordPid, "SIGINT");
     } catch {
@@ -1189,18 +1245,17 @@ function cleanup(session) {
       }
     }
   } else if (session.emulatorPid) {
-    try {
-      process.kill(session.emulatorPid, "SIGTERM");
-    } catch {
-      // Already exited.
-    }
     const adb = join(session.androidHome, "platform-tools", "adb");
     spawnSync(adb, ["emu", "kill"], { stdio: "ignore" });
+    if (pidRuns(session.emulatorPid, /emulator|qemu/)) {
+      try {
+        process.kill(session.emulatorPid, "SIGTERM");
+      } catch {
+        // Already exited.
+      }
+    }
   }
-  if (existsSync(sessionPath)) {
-    writeFileSync(sessionPath, "");
-    spawnSync("rm", ["-f", sessionPath]);
-  }
+  rmSync(sessionPath, { force: true });
   const homeShot = join(evidenceDir, `${session.platform}-today-home.png`);
   const passJson = join(evidenceDir, `${session.platform}-pass.json`);
   console.log(

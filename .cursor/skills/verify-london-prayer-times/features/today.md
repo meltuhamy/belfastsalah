@@ -26,7 +26,7 @@ The home screen after setup: a card counting down to the next prayer, and the da
 node .cursor/skills/verify-london-prayer-times/drive.mjs today
 ```
 
-The script uses a fresh context, so it always starts on setup. It clicks the button named `Done`, waits until `[data-testid=prayer-strip]` is visible and **Done** is gone, waits 700ms (the settings write is debounced by 500ms), reads the strip, and compares it to the row for the London calendar date the page's clock reports.
+The script uses a fresh context, so it always starts on setup. It clicks the button named `Done`, waits until `[data-testid=prayer-strip]` is visible and **Done** is gone, waits 700ms (the settings write is debounced by 500ms), reads the strip, and compares it to the row for the day the strip should be showing: the London calendar date, or the next one once today's Isha has passed. In that window `[data-testid=day-date]` is tomorrow's date and the `Tomorrow` badge must be there; before Isha the badge must be absent.
 
 Columns in the JSON row are month, day, fajr, shuruq, duhr, asr (Shafi), asr (Hanafi), maghrib, isha. Those clock strings are UTC instants. The script formats each one in `Europe/London` the same way `formatTimeInZone` does, and that formatted value is what the strip must show. The strip's Asr is the Shafi column unless settings say otherwise. This journey never turns Hanafi on.
 
@@ -43,5 +43,6 @@ Native: `node .cursor/skills/verify-london-prayer-times/native.mjs pass ios` (or
 - The JSON strings match the screen only while London is on GMT. During British Summer Time the screen is an hour later. Compare the screen to the London-local formatting of the UTC instant, which is what `drive.mjs today` does. A hand check that diffs the raw JSON against the strip in summer is wrong, and dropping the check to make it pass is also wrong.
 - The card and the strip must stay the same width. The tail is placed at `(column + 0.5) × (100% / 6)` of the card. Horizontal padding on the strip itself moves the columns off the tail.
 - `[data-testid=tomorrow-badge]` at 23:30 London time is right. The same badge for someone whose device is already on the next calendar day, while still showing London's clock, is wrong. This journey forces `Europe/London`, so that case does not come up. Do not "fix" a missing badge by changing the device zone.
+- Between Isha and midnight, today's row is the wrong row. Use `stripDay` from `timetable.mjs`, which both drivers do. A strip that "does not match today" at 21:00 is the app working.
 - Belfast is a different timetable. This feature is London, the default after **Done**.
 - A simulator uses the Mac's timezone. Do not change the Mac's timezone to hide the notice. Dismiss it with **Keep London time**, then compare to `Europe/London`. Comparing the strip to Istanbul (or whatever the Mac is set to) fails this journey.

@@ -120,6 +120,12 @@ function pack(row, instantYear, month, day, file) {
       ])
     ),
     hanafiAsr: row[6] ? formatLondon(instantYear, month, day, row[6]) : null,
+    ishaInstant: Date.UTC(
+      instantYear,
+      month - 1,
+      day,
+      ...String(row[8]).split(":").map(Number)
+    ),
   };
 }
 
@@ -144,4 +150,31 @@ export function belfastTimes(repoRoot, year, month, day) {
   const fileYear = resolveFileYear(repoRoot, "belfast", year);
   const { file, row } = loadRow(repoRoot, "belfast", fileYear, month, day);
   return pack(row, year, month, day, file);
+}
+
+/**
+ * The day the home strip is showing at `at`, and that day's times.
+ *
+ * Today's London date until today's Isha has passed. From then until London
+ * midnight the card counts down to tomorrow's Fajr and the strip, and the
+ * date on the card, are tomorrow's (src/lib/usePrayerStrip.ts,
+ * nextIsAfterDay). Belfast rolls at its own Isha, so the answer is per
+ * location.
+ */
+export function stripDay(repoRoot, location, at = new Date()) {
+  const timesFor = location === "belfast" ? belfastTimes : londonTimes;
+  const today = londonNow(at);
+  const times = timesFor(repoRoot, today.year, today.month, today.day);
+  if (at.getTime() < times.ishaInstant) {
+    return { rolled: false, date: today, times };
+  }
+  // Midday UTC is the same calendar day in London all year.
+  const date = londonNow(
+    new Date(Date.UTC(today.year, today.month - 1, today.day + 1, 12))
+  );
+  return {
+    rolled: true,
+    date,
+    times: timesFor(repoRoot, date.year, date.month, date.day),
+  };
 }

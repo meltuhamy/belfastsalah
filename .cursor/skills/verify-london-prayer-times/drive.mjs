@@ -17,7 +17,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium, devices } from "@playwright/test";
-import { londonTimes } from "./timetable.mjs";
+import { PRAYER_NAMES, stripDay } from "./timetable.mjs";
 
 const skillDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(skillDir, "..", "..", "..");
@@ -54,33 +54,6 @@ async function waitForScreen(page) {
   );
   const testId = await handle.getAttribute("data-testid");
   return testId === "prayer-strip" ? "home" : "setup";
-}
-
-async function londonNow(page) {
-  return page.evaluate(() => {
-    const formatter = new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Europe/London",
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-    const parts = formatter.formatToParts(new Date());
-    const get = (type) => parts.find((part) => part.type === type).value;
-    const monthNumber = Number(
-      new Intl.DateTimeFormat("en-GB", {
-        timeZone: "Europe/London",
-        month: "numeric",
-      }).format(new Date())
-    );
-    return {
-      year: Number(get("year")),
-      month: monthNumber,
-      day: Number(get("day")),
-      // Same shape as formatDateInZone: en-GB short date with the comma removed.
-      label: `${get("weekday")} ${get("day")} ${get("month")}`,
-    };
-  });
 }
 
 async function readStrip(page) {
@@ -142,9 +115,13 @@ async function today() {
     // updates immediately; the side effect we check does not.
     await page.waitForTimeout(700);
 
-    const when = await londonNow(page);
-    const { utc, expected } = londonTimes(repoRoot, when.year, when.month, when.day);
+    // The page's clock is this machine's clock; nothing here pins it. After
+    // Isha the strip, and the date on the card, are tomorrow's.
+    const shown = stripDay(repoRoot, "london");
+    const when = shown.date;
+    const { utc, expected } = shown.times;
     const times = await readStrip(page);
+    const tomorrowBadge = await page.getByTestId("tomorrow-badge").count();
     const dayDate = (await page.getByTestId("day-date").innerText()).trim();
     const countdown = (await page.getByTestId("countdown").innerText()).trim();
     const highlighted = (
@@ -158,7 +135,7 @@ async function today() {
     );
     const storedSettings = stored ? JSON.parse(stored) : null;
 
-    const names = ["Fajr", "Shuruq", "Duhr", "Asr", "Maghrib", "Isha"];
+    const names = PRAYER_NAMES;
     const mismatches = names.filter((name) => times[name] !== expected[name]);
     const countdownOk = /^\d/.test(countdown);
     const storedOk = storedSettings?.location === "london";
@@ -177,12 +154,15 @@ async function today() {
       ok:
         mismatches.length === 0 &&
         dayDate === when.label &&
+        tomorrowBadge === (shown.rolled ? 1 : 0) &&
         countdownOk &&
         names.includes(highlighted) &&
         storedOk &&
         reloadOk,
       baseURL,
       londonDate: when,
+      rolledToTomorrow: shown.rolled,
+      tomorrowBadge: tomorrowBadge === 1,
       dayDate,
       timetableUtc: utc,
       expected,
