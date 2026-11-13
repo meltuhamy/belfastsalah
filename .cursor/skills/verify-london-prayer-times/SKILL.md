@@ -149,6 +149,8 @@ The regression pass walks the feature map: setup, today's times against the time
 
 The countdown label is one span, `{prayer} in`, then the remaining time. iOS exposes `in` to the right of the prayer name. Android's WebView exposes ` in`, leading space included, and Maestro matches that whole string. The Android pass asserts `^ in$` to the right of a prayer name.
 
+Android also joins the widget row into one string, `Widget appearance Colours and countdown for each home screen widget`. The pass matches that whole string. iOS keeps the title and the "Edit Widget" sentence as separate strings.
+
 ```bash
 node .cursor/skills/verify-london-prayer-times/native.mjs pass ios
 node .cursor/skills/verify-london-prayer-times/native.mjs pass android

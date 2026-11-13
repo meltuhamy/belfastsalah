@@ -1009,10 +1009,14 @@ ${below(london.expected.Fajr, "Fajr")}
 `
     );
 
+    // Android's WebView exposes the row as one string, title then subtitle.
+    // Maestro matches that whole string, so the subtitle alone never hits.
     const widgetText =
       session.platform === "ios"
         ? "Touch and hold a widget, then choose Edit Widget"
-        : "Colours and countdown for each home screen widget";
+        : "Widget appearance Colours and countdown for each home screen widget";
+    const widgetTitle =
+      session.platform === "ios" ? '\n- assertVisible: "Widget appearance"' : "";
     runStep(
       "widgets",
       `
@@ -1021,8 +1025,7 @@ ${androidLaunch()}- tapOn: "Settings"
     element: "${widgetText}"
     direction: DOWN
     timeout: 20000
-- assertVisible: "Widget appearance"
-- assertVisible: "${widgetText}"
+- assertVisible: "${widgetText}"${widgetTitle}
 `,
       "widgets"
     );
