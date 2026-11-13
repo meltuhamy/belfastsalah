@@ -381,10 +381,33 @@ function waitForAdb() {
     }
   }
   if (!androidHome) return;
-  spawnSync(join(androidHome, "platform-tools", "adb"), ["wait-for-device"], {
-    stdio: "inherit",
-  });
-  sleep(3000);
+  const adb = join(androidHome, "platform-tools", "adb");
+  spawnSync(adb, ["reconnect"], { stdio: "inherit" });
+  spawnSync(adb, ["wait-for-device"], { stdio: "inherit" });
+  sleep(5000);
+}
+
+function maestroTest(flowFile) {
+  const attempts = 3;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      runMaestro(flowFile);
+      return;
+    } catch (error) {
+      const message = String(error.message || error);
+      const dropped =
+        message.includes("device offline") || message.includes("Device server died");
+      if (!dropped || attempt === attempts) {
+        throw error;
+      }
+      // The API 36 emulator drops adb while Maestro is reading the hierarchy.
+      // The emulator process stays up. Reconnect and run this flow again.
+      console.log(
+        `adb dropped the emulator (attempt ${attempt} of ${attempts}). Waiting, then retrying this flow.`
+      );
+      waitForAdb();
+    }
+  }
 }
 
 function runMaestro(flowFile) {
@@ -409,22 +432,6 @@ function runMaestro(flowFile) {
   if (result.status !== 0) {
     const tail = output.slice(-2500);
     throw new Error(`maestro test ${flowFile} exited ${result.status}\n${tail}`);
-  }
-}
-
-function maestroTest(flowFile) {
-  try {
-    runMaestro(flowFile);
-  } catch (error) {
-    const message = String(error.message || error);
-    if (!message.includes("device offline")) {
-      throw error;
-    }
-    // The API 36 emulator drops adb for a moment while Maestro closes its
-    // driver. The device comes back. Retry the same flow once.
-    console.log("adb reported the device offline. Waiting, then retrying this flow once.");
-    waitForAdb();
-    runMaestro(flowFile);
   }
 }
 
