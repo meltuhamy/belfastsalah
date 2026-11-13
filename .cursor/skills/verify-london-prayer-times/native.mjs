@@ -453,7 +453,8 @@ async function launchIos() {
     const log = existsSync(xcodeLog) ? readFileSync(xcodeLog, "utf8") : "";
     if (log.includes("have not agreed to the Xcode license")) {
       throw new Error(
-        "xcodebuild exited 69. This Xcode's license is not accepted (the system record is for an older Xcode). An administrator has to run `sudo xcodebuild -license`. This skill does not type that password. Retrying the build with different signing flags does not get past it."
+        "xcodebuild exited 69. This Xcode's license is not accepted (the system record is for an older Xcode). An administrator has to run `sudo xcodebuild -license`. This skill does not type that password. Retrying the build with different signing flags does not get past it.",
+        { cause: error }
       );
     }
     console.log("Debug build failed. Retrying with simulator ad-hoc signing disabled.");
@@ -598,6 +599,20 @@ function androidPreflight() {
   return { ok: missing.length === 0, text: `${lines.join("\n")}\n`, androidHome };
 }
 
+function chooseAvd(avds) {
+  const requested = (process.env.VERIFY_ANDROID_AVD || "").trim();
+  if (requested) {
+    if (!avds.includes(requested)) {
+      throw new Error(
+        `VERIFY_ANDROID_AVD is ${requested}, which is not in emulator -list-avds (${avds.join(", ") || "none"}).`
+      );
+    }
+    return requested;
+  }
+  const preferred = "Pixel_3a_API_33_arm64-v8a";
+  return avds.includes(preferred) ? preferred : avds[0];
+}
+
 async function launchAndroid() {
   ensureTools();
   const report = androidPreflight();
@@ -620,9 +635,7 @@ async function launchAndroid() {
     .stdout.split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
-  const avd = avds.includes("Pixel_3a_API_33_arm64-v8a")
-    ? "Pixel_3a_API_33_arm64-v8a"
-    : avds[0];
+  const avd = chooseAvd(avds);
   const javaHome = buildJdkHome;
   await run(join(repoRoot, "android", "gradlew"), ["assembleDebug"], {
     cwd: join(repoRoot, "android"),

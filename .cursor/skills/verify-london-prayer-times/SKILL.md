@@ -89,9 +89,9 @@ egrep -c '(vmx|svm)' /proc/cpuinfo
 
 `/dev/kvm` must exist and be readable and writable by this user. The `egrep` count is non-zero when the CPU exposes virtualization. A cloud VM with a count of zero, or no `/dev/kvm`, cannot run the emulator until nested virtualization is turned on for that VM.
 
-When the preflight passes, the same command builds the debug APK, boots the first listed AVD (preferring `Pixel_3a_API_33_arm64-v8a` when it exists), and installs it with `adb install -r -d` so a debug build can replace a store build that has a higher versionCode. On Linux, or when `DISPLAY` is unset, the emulator is started with `-no-window -no-audio -gpu swiftshader_indirect`. On a Mac the hypervisor is Hypervisor.framework (`sysctl -n kern.hv_support`), not KVM. Say which one the run used.
+When the preflight passes, the same command builds the debug APK, boots an AVD, and installs it with `adb install -r -d` so a debug build can replace a store build that has a higher versionCode. `VERIFY_ANDROID_AVD` selects that AVD by the name `emulator -list-avds` prints. When the variable is unset, launch prefers `Pixel_3a_API_33_arm64-v8a` if it exists, and otherwise boots the first listed AVD. On Linux, or when `DISPLAY` is unset, the emulator is started with `-no-window -no-audio -gpu swiftshader_indirect`. On a Mac the hypervisor is Hypervisor.framework (`sysctl -n kern.hv_support`), not KVM. Say which one the run used.
 
-The API 33 system image ships Chrome/WebView 101, which has no `Array.prototype.toSorted`. `getAvailableYears` uses `toSorted`, so on that image the shell opens and the timetable stays on its skeleton. The console error is `TypeError: Object.keys(...).map(...).toSorted is not a function`. A newer system image is required before the prayer times can be checked. This skill does not patch the app.
+The API 33 system image ships Chrome/WebView 101, which has no `Array.prototype.toSorted`. `getAvailableYears` uses `toSorted`, so on that image the shell opens and the timetable stays on its skeleton. The console error is `TypeError: Object.keys(...).map(...).toSorted is not a function`. Set `VERIFY_ANDROID_AVD` to an arm64 AVD on API 34, 35, or 36 whose WebView is Chrome 110 or newer before `pass android`. This skill does not patch the app and does not create that AVD.
 
 ## Doctor
 
@@ -220,6 +220,6 @@ node .cursor/skills/verify-london-prayer-times/native.mjs pass ios
 node .cursor/skills/verify-london-prayer-times/native.mjs cleanup ios
 ```
 
-`drive.mjs` honours `VERIFY_BASE_URL`, `CHROMIUM_PATH`, and `VERIFY_EVIDENCE_DIR`. `native.mjs` honours `VERIFY_EVIDENCE_DIR`. `timetable.mjs` is the shared London and Belfast formatting. It is imported by both drivers. Do not format a raw JSON clock string as the on-screen time: during British Summer Time the screen is an hour later.
+`drive.mjs` honours `VERIFY_BASE_URL`, `CHROMIUM_PATH`, and `VERIFY_EVIDENCE_DIR`. `native.mjs` honours `VERIFY_EVIDENCE_DIR`. Android `launch` also honours `VERIFY_ANDROID_AVD`. `timetable.mjs` is the shared London and Belfast formatting. It is imported by both drivers. Do not format a raw JSON clock string as the on-screen time: during British Summer Time the screen is an hour later.
 
 The feature map is `features/README.md`. Run `/maintain-verification-skill` when the screens change. That pass reads each feature from source and drives it. It edits only this skill directory.
