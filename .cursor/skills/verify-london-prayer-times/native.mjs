@@ -845,6 +845,21 @@ async function pass(session) {
     rightOf: "London"
     below: "${when.label}"
 `;
+    // The label is "{prayer} in" in one span. Android's WebView exposes that
+    // as the prayer name and " in" (the leading space stays on the second
+    // string). Maestro matches the whole string, so "in" does not hit it.
+    const countdown =
+      platform === "android"
+        ? `
+- assertVisible:
+    text: "^ in$"
+    rightOf: "(Fajr|Shuruq|Duhr|Asr|Maghrib|Isha)"
+`
+        : `
+- assertVisible:
+    text: "in"
+    rightOf: "(Fajr|Shuruq|Duhr|Asr|Maghrib|Isha)"
+`;
     const notice = foreignZone
       ? `
 - extendedWaitUntil:
@@ -869,9 +884,7 @@ ${notice}
 - extendedWaitUntil:
     visible: "${london.expected.Fajr}"
     timeout: 20000
-- assertVisible:
-    text: "in"
-    rightOf: "(Fajr|Shuruq|Duhr|Asr|Maghrib|Isha)"
+${countdown}
 ${stripAsserts(london.expected)}
 - assertVisible: "${when.label}"
 `,

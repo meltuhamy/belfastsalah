@@ -147,6 +147,8 @@ Playwright cannot attach to the Capacitor WKWebView, so the native pass does not
 
 The regression pass walks the feature map: setup, today's times against the timetable, the open month's name, setup still there after a relaunch, Hanafi asr and back, Belfast and back to London, the widget row, dark theme still dark after a relaunch, and the five-minute reminder still on after a relaunch.
 
+The countdown label is one span, `{prayer} in`, then the remaining time. iOS exposes `in` to the right of the prayer name. Android's WebView exposes ` in`, leading space included, and Maestro matches that whole string. The Android pass asserts `^ in$` to the right of a prayer name.
+
 ```bash
 node .cursor/skills/verify-london-prayer-times/native.mjs pass ios
 node .cursor/skills/verify-london-prayer-times/native.mjs pass android
