@@ -124,9 +124,11 @@ export const locationNames: Record<PrayerLocation, string> = {
 };
 
 export function getAvailableYears(location: PrayerLocation): Array<number> {
+  // map() already returns a fresh array. sort() keeps the year order without
+  // Array.prototype.toSorted, which older Android WebViews (Chrome 101) lack.
   return Object.keys(prayerDataLoaders[location])
     .map(Number)
-    .toSorted((a, b) => a - b);
+    .sort((a, b) => a - b);
 }
 
 // Pick the closest year we can actually serve: an exact match when we have
