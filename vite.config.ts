@@ -7,6 +7,12 @@ export default defineConfig({
   build: {
     // Capacitor copies from here into the native projects.
     outDir: "build",
+    // The oldest engines the app is known to run on: Android System WebView
+    // 101 (MEL-150) and Safari on iOS 15, the app's deployment target. Vite's
+    // default is Chrome 111 / Safari 16.4, which lets through syntax those
+    // ignore, such as `@media (width <= 375px)`. This lowers syntax only -
+    // keeping to library methods they have is tsconfig's `lib`.
+    target: ["chrome101", "safari15"],
   },
   server: {
     port: 3000,

@@ -2,7 +2,11 @@
   "compilerOptions": {
     "target": "ES2023",
     "useDefineForClassFields": true,
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    // ES2021 rather than the target's ES2023: Vite lowers syntax but
+    // polyfills nothing. iOS 15.0 lacks ES2022's Array.prototype.at and
+    // Object.hasOwn, and WebView 101 lacks ES2023's toSorted (MEL-150).
+    // See build.target in vite.config.ts.
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
 
