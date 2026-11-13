@@ -151,6 +151,8 @@ The countdown label is one span, `{prayer} in`, then the remaining time. iOS exp
 
 Android also joins the widget row into one string, `Widget appearance Colours and countdown for each home screen widget`. The pass matches that whole string. iOS keeps the title and the "Edit Widget" sentence as separate strings.
 
+If adb reports the emulator offline in the middle of a flow, that flow is run once more after `adb wait-for-device`. The emulator process is still up; the connection blips.
+
 ```bash
 node .cursor/skills/verify-london-prayer-times/native.mjs pass ios
 node .cursor/skills/verify-london-prayer-times/native.mjs pass android
