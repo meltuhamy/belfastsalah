@@ -1,3 +1,5 @@
+// renderHook needs a document. The suite default is node.
+// @vitest-environment jsdom
 import { renderHook, act } from "@testing-library/react";
 import { useLongPress } from "./useLongPress";
 

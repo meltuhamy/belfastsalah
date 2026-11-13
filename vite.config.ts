@@ -13,7 +13,10 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: "jsdom",
+    // Per-file jsdom setup is the largest cost in the suite, and only the
+    // files that render anything need a document. Those opt back in with
+    // an `@vitest-environment jsdom` comment.
+    environment: "node",
     setupFiles: "./src/setupTests.ts",
     // e2e/ is Playwright's; vitest would otherwise pick up its .spec.ts files.
     exclude: ["node_modules", "build", "e2e"],

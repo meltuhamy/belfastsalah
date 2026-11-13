@@ -1,3 +1,5 @@
+// Renders the setup screen, so it needs a document. The suite default is node.
+// @vitest-environment jsdom
 import { render, waitFor } from "@testing-library/react";
 import SetupPage from "./SetupPage";
 import { AppContextProvider } from "../State";
