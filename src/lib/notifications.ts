@@ -16,12 +16,17 @@ const updateCallbacks: Array<
 // Android 13 (API 33) made POST_NOTIFICATIONS a runtime permission, so from
 // targetSdk 33 upwards scheduling silently does nothing until the user has
 // granted it. iOS has always needed the same up-front grant.
-async function ensureNotificationPermission(): Promise<boolean> {
+//
+// Only a request the user made may ask. Android pauses and resumes the app
+// around its permission dialog, which is a foreground event, and reports a
+// first "Don't allow" as prompt-with-rationale rather than denied - so a
+// foreground refresh that asked would put the dialog straight back up.
+async function ensureNotificationPermission(mayAsk = true): Promise<boolean> {
   const current = await LocalNotifications.checkPermissions();
   if (current.display === "granted") {
     return true;
   }
-  if (current.display === "denied") {
+  if (current.display === "denied" || !mayAsk) {
     return false;
   }
 
@@ -29,6 +34,13 @@ async function ensureNotificationPermission(): Promise<boolean> {
   return requested.display === "granted";
 }
 
+/**
+ * Replaces every pending notification with `notifications`.
+ *
+ * `silent` is for a refresh the user did not ask for, such as the app coming
+ * back to the foreground: it neither tells listeners (no "Notifications
+ * updated" toast) nor asks for permission it does not already have.
+ */
 export async function clearAndSetNotifications(
   notifications: Array<LocalNotificationSchema>,
   silent = false
@@ -40,7 +52,7 @@ export async function clearAndSetNotifications(
   }
 
   if (notifications.length > 0) {
-    if (!(await ensureNotificationPermission())) {
+    if (!(await ensureNotificationPermission(!silent))) {
       if (!silent) {
         updateCallbacks.forEach((cb) => cb([]));
       }

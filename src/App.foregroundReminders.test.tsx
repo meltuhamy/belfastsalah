@@ -236,4 +236,46 @@ describe("reminder scheduling when the app returns to the foreground", () => {
     expect(harness.clearAndSetNotifications).toHaveBeenCalledTimes(3);
     expect(active).toBe(0);
   });
+
+  it("Should keep a queued settings change loud when a foreground event follows it", async () => {
+    const gates: Array<() => void> = [];
+    harness.clearAndSetNotifications.mockImplementation(
+      () => new Promise<void>((resolve) => gates.push(resolve))
+    );
+
+    const view = renderApp();
+    await waitFor(() => {
+      expect(gates).toHaveLength(1);
+    });
+
+    // The user moves the reminder to ten minutes, then the app is
+    // foregrounded, both while the mount run is still going.
+    harness.settings.current = { ...enabledSettings(), notifyMinutes: 10 };
+    view.rerender(
+      <AppContextProvider>
+        <App />
+      </AppContextProvider>
+    );
+    await act(async () => {
+      harness.state.listener?.({ isActive: true });
+    });
+
+    await act(async () => {
+      gates.shift()?.();
+    });
+    await waitFor(() => {
+      expect(harness.clearAndSetNotifications).toHaveBeenCalledTimes(2);
+    });
+
+    const [notifications, silent] =
+      harness.clearAndSetNotifications.mock.calls[1];
+    expect(silent).toBe(false);
+    expect((notifications as Array<{ body: string }>)[0].body).toEqual(
+      "10 minute reminder"
+    );
+
+    await act(async () => {
+      gates.shift()?.();
+    });
+  });
 });

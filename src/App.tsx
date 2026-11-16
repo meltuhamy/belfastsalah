@@ -184,7 +184,9 @@ const App: React.FC = () => {
 
   function scheduleReminders(silent: boolean) {
     if (remindersInFlight.current) {
-      reminderRerun.current = silent;
+      // Silent only if every request it stands for was: a settings change
+      // queued behind a foreground event still gets its toast and may ask.
+      reminderRerun.current = (reminderRerun.current ?? true) && silent;
       return;
     }
     remindersInFlight.current = (async () => {
