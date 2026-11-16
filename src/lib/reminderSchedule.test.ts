@@ -1,5 +1,5 @@
 import { addHours, addMinutes } from "date-fns";
-import { Prayer } from "./PrayerTimes";
+import { AsrMethod, LondonPrayerTimes, Prayer } from "./PrayerTimes";
 import {
   ANDROID_NOTIFICATION_LIMIT,
   IOS_NOTIFICATION_LIMIT,
@@ -92,5 +92,64 @@ describe("planReminders", () => {
       slots[0].prayerTime!.getTime()
     );
     expect(again[0].at.getTime()).toBeGreaterThan(almostThere.getTime());
+  });
+});
+
+// Against the real timetable rather than a synthetic one. GMT dates, so the
+// times are london-2026.json's own strings.
+describe("planReminders on the London timetable", () => {
+  const london = new LondonPrayerTimes(AsrMethod.Shafi);
+  const getNext = (from: Date) => london.getNext(from);
+
+  it("Should run from the day's next reminder to a month out on Android", async () => {
+    const slots = await planReminders(
+      ANDROID_NOTIFICATION_LIMIT,
+      5,
+      new Date("2026-11-16T10:00:00Z"),
+      getNext
+    );
+
+    // 16 November: Duhr 11:50.
+    expect(slots[0]).toMatchObject({
+      id: 0,
+      prayer: Prayer.Duhr,
+      at: new Date("2026-11-16T11:45:00Z"),
+    });
+    // 16 December: Fajr 06:17, Shuruq 07:58.
+    expect(slots[178]).toMatchObject({
+      id: 178,
+      prayer: Prayer.Fajr,
+      at: new Date("2026-12-16T06:12:00Z"),
+    });
+    expect(slots[179]).toMatchObject({
+      id: 179,
+      prayer: Prayer.Shuruq,
+      at: new Date("2026-12-16T07:53:00Z"),
+    });
+    expect(slots[180]).toEqual({
+      id: 181,
+      prayer: null,
+      prayerTime: null,
+      at: new Date("2026-12-16T07:58:00Z"),
+    });
+  });
+
+  it("Should start at the following prayer when the next one is inside the lead time", async () => {
+    // Three minutes before Duhr, so its five minute reminder has gone. iOS
+    // would deliver a past one at once rather than drop it.
+    const slots = await planReminders(
+      IOS_NOTIFICATION_LIMIT,
+      5,
+      new Date("2026-11-16T11:47:00Z"),
+      getNext
+    );
+
+    // 16 November: Asr 13:48.
+    expect(slots[0]).toMatchObject({
+      id: 0,
+      prayer: Prayer.Asr,
+      at: new Date("2026-11-16T13:43:00Z"),
+    });
+    expect(slots).toHaveLength(64);
   });
 });

@@ -68,7 +68,8 @@ const SettingsList: React.FC<Props> = ({
    * ticker, so a drag lasting longer than a second had the knob yanked back to
    * where it started, roughly once a second, until the next touch move caught
    * it up. Committing on each ionInput instead would fix the display but
-   * reschedule all 64 notifications for every intermediate value.
+   * reschedule every notification (a month of them on Android) for every
+   * intermediate value.
    */
   const [draggingMinutes, setDraggingMinutes] = useState<number | null>(null);
   const notifyMinutes = draggingMinutes ?? settings.notifyMinutes;
