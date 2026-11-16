@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { Route } from "react-router-dom";
 import { IonApp, IonRouterOutlet, IonToast } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
-import { subMinutes } from "date-fns";
+import { Capacitor } from "@capacitor/core";
 import { formatTimeInZone, getDeviceTimeZone } from "./lib/timeZone";
 import { locationTimeZones } from "./lib/PrayerTimeData";
 import HomePage from "./pages/HomePage";
@@ -53,6 +53,7 @@ import {
   clearAndSetNotifications,
   removeUpdateNotifyListener,
 } from "./lib/notifications";
+import { notificationLimit, planReminders } from "./lib/reminderSchedule";
 import { addSaveListener, removeSaveListener } from "./lib/settings";
 import { refreshWidgets } from "./lib/widgets";
 import FullPageSpinner from "./components/FullPageSpinner";
@@ -60,8 +61,6 @@ import SetupPage from "./pages/SetupPage";
 
 import { setupIonicReact } from "@ionic/react";
 setupIonicReact();
-
-const MAX_NOTIFICATIONS = 64;
 
 const App: React.FC = () => {
   const [settings, , hydrated] = useSettings();
@@ -120,38 +119,41 @@ const App: React.FC = () => {
         await clearAndSetNotifications([]);
         return;
       }
-      const now = new Date();
-      let currentPrayerTime = now;
-      const notificationsToSchedule: Array<LocalNotificationSchema> = [];
-      for (let i = 0; i < MAX_NOTIFICATIONS - 1; i++) {
-        const currentPrayer = await prayerTimes.getNext(currentPrayerTime);
-        notificationsToSchedule.push({
-          // Must use the same clock the app shows, or the lock screen and
-          // the app disagree about when the prayer is.
-          title: `${prayerToString(
-            currentPrayer.prayer
-          )} is at ${formatTimeInZone(currentPrayer.time, notificationZone)}`,
-          body:
-            minutesBefore > 0
-              ? `${minutesBefore} minute reminder`
-              : "Prayer time reminder",
-          id: i,
-          schedule: { at: subMinutes(currentPrayer.time, minutesBefore) },
-          // sound: null,
-          // attachments: null,
-          actionTypeId: "",
-          extra: null,
+      const slots = await planReminders(
+        notificationLimit(Capacitor.getPlatform()),
+        minutesBefore,
+        new Date(),
+        (from) => prayerTimes.getNext(from)
+      );
+      const notificationsToSchedule: Array<LocalNotificationSchema> =
+        slots.map((slot) => {
+          if (slot.prayer === null || slot.prayerTime === null) {
+            return {
+              title: "Still want prayer notifications?",
+              body: "Tap here or open the Prayer Times app to enable",
+              id: slot.id,
+              schedule: { at: slot.at },
+              actionTypeId: "",
+              extra: null,
+            };
+          }
+          return {
+            // Must use the same clock the app shows, or the lock screen and
+            // the app disagree about when the prayer is.
+            title: `${prayerToString(slot.prayer)} is at ${formatTimeInZone(
+              slot.prayerTime,
+              notificationZone
+            )}`,
+            body:
+              minutesBefore > 0
+                ? `${minutesBefore} minute reminder`
+                : "Prayer time reminder",
+            id: slot.id,
+            schedule: { at: slot.at },
+            actionTypeId: "",
+            extra: null,
+          };
         });
-        currentPrayerTime = currentPrayer.time;
-      }
-      notificationsToSchedule.push({
-        title: "Still want prayer notifications?",
-        body: "Tap here or open the Prayer Times app to enable",
-        id: MAX_NOTIFICATIONS,
-        schedule: { at: currentPrayerTime },
-        actionTypeId: "",
-        extra: null,
-      });
       await clearAndSetNotifications(notificationsToSchedule);
     }
     clearAllAndSet(notificationsEnabled, notificationMinutes);

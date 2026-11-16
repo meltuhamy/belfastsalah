@@ -331,7 +331,8 @@ Long-pressing the timer icon on the reminder row schedules a notification a
 few seconds out, so the reminder path can be checked without waiting for a
 prayer time. There is deliberately no visible affordance. `sendTestNotification`
 in `src/lib/notifications.ts` uses id 9999, clear of the prayer reminders,
-which use 0-64.
+which use ids 0 up to `notificationLimit` in `src/lib/reminderSchedule.ts`
+(181 on Android, 64 elsewhere).
 
 ## Theming
 
