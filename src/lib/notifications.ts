@@ -5,8 +5,8 @@ import {
 import { addSeconds } from "date-fns";
 import debounce from "./debounce";
 
-// Well clear of the prayer reminders, which use ids 0 to 64, so firing a test
-// never disturbs a real one.
+// Well clear of the prayer reminders. Those use the low ids (up to the
+// platform limit in reminderSchedule), so firing a test never disturbs one.
 const TEST_NOTIFICATION_ID = 9999;
 export const TEST_NOTIFICATION_DELAY_SECONDS = 5;
 
