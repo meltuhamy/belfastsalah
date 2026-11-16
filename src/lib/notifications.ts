@@ -3,7 +3,6 @@ import {
   LocalNotificationSchema,
 } from "@capacitor/local-notifications";
 import { addSeconds } from "date-fns";
-import debounce from "./debounce";
 
 // Well clear of the prayer reminders. Those use the low ids (up to the
 // platform limit in reminderSchedule), so firing a test never disturbs one.
@@ -31,7 +30,8 @@ async function ensureNotificationPermission(): Promise<boolean> {
 }
 
 async function clearAndSetNotificationsImpl(
-  notifications: Array<LocalNotificationSchema>
+  notifications: Array<LocalNotificationSchema>,
+  silent: boolean
 ) {
   const pendingNotifications = await LocalNotifications.getPending();
 
@@ -41,7 +41,9 @@ async function clearAndSetNotificationsImpl(
 
   if (notifications.length > 0) {
     if (!(await ensureNotificationPermission())) {
-      updateCallbacks.forEach((cb) => cb([]));
+      if (!silent) {
+        updateCallbacks.forEach((cb) => cb([]));
+      }
       return;
     }
 
@@ -56,18 +58,64 @@ async function clearAndSetNotificationsImpl(
     });
   }
 
-  updateCallbacks.forEach((cb) => cb(notifications));
+  // A foreground refresh uses the same list shape as the last run. Telling
+  // the user "Notifications updated" every time they open the app would be
+  // the refresh announcing itself.
+  if (!silent) {
+    updateCallbacks.forEach((cb) => cb(notifications));
+  }
 }
 
-const clearAndSetNotificationsDebounced = debounce(
-  clearAndSetNotificationsImpl,
-  500
-);
+// Same wait the old debounce used, so a burst of settings changes still
+// becomes one write. Applies are chained: each run cancels whatever is
+// pending and writes its own list, and two of those overlapping can each
+// read the old set and end up with both lists pending.
+const SCHEDULE_WAIT_MS = 500;
+
+let scheduleTimer: ReturnType<typeof setTimeout> | null = null;
+let scheduleQueued: Array<LocalNotificationSchema> = [];
+let scheduleQueuedSilent = true;
+let scheduleResolvers: Array<() => void> = [];
+let scheduleChain: Promise<void> = Promise.resolve();
 
 export function clearAndSetNotifications(
-  notifications: Array<LocalNotificationSchema>
-) {
-  return clearAndSetNotificationsDebounced(notifications);
+  notifications: Array<LocalNotificationSchema>,
+  silent = false
+): Promise<void> {
+  scheduleQueued = notifications;
+  scheduleQueuedSilent =
+    scheduleResolvers.length === 0 ? silent : scheduleQueuedSilent && silent;
+
+  return new Promise((resolve) => {
+    scheduleResolvers.push(resolve);
+    if (scheduleTimer != null) {
+      clearTimeout(scheduleTimer);
+    }
+    scheduleTimer = setTimeout(() => {
+      scheduleTimer = null;
+      const batch = scheduleQueued;
+      const silentRun = scheduleQueuedSilent;
+      const resolvers = scheduleResolvers;
+      scheduleQueued = [];
+      scheduleQueuedSilent = true;
+      scheduleResolvers = [];
+
+      const run = scheduleChain
+        .catch(() => undefined)
+        .then(() => clearAndSetNotificationsImpl(batch, silentRun));
+      scheduleChain = run.then(
+        () => undefined,
+        () => undefined
+      );
+      void run.then(
+        () => resolvers.forEach((done) => done()),
+        (error) => {
+          console.warn("Could not schedule prayer reminders", error);
+          resolvers.forEach((done) => done());
+        }
+      );
+    }, SCHEDULE_WAIT_MS);
+  });
 }
 
 export function addUpdateNotifyListener(

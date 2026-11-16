@@ -3,6 +3,7 @@ import { Route } from "react-router-dom";
 import { IonApp, IonRouterOutlet, IonToast } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
 import { Capacitor } from "@capacitor/core";
+import { App as CapacitorApp } from "@capacitor/app";
 import { formatTimeInZone, getDeviceTimeZone } from "./lib/timeZone";
 import { locationTimeZones } from "./lib/PrayerTimeData";
 import HomePage from "./pages/HomePage";
@@ -62,6 +63,51 @@ import SetupPage from "./pages/SetupPage";
 import { setupIonicReact } from "@ionic/react";
 setupIonicReact();
 
+// One schedule at a time. Each run cancels what is pending and writes the
+// window again, so a second run beside the first can wipe what the first
+// just wrote. A foreground event during the mount effect, or several at
+// once, collapses into a single follow-up. A newer settings change wins
+// over an older one that has not started.
+type ReminderRun = {
+  epoch: number;
+  task: () => Promise<void>;
+};
+
+let remindersInFlight = false;
+let remindersQueued: ReminderRun | null = null;
+let reminderEpoch = 0;
+
+function requestReminderSchedule(
+  epoch: number,
+  task: () => Promise<void>
+): void {
+  if (remindersQueued !== null && remindersQueued.epoch > epoch) {
+    return;
+  }
+  remindersQueued = { epoch, task };
+  if (remindersInFlight) {
+    return;
+  }
+  remindersInFlight = true;
+  void drainReminderSchedule();
+}
+
+async function drainReminderSchedule(): Promise<void> {
+  try {
+    while (remindersQueued) {
+      const run = remindersQueued;
+      remindersQueued = null;
+      await run.task();
+    }
+  } finally {
+    remindersInFlight = false;
+    if (remindersQueued) {
+      remindersInFlight = true;
+      void drainReminderSchedule();
+    }
+  }
+}
+
 const App: React.FC = () => {
   const [settings, , hydrated] = useSettings();
   const { dispatch } = useContext(AppContext);
@@ -109,14 +155,21 @@ const App: React.FC = () => {
       ? getDeviceTimeZone()
       : locationTimeZones[location];
 
+    const epoch = ++reminderEpoch;
+    let disposed = false;
+
     // clear all notifications
-    async function clearAllAndSet(enabled: boolean, minutesBefore: number) {
+    async function clearAllAndSet(
+      enabled: boolean,
+      minutesBefore: number,
+      silent: boolean
+    ) {
       if (!enabled) {
         // Scheduling is the only thing that ever cancelled, so turning
         // reminders off used to leave every already-scheduled one in place and
         // the phone kept buzzing for the next ten days. An empty list clears
         // what is pending and schedules nothing.
-        await clearAndSetNotifications([]);
+        await clearAndSetNotifications([], silent);
         return;
       }
       const slots = await planReminders(
@@ -154,9 +207,42 @@ const App: React.FC = () => {
             extra: null,
           };
         });
-      await clearAndSetNotifications(notificationsToSchedule);
+      await clearAndSetNotifications(notificationsToSchedule, silent);
     }
-    clearAllAndSet(notificationsEnabled, notificationMinutes);
+
+    const schedule = (silent: boolean) => {
+      requestReminderSchedule(epoch, async () => {
+        if (disposed || epoch !== reminderEpoch) {
+          return;
+        }
+        await clearAllAndSet(
+          notificationsEnabled,
+          notificationMinutes,
+          silent
+        );
+      });
+    };
+
+    schedule(false);
+
+    // `resume` is the same transition as `appStateChange` with isActive, so
+    // listening for both would schedule twice. Nothing else in App was
+    // already listening; HomePage only handles the Android back button.
+    const pendingHandle = CapacitorApp.addListener(
+      "appStateChange",
+      (state) => {
+        if (disposed || !state.isActive) {
+          return;
+        }
+        schedule(true);
+      }
+    );
+
+    return () => {
+      disposed = true;
+      reminderEpoch += 1;
+      void pendingHandle.then((handle) => handle.remove());
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     location,
