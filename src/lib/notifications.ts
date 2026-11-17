@@ -3,10 +3,10 @@ import {
   LocalNotificationSchema,
 } from "@capacitor/local-notifications";
 import { addSeconds } from "date-fns";
-import debounce from "./debounce";
 
 // Well clear of the prayer reminders. Those use the low ids (up to the
-// platform limit in reminderSchedule), so firing a test never disturbs one.
+// platform limit in reminderSchedule), so firing a test never disturbs one,
+// and clearAndSetNotifications leaves this id out of what it cancels.
 const TEST_NOTIFICATION_ID = 9999;
 export const TEST_NOTIFICATION_DELAY_SECONDS = 5;
 
@@ -17,12 +17,17 @@ const updateCallbacks: Array<
 // Android 13 (API 33) made POST_NOTIFICATIONS a runtime permission, so from
 // targetSdk 33 upwards scheduling silently does nothing until the user has
 // granted it. iOS has always needed the same up-front grant.
-async function ensureNotificationPermission(): Promise<boolean> {
+//
+// Only a request the user made may ask. Android pauses and resumes the app
+// around its permission dialog, which is a foreground event, and reports a
+// first "Don't allow" as prompt-with-rationale rather than denied - so a
+// foreground refresh that asked would put the dialog straight back up.
+async function ensureNotificationPermission(mayAsk = true): Promise<boolean> {
   const current = await LocalNotifications.checkPermissions();
   if (current.display === "granted") {
     return true;
   }
-  if (current.display === "denied") {
+  if (current.display === "denied" || !mayAsk) {
     return false;
   }
 
@@ -30,18 +35,33 @@ async function ensureNotificationPermission(): Promise<boolean> {
   return requested.display === "granted";
 }
 
-async function clearAndSetNotificationsImpl(
-  notifications: Array<LocalNotificationSchema>
+/**
+ * Replaces every pending notification with `notifications`.
+ *
+ * `silent` is for a refresh the user did not ask for, such as the app coming
+ * back to the foreground: it neither tells listeners (no "Notifications
+ * updated" toast) nor asks for permission it does not already have.
+ */
+export async function clearAndSetNotifications(
+  notifications: Array<LocalNotificationSchema>,
+  silent = false
 ) {
-  const pendingNotifications = await LocalNotifications.getPending();
+  // Leave a pending test notification alone. It fires seconds after the
+  // long-press, and the app coming back to the foreground in that window -
+  // or Android resuming it as the permission dialog closes - runs this.
+  const pendingReminders = (
+    await LocalNotifications.getPending()
+  ).notifications.filter(({ id }) => id !== TEST_NOTIFICATION_ID);
 
-  if (pendingNotifications.notifications.length > 0) {
-    await LocalNotifications.cancel(pendingNotifications);
+  if (pendingReminders.length > 0) {
+    await LocalNotifications.cancel({ notifications: pendingReminders });
   }
 
   if (notifications.length > 0) {
-    if (!(await ensureNotificationPermission())) {
-      updateCallbacks.forEach((cb) => cb([]));
+    if (!(await ensureNotificationPermission(!silent))) {
+      if (!silent) {
+        updateCallbacks.forEach((cb) => cb([]));
+      }
       return;
     }
 
@@ -56,18 +76,12 @@ async function clearAndSetNotificationsImpl(
     });
   }
 
-  updateCallbacks.forEach((cb) => cb(notifications));
-}
-
-const clearAndSetNotificationsDebounced = debounce(
-  clearAndSetNotificationsImpl,
-  500
-);
-
-export function clearAndSetNotifications(
-  notifications: Array<LocalNotificationSchema>
-) {
-  return clearAndSetNotificationsDebounced(notifications);
+  // A foreground refresh uses the same list shape as the last run. Telling
+  // the user "Notifications updated" every time they open the app would be
+  // the refresh announcing itself.
+  if (!silent) {
+    updateCallbacks.forEach((cb) => cb(notifications));
+  }
 }
 
 export function addUpdateNotifyListener(

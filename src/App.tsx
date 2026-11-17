@@ -1,8 +1,9 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { Route } from "react-router-dom";
 import { IonApp, IonRouterOutlet, IonToast } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
 import { Capacitor } from "@capacitor/core";
+import { App as CapacitorApp } from "@capacitor/app";
 import { formatTimeInZone, getDeviceTimeZone } from "./lib/timeZone";
 import { locationTimeZones } from "./lib/PrayerTimeData";
 import HomePage from "./pages/HomePage";
@@ -91,6 +92,123 @@ const App: React.FC = () => {
   const notificationsEnabled = settings == null ? null : settings.notify;
   const notificationMinutes = settings == null ? null : settings.notifyMinutes;
 
+  // The effect below closes over one render, but a follow-up can run after
+  // settings have moved on. Read these at the start of each run.
+  const reminderInputs = useRef({
+    location,
+    showTimesInDeviceZone,
+    asrMethod,
+    notificationsEnabled,
+    notificationMinutes,
+  });
+  reminderInputs.current = {
+    location,
+    showTimesInDeviceZone,
+    asrMethod,
+    notificationsEnabled,
+    notificationMinutes,
+  };
+
+  const remindersInFlight = useRef<Promise<void> | null>(null);
+  // Silent flag for the one follow-up, or null when nothing is waiting.
+  // A second run beside the first would cancel what the first just wrote.
+  const reminderRerun = useRef<boolean | null>(null);
+
+  async function applyReminders(silent: boolean) {
+    const inputs = reminderInputs.current;
+    if (
+      inputs.location === null ||
+      inputs.asrMethod === null ||
+      inputs.notificationsEnabled === null ||
+      inputs.notificationMinutes === null
+    ) {
+      return;
+    }
+    const prayerTimes =
+      inputs.location === PrayerLocation.London
+        ? new LondonPrayerTimes(inputs.asrMethod)
+        : new BelfastPrayerTimes();
+
+    const notificationZone = inputs.showTimesInDeviceZone
+      ? getDeviceTimeZone()
+      : locationTimeZones[inputs.location];
+
+    if (!inputs.notificationsEnabled) {
+      // Scheduling is the only thing that ever cancelled, so turning
+      // reminders off used to leave every already-scheduled one in place and
+      // the phone kept buzzing for the next ten days. An empty list clears
+      // what is pending and schedules nothing.
+      await clearAndSetNotifications([], silent);
+      return;
+    }
+
+    const minutesBefore = inputs.notificationMinutes;
+    const slots = await planReminders(
+      notificationLimit(Capacitor.getPlatform()),
+      minutesBefore,
+      new Date(),
+      (from) => prayerTimes.getNext(from)
+    );
+    const notificationsToSchedule: Array<LocalNotificationSchema> = slots.map(
+      (slot) => {
+        if (slot.prayer === null || slot.prayerTime === null) {
+          return {
+            title: "Still want prayer notifications?",
+            body: "Tap here or open the Prayer Times app to enable",
+            id: slot.id,
+            schedule: { at: slot.at },
+            actionTypeId: "",
+            extra: null,
+          };
+        }
+        return {
+          // Must use the same clock the app shows, or the lock screen and
+          // the app disagree about when the prayer is.
+          title: `${prayerToString(slot.prayer)} is at ${formatTimeInZone(
+            slot.prayerTime,
+            notificationZone
+          )}`,
+          body:
+            minutesBefore > 0
+              ? `${minutesBefore} minute reminder`
+              : "Prayer time reminder",
+          id: slot.id,
+          schedule: { at: slot.at },
+          actionTypeId: "",
+          extra: null,
+        };
+      }
+    );
+    await clearAndSetNotifications(notificationsToSchedule, silent);
+  }
+
+  function scheduleReminders(silent: boolean) {
+    if (remindersInFlight.current) {
+      // Silent only if every request it stands for was: a settings change
+      // queued behind a foreground event still gets its toast and may ask.
+      reminderRerun.current = (reminderRerun.current ?? true) && silent;
+      return;
+    }
+    remindersInFlight.current = (async () => {
+      let silentRun = silent;
+      try {
+        do {
+          reminderRerun.current = null;
+          try {
+            await applyReminders(silentRun);
+          } catch (error) {
+            console.warn("Could not schedule prayer reminders", error);
+          }
+          if (reminderRerun.current !== null) {
+            silentRun = reminderRerun.current;
+          }
+        } while (reminderRerun.current !== null);
+      } finally {
+        remindersInFlight.current = null;
+      }
+    })();
+  }
+
   useEffect(() => {
     if (
       location === null ||
@@ -100,63 +218,25 @@ const App: React.FC = () => {
     ) {
       return;
     }
-    const prayerTimes =
-      location === PrayerLocation.London
-        ? new LondonPrayerTimes(asrMethod)
-        : new BelfastPrayerTimes();
 
-    const notificationZone = showTimesInDeviceZone
-      ? getDeviceTimeZone()
-      : locationTimeZones[location];
+    scheduleReminders(false);
 
-    // clear all notifications
-    async function clearAllAndSet(enabled: boolean, minutesBefore: number) {
-      if (!enabled) {
-        // Scheduling is the only thing that ever cancelled, so turning
-        // reminders off used to leave every already-scheduled one in place and
-        // the phone kept buzzing for the next ten days. An empty list clears
-        // what is pending and schedules nothing.
-        await clearAndSetNotifications([]);
-        return;
+    // `resume` fires for the same transition, so listening for both would
+    // schedule twice. HomePage only handles the Android back button.
+    const pendingHandle = CapacitorApp.addListener(
+      "appStateChange",
+      (state) => {
+        if (!state.isActive) {
+          return;
+        }
+        scheduleReminders(true);
       }
-      const slots = await planReminders(
-        notificationLimit(Capacitor.getPlatform()),
-        minutesBefore,
-        new Date(),
-        (from) => prayerTimes.getNext(from)
-      );
-      const notificationsToSchedule: Array<LocalNotificationSchema> =
-        slots.map((slot) => {
-          if (slot.prayer === null || slot.prayerTime === null) {
-            return {
-              title: "Still want prayer notifications?",
-              body: "Tap here or open the Prayer Times app to enable",
-              id: slot.id,
-              schedule: { at: slot.at },
-              actionTypeId: "",
-              extra: null,
-            };
-          }
-          return {
-            // Must use the same clock the app shows, or the lock screen and
-            // the app disagree about when the prayer is.
-            title: `${prayerToString(slot.prayer)} is at ${formatTimeInZone(
-              slot.prayerTime,
-              notificationZone
-            )}`,
-            body:
-              minutesBefore > 0
-                ? `${minutesBefore} minute reminder`
-                : "Prayer time reminder",
-            id: slot.id,
-            schedule: { at: slot.at },
-            actionTypeId: "",
-            extra: null,
-          };
-        });
-      await clearAndSetNotifications(notificationsToSchedule);
-    }
-    clearAllAndSet(notificationsEnabled, notificationMinutes);
+    );
+
+    return () => {
+      void pendingHandle.then((handle) => handle.remove());
+    };
+    // scheduleReminders reads the latest settings from reminderInputs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     location,
