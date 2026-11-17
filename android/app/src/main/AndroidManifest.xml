@@ -118,6 +118,23 @@
             android:name=".widget.WidgetAlarmReceiver"
             android:exported="false" />
 
+        <!--
+          Reminder alarms are explicit intents from this app to itself, so
+          exported stays false. Boot, an update, and a clock change are
+          delivered by the system and are on the implicit-broadcast exemption
+          list, which is what lets a manifest receiver hear them.
+        -->
+        <receiver
+            android:name=".reminder.ReminderAlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -130,6 +147,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- So a reboot can re-arm reminders before the app is opened. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!--
       Prayer reminders have to fire at the exact minute to be useful, so exact

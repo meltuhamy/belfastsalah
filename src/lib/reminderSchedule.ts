@@ -6,11 +6,28 @@ import { Prayer } from "./PrayerTimes";
 // the lead time: a longer lead only moves each prayer's one reminder
 // earlier, it does not add a second one, so it neither shortens the window
 // nor lengthens it. The last slot asks the user to open the app, which is
-// what refills the window. AlarmManager allows 500 pending alarms per app,
-// and the widget redraw already uses one, so a month of prayers fits on
-// Android with room to spare.
+// what refills the window.
+//
+// Android no longer schedules through this limit. It writes several years of
+// reminders and arms two days at a time (see reminderPayload.ts). The number
+// stays so an upgrade can cancel the batch the plugin still has pending:
+// ids 0 through this limit, including the old end-of-batch prompt.
 export const IOS_NOTIFICATION_LIMIT = 64;
 export const ANDROID_NOTIFICATION_LIMIT = 6 * 30 + 1;
+
+/** The last entry of a written list, once there is nothing left to arm. */
+export const REMINDERS_ENDED_TITLE = "Prayer reminders stop here";
+export const REMINDERS_ENDED_BODY = "Open the app to keep them coming.";
+
+export function reminderTitle(prayerName: string, clock: string): string {
+  return `${prayerName} is at ${clock}`;
+}
+
+export function reminderBody(minutesBefore: number): string {
+  return minutesBefore > 0
+    ? `${minutesBefore} minute reminder`
+    : "Prayer time reminder";
+}
 
 export function notificationLimit(platform: string): number {
   return platform === "android"

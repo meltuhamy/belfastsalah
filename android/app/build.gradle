@@ -54,6 +54,9 @@ android {
     sourceSets {
         test.java.srcDir 'src/sharedTest/java'
         androidTest.java.srcDir 'src/sharedTest/java'
+        // The reminder list fixtures the JVM tests replan from. Written by
+        // src/lib/reminderPayload.fixture.test.ts.
+        test.resources.srcDir "$rootDir/../fixtures/reminder-payload"
     }
 
     testOptions {

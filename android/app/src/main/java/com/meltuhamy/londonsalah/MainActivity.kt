@@ -2,6 +2,7 @@ package com.meltuhamy.londonsalah
 
 import android.os.Bundle
 import com.getcapacitor.BridgeActivity
+import com.meltuhamy.londonsalah.reminder.PrayerRemindersPlugin
 import com.meltuhamy.londonsalah.widget.PrayerWidgetPlugin
 
 class MainActivity : BridgeActivity() {
@@ -10,6 +11,7 @@ class MainActivity : BridgeActivity() {
         // registered by hand - and before super.onCreate, which builds the
         // bridge that reads the registry.
         registerPlugin(PrayerWidgetPlugin::class.java)
+        registerPlugin(PrayerRemindersPlugin::class.java)
         // Before the bridge, so the web layer's rescheduling comes after it.
         LegacyReminderAlarms.clearOnce(applicationContext)
         super.onCreate(savedInstanceState)
