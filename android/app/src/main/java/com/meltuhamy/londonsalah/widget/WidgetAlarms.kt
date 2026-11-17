@@ -22,9 +22,9 @@ object WidgetAlarms {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // The app holds USE_EXACT_ALARM for prayer reminders, so this normally
-        // succeeds. On API 31-32 the equivalent permission is revocable, and
-        // a widget that redraws late is much better than one that crashes.
+        // SCHEDULE_EXACT_ALARM is revocable from API 31, and a new install on
+        // Android 14+ starts without it. A widget that redraws late is much
+        // better than one that crashes.
         try {
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC,
