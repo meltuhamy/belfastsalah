@@ -5,7 +5,8 @@ import {
 import { addSeconds } from "date-fns";
 
 // Well clear of the prayer reminders. Those use the low ids (up to the
-// platform limit in reminderSchedule), so firing a test never disturbs one.
+// platform limit in reminderSchedule), so firing a test never disturbs one,
+// and clearAndSetNotifications leaves this id out of what it cancels.
 const TEST_NOTIFICATION_ID = 9999;
 export const TEST_NOTIFICATION_DELAY_SECONDS = 5;
 
@@ -45,10 +46,15 @@ export async function clearAndSetNotifications(
   notifications: Array<LocalNotificationSchema>,
   silent = false
 ) {
-  const pendingNotifications = await LocalNotifications.getPending();
+  // Leave a pending test notification alone. It fires seconds after the
+  // long-press, and the app coming back to the foreground in that window -
+  // or Android resuming it as the permission dialog closes - runs this.
+  const pendingReminders = (
+    await LocalNotifications.getPending()
+  ).notifications.filter(({ id }) => id !== TEST_NOTIFICATION_ID);
 
-  if (pendingNotifications.notifications.length > 0) {
-    await LocalNotifications.cancel(pendingNotifications);
+  if (pendingReminders.length > 0) {
+    await LocalNotifications.cancel({ notifications: pendingReminders });
   }
 
   if (notifications.length > 0) {

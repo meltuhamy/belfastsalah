@@ -3,6 +3,7 @@ import {
   addUpdateNotifyListener,
   clearAndSetNotifications,
   removeUpdateNotifyListener,
+  sendTestNotification,
 } from "./notifications";
 
 const controls = vi.hoisted(() => {
@@ -16,9 +17,16 @@ const controls = vi.hoisted(() => {
         pending.push(...notifications.map((notification) => ({ ...notification })));
       }
     ),
-    cancel: vi.fn(async () => {
-      pending.splice(0, pending.length);
-    }),
+    cancel: vi.fn(
+      async ({ notifications }: { notifications: { id: number }[] }) => {
+        for (const { id } of notifications) {
+          const index = pending.findIndex((n) => n.id === id);
+          if (index !== -1) {
+            pending.splice(index, 1);
+          }
+        }
+      }
+    ),
   };
 });
 
@@ -27,7 +35,8 @@ vi.mock("@capacitor/local-notifications", () => ({
     getPending: async () => ({
       notifications: controls.pending.map((notification) => ({ ...notification })),
     }),
-    cancel: () => controls.cancel(),
+    cancel: (request: { notifications: { id: number }[] }) =>
+      controls.cancel(request),
     schedule: (request: { notifications: { id: number }[] }) =>
       controls.schedule(request),
     checkPermissions: async () => ({ ...controls.permission }),
@@ -87,5 +96,16 @@ describe("clearAndSetNotifications", () => {
 
     expect(controls.requestPermissions).toHaveBeenCalledTimes(1);
     expect(controls.schedule).toHaveBeenCalledTimes(1);
+  });
+
+  it("Should replace pending reminders but keep a pending test notification", async () => {
+    await clearAndSetNotifications([slot(1), slot(2)], true);
+    await sendTestNotification();
+
+    await clearAndSetNotifications([slot(3)], true);
+
+    expect(controls.pending.map(({ id }) => id).sort((a, b) => a - b)).toEqual([
+      3, 9999,
+    ]);
   });
 });
