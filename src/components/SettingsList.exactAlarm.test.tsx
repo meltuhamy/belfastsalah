@@ -107,7 +107,6 @@ describe("exact alarm warning", () => {
       expect(harness.checkExactNotificationSetting).toHaveBeenCalled();
     });
     expect(screen.queryByTestId("exact-alarm-warning")).toBeNull();
-    expect(screen.queryByTestId("exact-alarm-settings")).toBeNull();
 
     harness.state.exactAlarm = "denied";
     await act(async () => {
@@ -120,11 +119,11 @@ describe("exact alarm warning", () => {
     expect(screen.getByTestId("exact-alarm-warning").textContent).toContain(
       "late or not at all"
     );
-    expect(screen.getByTestId("exact-alarm-settings").textContent).toContain(
-      "Open Alarms & reminders"
+    expect(screen.getByTestId("exact-alarm-warning").textContent).toContain(
+      "Tap to open Alarms & reminders"
     );
 
-    fireEvent.click(screen.getByTestId("exact-alarm-settings"));
+    fireEvent.click(screen.getByTestId("exact-alarm-warning"));
     await waitFor(() => {
       expect(harness.changeExactNotificationSetting).toHaveBeenCalledTimes(1);
     });
@@ -139,6 +138,5 @@ describe("exact alarm warning", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("exact-alarm-warning")).toBeNull();
     });
-    expect(screen.queryByTestId("exact-alarm-settings")).toBeNull();
   });
 });

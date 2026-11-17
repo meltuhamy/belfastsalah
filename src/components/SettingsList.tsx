@@ -233,31 +233,6 @@ const SettingsList: React.FC<Props> = ({
           Notify before prayer
         </IonToggle>
       </IonItem>
-      {settings.notify && exactAlarmsOff && (
-        <>
-          <IonItem color="warning" data-testid="exact-alarm-warning">
-            <IonIcon icon={warningOutline} slot="start" />
-            <IonLabel className="ion-text-wrap">
-              <h3>Reminders may not arrive on time</h3>
-              <p>
-                Alarms &amp; reminders is off, so prayer reminders can arrive
-                late or not at all.
-              </p>
-            </IonLabel>
-          </IonItem>
-          <IonItem
-            button
-            detail
-            color="warning"
-            data-testid="exact-alarm-settings"
-            onClick={() => {
-              void openExactAlarmSettings();
-            }}
-          >
-            <IonLabel>Open Alarms &amp; reminders</IonLabel>
-          </IonItem>
-        </>
-      )}
       {settings.notify && (
         <IonItem>
           <span
@@ -297,6 +272,28 @@ const SettingsList: React.FC<Props> = ({
               }}
             ></IonRange>
           </div>
+        </IonItem>
+      )}
+      {settings.notify && exactAlarmsOff && (
+        <IonItem
+          button
+          detail
+          color="warning"
+          data-testid="exact-alarm-warning"
+          onClick={() => {
+            void openExactAlarmSettings();
+          }}
+        >
+          <IonIcon icon={warningOutline} slot="start" />
+          <IonLabel className="ion-text-wrap">
+            <h2 className="settings-list__warning-title">
+              Reminders may not arrive on time
+            </h2>
+            <p>
+              Alarms &amp; reminders is off, so prayer reminders can arrive
+              late or not at all. Tap to open Alarms &amp; reminders.
+            </p>
+          </IonLabel>
         </IonItem>
       )}
 
