@@ -54,7 +54,15 @@ import {
   clearAndSetNotifications,
   removeUpdateNotifyListener,
 } from "./lib/notifications";
-import { notificationLimit, planReminders } from "./lib/reminderSchedule";
+import {
+  notificationLimit,
+  planReminders,
+  REMINDERS_ENDED_BODY,
+  REMINDERS_ENDED_TITLE,
+  reminderBody,
+  reminderTitle,
+} from "./lib/reminderSchedule";
+import { syncAndroidReminders } from "./lib/nativeReminders";
 import { addSaveListener, removeSaveListener } from "./lib/settings";
 import { refreshWidgets } from "./lib/widgets";
 import FullPageSpinner from "./components/FullPageSpinner";
@@ -133,6 +141,25 @@ const App: React.FC = () => {
       ? getDeviceTimeZone()
       : locationTimeZones[inputs.location];
 
+    const now = new Date();
+
+    if (Capacitor.getPlatform() === "android") {
+      // The plugin's batch runs out. Android writes years of reminders and
+      // rearms two days at a time, including when these are turned off.
+      await syncAndroidReminders(
+        {
+          notify: inputs.notificationsEnabled,
+          notifyMinutes: inputs.notificationMinutes,
+          location: inputs.location,
+          asrMethod: inputs.asrMethod,
+          showTimesInDeviceZone: inputs.showTimesInDeviceZone === true,
+        },
+        now,
+        silent
+      );
+      return;
+    }
+
     if (!inputs.notificationsEnabled) {
       // Scheduling is the only thing that ever cancelled, so turning
       // reminders off used to leave every already-scheduled one in place and
@@ -146,7 +173,7 @@ const App: React.FC = () => {
     const slots = await planReminders(
       notificationLimit(Capacitor.getPlatform()),
       minutesBefore,
-      new Date(),
+      now,
       (from) => prayerTimes.getNext(from)
     );
     const notificationsToSchedule: Array<LocalNotificationSchema> = slots.map(
@@ -154,10 +181,9 @@ const App: React.FC = () => {
         if (slot.prayer === null || slot.prayerTime === null) {
           return {
             // The pending batch ends here: about ten days on iOS, which will
-            // not hold more than 64, and a month on Android. Nothing refills
-            // it until the app is opened.
-            title: "Prayer reminders stop here",
-            body: "Open the app to keep them coming.",
+            // not hold more than 64. Nothing refills it until the app is opened.
+            title: REMINDERS_ENDED_TITLE,
+            body: REMINDERS_ENDED_BODY,
             id: slot.id,
             schedule: { at: slot.at },
             actionTypeId: "",
@@ -167,14 +193,11 @@ const App: React.FC = () => {
         return {
           // Must use the same clock the app shows, or the lock screen and
           // the app disagree about when the prayer is.
-          title: `${prayerToString(slot.prayer)} is at ${formatTimeInZone(
-            slot.prayerTime,
-            notificationZone
-          )}`,
-          body:
-            minutesBefore > 0
-              ? `${minutesBefore} minute reminder`
-              : "Prayer time reminder",
+          title: reminderTitle(
+            prayerToString(slot.prayer),
+            formatTimeInZone(slot.prayerTime, notificationZone)
+          ),
+          body: reminderBody(minutesBefore),
           id: slot.id,
           schedule: { at: slot.at },
           actionTypeId: "",

@@ -22,7 +22,7 @@ const updateCallbacks: Array<
 // around its permission dialog, which is a foreground event, and reports a
 // first "Don't allow" as prompt-with-rationale rather than denied - so a
 // foreground refresh that asked would put the dialog straight back up.
-async function ensureNotificationPermission(mayAsk = true): Promise<boolean> {
+export async function ensureNotificationPermission(mayAsk = true): Promise<boolean> {
   const current = await LocalNotifications.checkPermissions();
   if (current.display === "granted") {
     return true;
@@ -88,6 +88,34 @@ export function addUpdateNotifyListener(
   callback: (notifications: Array<LocalNotificationSchema>) => void
 ) {
   updateCallbacks.push(callback);
+}
+
+/**
+ * Tells the settings toast that reminders were rewritten.
+ *
+ * The toast only looks at whether the list is empty, so a single stand-in is
+ * enough. The Android list is thousands of entries and is not what the toast
+ * shows.
+ */
+export function announceReminderChange(updated: boolean, silent: boolean) {
+  if (silent) {
+    return;
+  }
+  updateCallbacks.forEach((callback) =>
+    callback(
+      updated
+        ? [
+            {
+              id: 0,
+              title: "",
+              body: "",
+              actionTypeId: "",
+              extra: null,
+            },
+          ]
+        : []
+    )
+  );
 }
 
 export function removeUpdateNotifyListener(
