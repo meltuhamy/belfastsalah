@@ -134,6 +134,90 @@ describe("planReminders on the London timetable", () => {
     });
   });
 
+  it("Should cover the same prayers at the default lead and at the longest one", async () => {
+    const now = new Date("2026-11-16T10:00:00Z");
+    const standard = await planReminders(
+      IOS_NOTIFICATION_LIMIT,
+      5,
+      now,
+      getNext
+    );
+    const longest = await planReminders(
+      IOS_NOTIFICATION_LIMIT,
+      20,
+      now,
+      getNext
+    );
+
+    // One reminder per prayer. Twenty minutes is not a second notification,
+    // so the 64 still reach the same Maghrib ten days on.
+    expect(standard).toHaveLength(64);
+    expect(longest).toHaveLength(64);
+    expect(standard.filter((slot) => slot.prayer !== null)).toHaveLength(63);
+    expect(longest.map((slot) => slot.prayerTime)).toEqual(
+      standard.map((slot) => slot.prayerTime)
+    );
+
+    // 16 November: Duhr 11:50. The longer lead only fires earlier.
+    expect(standard[0]).toMatchObject({
+      prayer: Prayer.Duhr,
+      at: new Date("2026-11-16T11:45:00Z"),
+    });
+    expect(longest[0]).toMatchObject({
+      prayer: Prayer.Duhr,
+      at: new Date("2026-11-16T11:30:00Z"),
+    });
+    // 26 November: Maghrib 16:02. Eleven London dates, a little over ten days.
+    expect(standard[62]).toMatchObject({
+      prayer: Prayer.Maghrib,
+      at: new Date("2026-11-26T15:57:00Z"),
+      prayerTime: new Date("2026-11-26T16:02:00Z"),
+    });
+    expect(longest[62]).toMatchObject({
+      prayer: Prayer.Maghrib,
+      at: new Date("2026-11-26T15:42:00Z"),
+      prayerTime: new Date("2026-11-26T16:02:00Z"),
+    });
+    expect(standard[63]).toEqual({
+      id: 64,
+      prayer: null,
+      prayerTime: null,
+      at: new Date("2026-11-26T16:02:00Z"),
+    });
+    expect(longest[63].at).toEqual(standard[63].at);
+  });
+
+  it("Should start a new window once the old one has run out", async () => {
+    const first = await planReminders(
+      IOS_NOTIFICATION_LIMIT,
+      5,
+      new Date("2026-11-16T10:00:00Z"),
+      getNext
+    );
+    // The moment the last slot fires. Nothing in the old batch is still ahead.
+    const refreshed = await planReminders(
+      IOS_NOTIFICATION_LIMIT,
+      5,
+      first[63].at,
+      getNext
+    );
+
+    expect(refreshed).toHaveLength(64);
+    expect(refreshed[0].at.getTime()).toBeGreaterThan(first[63].at.getTime());
+    expect(refreshed[63].prayer).toBeNull();
+    expect(refreshed[63].at.getTime()).toBeGreaterThan(first[63].at.getTime());
+    // 26 November, Maghrib 16:02 has passed. Next is Isha 17:38, reminded at 17:33.
+    expect(refreshed[0]).toMatchObject({
+      prayer: Prayer.Isha,
+      at: new Date("2026-11-26T17:33:00Z"),
+    });
+    // 7 December: Shuruq 07:49. Another ten days on from the old window.
+    expect(refreshed[62]).toMatchObject({
+      prayer: Prayer.Shuruq,
+      prayerTime: new Date("2026-12-07T07:49:00Z"),
+    });
+  });
+
   it("Should start at the following prayer when the next one is inside the lead time", async () => {
     // Three minutes before Duhr, so its five minute reminder has gone. iOS
     // would deliver a past one at once rather than drop it.

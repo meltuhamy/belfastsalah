@@ -135,6 +135,51 @@ describe("reminder scheduling when the app returns to the foreground", () => {
     expect(second[1]).toBe(true);
   });
 
+  it("Should end the window by asking for the app to be opened", async () => {
+    renderApp();
+
+    await waitFor(() => {
+      expect(harness.clearAndSetNotifications).toHaveBeenCalledTimes(1);
+    });
+
+    const scheduled = harness.clearAndSetNotifications.mock.calls[0][0] as Array<{
+      title: string;
+      body: string;
+      id: number;
+      schedule: { at: Date };
+    }>;
+    expect(scheduled).toHaveLength(64);
+    expect(scheduled[63]).toEqual({
+      title: "Prayer reminders stop here",
+      body: "Open the app to keep them coming.",
+      id: 64,
+      schedule: { at: new Date("2026-11-26T16:02:00Z") },
+      actionTypeId: "",
+      extra: null,
+    });
+  });
+
+  it("Should still schedule one reminder per prayer at the longest lead", async () => {
+    harness.settings.current = { ...enabledSettings(), notifyMinutes: 20 };
+    renderApp();
+
+    await waitFor(() => {
+      expect(harness.clearAndSetNotifications).toHaveBeenCalledTimes(1);
+    });
+
+    const scheduled = harness.clearAndSetNotifications.mock.calls[0][0] as Array<{
+      body: string;
+      schedule: { at: Date };
+    }>;
+    expect(scheduled).toHaveLength(64);
+    expect(scheduled.slice(0, 63).map((item) => item.body)).toEqual(
+      Array(63).fill("20 minute reminder")
+    );
+    expect(scheduled[0].schedule.at).toEqual(new Date("2026-11-16T11:30:00Z"));
+    expect(scheduled[63].body).toEqual("Open the app to keep them coming.");
+    expect(scheduled[63].schedule.at).toEqual(new Date("2026-11-26T16:02:00Z"));
+  });
+
   it("Should clear pending reminders on foreground when they are switched off", async () => {
     harness.settings.current = { ...enabledSettings(), notify: false };
     renderApp();

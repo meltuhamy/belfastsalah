@@ -2,11 +2,13 @@ import { subMinutes } from "date-fns";
 import { Prayer } from "./PrayerTimes";
 
 // iOS will not keep more than 64 pending local notifications; the system
-// drops the rest. The app used to stop at that number on Android too, so
-// reminders ran out after about ten days and nothing filled them back in
-// until the app was opened again. AlarmManager allows 500 pending alarms
-// per app, and the widget redraw already uses one, so a month of the six
-// daily prayers fits with room to spare.
+// drops the rest. That is about ten days of the six daily prayers, whatever
+// the lead time: a longer lead only moves the one reminder earlier, it does
+// not add a second one, so spending the slots on the prayer itself would
+// not make the window last longer. The last slot asks the user to open the
+// app, which is what refills the window. AlarmManager allows 500 pending
+// alarms per app, and the widget redraw already uses one, so a month of
+// prayers fits on Android with room to spare.
 export const IOS_NOTIFICATION_LIMIT = 64;
 export const ANDROID_NOTIFICATION_LIMIT = 6 * 30 + 1;
 

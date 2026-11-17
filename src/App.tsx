@@ -153,8 +153,10 @@ const App: React.FC = () => {
       (slot) => {
         if (slot.prayer === null || slot.prayerTime === null) {
           return {
-            title: "Still want prayer notifications?",
-            body: "Tap here or open the Prayer Times app to enable",
+            // The pending batch ends here. iOS will not hold any more, and
+            // nothing refills them until the app is opened.
+            title: "Prayer reminders stop here",
+            body: "Open the app to keep them coming.",
             id: slot.id,
             schedule: { at: slot.at },
             actionTypeId: "",
