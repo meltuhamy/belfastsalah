@@ -153,8 +153,9 @@ const App: React.FC = () => {
       (slot) => {
         if (slot.prayer === null || slot.prayerTime === null) {
           return {
-            // The pending batch ends here. iOS will not hold any more, and
-            // nothing refills them until the app is opened.
+            // The pending batch ends here: about ten days on iOS, which will
+            // not hold more than 64, and a month on Android. Nothing refills
+            // it until the app is opened.
             title: "Prayer reminders stop here",
             body: "Open the app to keep them coming.",
             id: slot.id,
