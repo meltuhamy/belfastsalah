@@ -1,7 +1,9 @@
 package com.meltuhamy.londonsalah
 
 import android.content.Context
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.net.Uri
 import android.os.PowerManager
 import android.provider.Settings
 
@@ -22,9 +24,21 @@ object BatteryOptimization {
         return powerManager.isIgnoringBatteryOptimizations(context.packageName)
     }
 
+    /**
+     * Some manufacturers' builds have no activity for the list, so fall back
+     * to the app's own App info page, where battery usage is one tap away.
+     */
     fun openSettings(context: Context) {
-        val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+        val list = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(intent)
+        try {
+            context.startActivity(list)
+        } catch (error: ActivityNotFoundException) {
+            val appInfo = Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.fromParts("package", context.packageName, null)
+            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(appInfo)
+        }
     }
 }
