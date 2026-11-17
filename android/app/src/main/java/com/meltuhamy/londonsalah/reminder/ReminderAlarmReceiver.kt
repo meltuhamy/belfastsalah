@@ -12,10 +12,16 @@ import android.content.Intent
 class ReminderAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         if (intent == null) return
-        ReminderAlarms.handle(
-            context.applicationContext,
-            intent,
-            System.currentTimeMillis()
-        )
+        // Off the main thread: reading and parsing the list can take longer
+        // than a broadcast should block it for on a slow phone.
+        val pending = goAsync()
+        val appContext = context.applicationContext
+        Thread {
+            try {
+                ReminderAlarms.handle(appContext, intent, System.currentTimeMillis())
+            } finally {
+                pending.finish()
+            }
+        }.start()
     }
 }

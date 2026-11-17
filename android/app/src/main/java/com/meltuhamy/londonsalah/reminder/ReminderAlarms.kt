@@ -41,28 +41,40 @@ object ReminderAlarms {
      * counts as already passed even if the broadcast arrived a moment early,
      * so it is not armed again.
      */
+    @Synchronized
     fun handle(context: Context, intent: Intent, nowMillis: Long) {
+        // The list is read and parsed once per broadcast: it is about 800KB
+        // of JSON, and both posting and rearming need it.
+        val payload = ReminderPayload.parse(ReminderStore.read(context))
         var now = nowMillis
         if (intent.action == ACTION_FIRE) {
             val at = intent.getLongExtra(EXTRA_AT, Long.MIN_VALUE)
             if (at != Long.MIN_VALUE) {
-                ReminderNotifications.show(context, intent)
+                if (payload != null) ReminderNotifications.show(context, intent, payload)
                 if (at > now) now = at
             }
         }
-        replan(context, now)
+        arm(context, now, payload)
     }
 
+    /**
+     * Synchronized with [handle]: the plugin replans on its own thread and a
+     * receiver on another, and two interleaved plans could each leave half
+     * of their slots armed.
+     */
+    @Synchronized
     fun replan(context: Context, nowMillis: Long) {
+        arm(context, nowMillis, ReminderPayload.parse(ReminderStore.read(context)))
+    }
+
+    private fun arm(context: Context, nowMillis: Long, payload: ReminderPayload?) {
         val alarmManager =
             context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         cancelArmed(context, alarmManager)
 
-        val payload = ReminderPayload.parse(ReminderStore.read(context)) ?: return
-        val upcoming = payload.reminders.filter { it.at > nowMillis }
-        if (upcoming.isEmpty()) return
+        if (payload == null || payload.reminders.none { it.at > nowMillis }) return
 
-        val due = upcoming.filter { it.at <= nowMillis + WINDOW_MILLIS }.take(SLOT_COUNT)
+        val due = payload.dueWithin(nowMillis, WINDOW_MILLIS).take(SLOT_COUNT)
         due.forEachIndexed { index, reminder ->
             val pending = PendingIntent.getBroadcast(
                 context,

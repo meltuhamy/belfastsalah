@@ -22,12 +22,12 @@ object ReminderNotifications {
     private const val CHANNEL_ID = "default"
     private const val CONTENT_REQUEST_CODE = 8190
 
-    fun show(context: Context, intent: Intent) {
+    /** Posts only if [payload], the current list, still has this reminder. */
+    fun show(context: Context, intent: Intent, payload: ReminderPayload) {
         val at = intent.getLongExtra(ReminderAlarms.EXTRA_AT, Long.MIN_VALUE)
         val title = intent.getStringExtra(ReminderAlarms.EXTRA_TITLE) ?: return
         if (at == Long.MIN_VALUE) return
 
-        val payload = ReminderPayload.parse(ReminderStore.read(context)) ?: return
         val entry = payload.reminders.find { it.at == at && it.title == title } ?: return
 
         val notifications =
