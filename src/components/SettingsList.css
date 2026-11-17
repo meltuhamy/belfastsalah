@@ -65,3 +65,11 @@
      fixed rgba so it still follows the text colour in dark mode. */
   opacity: 0.54;
 }
+
+/*
+ * Ionic gives a label's h2 the same weight as its p, so on the yellow
+ * background the heading ran straight into the sentence under it.
+ */
+.settings-list__warning-title {
+  font-weight: 600;
+}

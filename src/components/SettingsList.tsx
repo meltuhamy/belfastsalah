@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   IonList,
   IonListHeader,
@@ -21,6 +21,7 @@ import {
   gridOutline,
   lockClosed,
   openOutline,
+  warningOutline,
 } from "ionicons/icons";
 import { PrayerLocation, locationNames } from "../lib/PrayerTimeData";
 import supportsHanafiAsr, { AsrMethod } from "../lib/PrayerTimes";
@@ -29,6 +30,8 @@ import { THEMES, Theme, themeLabels } from "../lib/theme";
 import { describeTimeZone, getDeviceTimeZone } from "../lib/timeZone";
 import { zoneChoiceApplies } from "../lib/displayZone";
 import LocationSelector from "./LocationSelector";
+import { Capacitor } from "@capacitor/core";
+import { App as CapacitorApp } from "@capacitor/app";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import {
   sendTestNotification,
@@ -58,6 +61,7 @@ const SettingsList: React.FC<Props> = ({
   onShowTimesInDeviceZoneChange,
 }) => {
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [exactAlarmsOff, setExactAlarmsOff] = useState(false);
 
   /*
    * Where the reminder slider is while it is being dragged, or null when it is
@@ -78,6 +82,53 @@ const SettingsList: React.FC<Props> = ({
   const now = new Date();
   const deviceTimeZone = getDeviceTimeZone();
   const showZoneChoice = zoneChoiceApplies(settings.location, now);
+
+  // From API 33 the app holds USE_EXACT_ALARM, which cannot be turned off,
+  // so this rarely shows. On Android 12 and 12L the same switch is revocable.
+  // Coming back to the app already reschedules whatever is pending.
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== "android") {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function refresh() {
+      try {
+        const status = await LocalNotifications.checkExactNotificationSetting();
+        if (!cancelled) {
+          setExactAlarmsOff(status.exact_alarm !== "granted");
+        }
+      } catch (error) {
+        console.warn("Could not check exact alarms", error);
+      }
+    }
+
+    void refresh();
+
+    const pendingHandle = CapacitorApp.addListener(
+      "appStateChange",
+      (state) => {
+        if (state.isActive) {
+          void refresh();
+        }
+      }
+    );
+
+    return () => {
+      cancelled = true;
+      void pendingHandle.then((handle) => handle.remove());
+    };
+  }, []);
+
+  async function openExactAlarmSettings() {
+    try {
+      const status = await LocalNotifications.changeExactNotificationSetting();
+      setExactAlarmsOff(status.exact_alarm !== "granted");
+    } catch (error) {
+      console.warn("Could not open Alarms & reminders", error);
+    }
+  }
 
   // Hidden diagnostic: long-press the timer icon to fire a notification a few
   // seconds out, so the whole reminder path can be checked without waiting for
@@ -221,6 +272,28 @@ const SettingsList: React.FC<Props> = ({
               }}
             ></IonRange>
           </div>
+        </IonItem>
+      )}
+      {settings.notify && exactAlarmsOff && (
+        <IonItem
+          button
+          detail
+          color="warning"
+          data-testid="exact-alarm-warning"
+          onClick={() => {
+            void openExactAlarmSettings();
+          }}
+        >
+          <IonIcon icon={warningOutline} slot="start" />
+          <IonLabel className="ion-text-wrap">
+            <h2 className="settings-list__warning-title">
+              Reminders may not arrive on time
+            </h2>
+            <p>
+              Alarms &amp; reminders is off, so prayer reminders can arrive
+              late or not at all. Tap to open Alarms &amp; reminders.
+            </p>
+          </IonLabel>
         </IonItem>
       )}
 
