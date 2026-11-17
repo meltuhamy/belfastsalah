@@ -132,12 +132,13 @@ change since the last release that was published.
   requests; it has no ads and no login; it is rated for everyone and aimed
   at ages 13 and up. The privacy policy is
   <https://meltuhamy.com/privacy-policy/>.
-- **Google Play asks why the app needs exact alarms**
-  (`SCHEDULE_EXACT_ALARM`). Reply that its only function is telling you when
-  the next prayer is and reminding you before it. A reminder that drifts by
-  fifteen minutes is no reminder, and Doze defers inexact alarms in exactly
-  the case that has to work. The user can turn the permission off; the app
-  then warns them and opens the system's Alarms & reminders setting.
+- **Google Play asks why the app needs exact alarms** (`USE_EXACT_ALARM`).
+  Reply that its only function is telling you when the next prayer is and
+  reminding you before it. A reminder that drifts by fifteen minutes is no
+  reminder, and Doze defers inexact alarms in exactly the case that has to
+  work. If Play still refuses, the app has to switch to
+  `SCHEDULE_EXACT_ALARM`, with a prompt that sends the user to the system's
+  Alarms & reminders setting.
 - **Apple refuses an upload with no clear reason.** An agreement is probably
   waiting for the account holder. Accept it from the banner on the App Store
   Connect home page, then re-run.

@@ -83,10 +83,9 @@ const SettingsList: React.FC<Props> = ({
   const deviceTimeZone = getDeviceTimeZone();
   const showZoneChoice = zoneChoiceApplies(settings.location, now);
 
-  // Android 12+ can turn exact alarms off, and from Android 14 a new install
-  // starts that way. A reminder scheduled without them is not exact, and the
-  // system never says why it turned up late. Coming back to the app already
-  // reschedules whatever is pending, so this only has to notice the switch.
+  // From API 33 the app holds USE_EXACT_ALARM, which cannot be turned off,
+  // so this rarely shows. On Android 12 and 12L the same switch is revocable.
+  // Coming back to the app already reschedules whatever is pending.
   useEffect(() => {
     if (Capacitor.getPlatform() !== "android") {
       return;

@@ -132,12 +132,12 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!--
-      Prayer reminders have to fire at the exact minute. From API 31 the user
-      can turn that off under Alarms & reminders, and from Android 14 a new
-      install starts with it off. The settings screen warns and opens that
-      page. Without this permission every scheduled notification is inexact.
-      USE_EXACT_ALARM would hide the switch; Play only allows it for alarm
-      clock and calendar apps, so it is not declared.
+      Prayer reminders have to fire at the exact minute to be useful, so exact
+      alarms are central to what this app does. SCHEDULE_EXACT_ALARM is granted
+      automatically up to API 32; from API 33 USE_EXACT_ALARM covers it without
+      prompting. Without these, targetSdk 31+ silently downgrades every
+      scheduled notification to an inexact alarm.
     -->
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 </manifest>
