@@ -35,6 +35,9 @@ vi.mock("@capacitor/core", () => ({
   registerPlugin: () => ({
     update: async () => {},
     openSettings: async () => {},
+    // Allowed, so the battery row stays out of this test.
+    isIgnoringBatteryOptimizations: async () => ({ ignoring: true }),
+    openBatteryOptimizationSettings: async () => {},
   }),
 }));
 

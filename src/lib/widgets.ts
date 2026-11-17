@@ -5,9 +5,31 @@ import { buildWidgetPayload } from "./widgetPayload";
 type PrayerWidgetPlugin = {
   update(options: { payload: string }): Promise<void>;
   openSettings(): Promise<void>;
+  // Battery optimisation. Android only; the settings screen never calls
+  // these anywhere else. They live on this plugin because it is the app's
+  // own, and LocalNotifications (which reports exact alarms) has no battery
+  // call to reuse.
+  isIgnoringBatteryOptimizations(): Promise<{ ignoring: boolean }>;
+  openBatteryOptimizationSettings(): Promise<void>;
 };
 
 const PrayerWidget = registerPlugin<PrayerWidgetPlugin>("PrayerWidget");
+
+/**
+ * Whether Android is applying battery restrictions to this app.
+ *
+ * True means restricted (the usual case). The settings row uses that to
+ * decide whether to show, and hides once the user has allowed the app.
+ */
+export async function isBatteryRestricted(): Promise<boolean> {
+  const { ignoring } = await PrayerWidget.isIgnoringBatteryOptimizations();
+  return !ignoring;
+}
+
+/** Opens the battery-optimisation list. No permission, and no result. */
+export async function openBatteryOptimizationSettings(): Promise<void> {
+  await PrayerWidget.openBatteryOptimizationSettings();
+}
 
 /**
  * Hands the home screen widgets a fresh payload.

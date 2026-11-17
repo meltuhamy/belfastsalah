@@ -38,7 +38,12 @@ import {
   TEST_NOTIFICATION_DELAY_SECONDS,
 } from "../lib/notifications";
 import { describeNotifyMinutes } from "../lib/notifyText";
-import { openWidgetSettings, widgetSettingsRoute } from "../lib/widgets";
+import {
+  isBatteryRestricted,
+  openBatteryOptimizationSettings,
+  openWidgetSettings,
+  widgetSettingsRoute,
+} from "../lib/widgets";
 import { useLongPress } from "../lib/useLongPress";
 import "./SettingsList.css";
 
@@ -62,6 +67,7 @@ const SettingsList: React.FC<Props> = ({
 }) => {
   const [testResult, setTestResult] = useState<string | null>(null);
   const [exactAlarmsOff, setExactAlarmsOff] = useState(false);
+  const [batteryRestricted, setBatteryRestricted] = useState(false);
 
   /*
    * Where the reminder slider is while it is being dragged, or null when it is
@@ -84,8 +90,12 @@ const SettingsList: React.FC<Props> = ({
   const showZoneChoice = zoneChoiceApplies(settings.location, now);
 
   // From API 33 the app holds USE_EXACT_ALARM, which cannot be turned off,
-  // so this rarely shows. On Android 12 and 12L the same switch is revocable.
-  // Coming back to the app already reschedules whatever is pending.
+  // so the exact-alarm row rarely shows. On Android 12 and 12L the same
+  // switch is revocable. Battery optimisation is a separate switch and is on
+  // for a new install. Stock Android still delivers these reminders on time
+  // while that switch is on (they are setExactAndAllowWhileIdle); some
+  // manufacturers do not. Coming back to the app re-reads both, so a row
+  // disappears once it is allowed.
   useEffect(() => {
     if (Capacitor.getPlatform() !== "android") {
       return;
@@ -101,6 +111,15 @@ const SettingsList: React.FC<Props> = ({
         }
       } catch (error) {
         console.warn("Could not check exact alarms", error);
+      }
+
+      try {
+        const restricted = await isBatteryRestricted();
+        if (!cancelled) {
+          setBatteryRestricted(restricted);
+        }
+      } catch (error) {
+        console.warn("Could not check battery optimisation", error);
       }
     }
 
@@ -127,6 +146,14 @@ const SettingsList: React.FC<Props> = ({
       setExactAlarmsOff(status.exact_alarm !== "granted");
     } catch (error) {
       console.warn("Could not open Alarms & reminders", error);
+    }
+  }
+
+  async function openBatterySettings() {
+    try {
+      await openBatteryOptimizationSettings();
+    } catch (error) {
+      console.warn("Could not open battery optimisation", error);
     }
   }
 
@@ -292,6 +319,28 @@ const SettingsList: React.FC<Props> = ({
             <p>
               Alarms &amp; reminders is off, so prayer reminders can arrive
               late or not at all. Tap to open Alarms &amp; reminders.
+            </p>
+          </IonLabel>
+        </IonItem>
+      )}
+      {settings.notify && batteryRestricted && (
+        <IonItem
+          button
+          detail
+          color="warning"
+          data-testid="battery-optimisation-warning"
+          onClick={() => {
+            void openBatterySettings();
+          }}
+        >
+          <IonIcon icon={warningOutline} slot="start" />
+          <IonLabel className="ion-text-wrap">
+            <h2 className="settings-list__warning-title">
+              Battery saving may stop reminders
+            </h2>
+            <p>
+              Battery optimisation is on for this app. Some phones delay or
+              stop reminders while it is. Tap to open Battery optimisation.
             </p>
           </IonLabel>
         </IonItem>
