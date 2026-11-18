@@ -41,6 +41,11 @@ PIDFILE=.cursor/skills/verify-london-prayer-times/vite.pid
 VITE_SESSION=verify-london-prayer-times
 mkdir -p "$EVIDENCE"
 
+if ! command -v tmux >/dev/null 2>&1; then
+  echo "tmux is required to keep vite alive between shells (macOS: brew install tmux)."
+  exit 1
+fi
+
 if curl -sf -o /dev/null "http://127.0.0.1:3000/"; then
   echo "127.0.0.1:3000 is already in use. Stop that process, or start vite on another port and set VERIFY_BASE_URL."
   exit 1

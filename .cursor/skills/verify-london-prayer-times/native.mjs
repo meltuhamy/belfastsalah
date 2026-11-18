@@ -1352,7 +1352,7 @@ ${androidOpenSettings()}- scrollUntilVisible:
   } finally {
     await stopRecording(recorder);
     writeFileSync(join(evidenceDir, `${session.platform}-pass.json`), `${JSON.stringify(report, null, 2)}\n`);
-    console.log(JSON.stringify({ ok: report.ok, steps: report.steps.map((step) => ({ name: step.name, ok: step.ok })) }, null, 2));
+    console.log(JSON.stringify({ ok: report.ok, steps: report.steps.map((step) => ({ name: step.name, ok: step.ok, ...(step.skipped ? { skipped: true } : {}) })) }, null, 2));
   }
   if (!report.ok) {
     process.exitCode = 1;
