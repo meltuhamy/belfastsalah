@@ -38,6 +38,7 @@ npx playwright install chromium
 
 EVIDENCE=.cursor/skills/verify-london-prayer-times/evidence
 PIDFILE=.cursor/skills/verify-london-prayer-times/vite.pid
+VITE_SESSION=verify-london-prayer-times
 mkdir -p "$EVIDENCE"
 
 if curl -sf -o /dev/null "http://127.0.0.1:3000/"; then
@@ -45,14 +46,20 @@ if curl -sf -o /dev/null "http://127.0.0.1:3000/"; then
   exit 1
 fi
 
-node_modules/.bin/vite --host 127.0.0.1 --port 3000 --strictPort \
-  > "$EVIDENCE/vite.log" 2>&1 &
-echo $! > "$PIDFILE"
+# A persistent tmux session, not `vite &`: a background job is reaped when the
+# shell that started it exits, which leaves a 0-byte vite.log and no server.
+# `exec` makes vite the pane's own process, so the pane pid is vite's rather
+# than a shell that wraps it.
+tmux kill-session -t "$VITE_SESSION" 2>/dev/null || true
+tmux new-session -d -s "$VITE_SESSION" -c "$PWD" \
+  "exec node_modules/.bin/vite --host 127.0.0.1 --port 3000 --strictPort > '$EVIDENCE/vite.log' 2>&1"
+sleep 2
+tmux list-panes -t "$VITE_SESSION" -F '#{pane_pid}' > "$PIDFILE"
 ```
 
 `npm run dev` is the same server without `--strictPort` and without a bound host. Prefer the command above so a busy port fails instead of sliding to 3001.
 
-Keep that process alive until cleanup. If the shell reaps background jobs when it exits, run the vite line in a persistent terminal. The pid file is the process to stop later.
+Keep that session alive until cleanup; it outlives the shell that started it. The pid file is the process to stop later. Everything after the launch runs in other shells, so do not start vite with a plain `&`.
 
 **Ready** means a person can use it. `curl` returning the HTML shell (`id="root"`) only means Vite is up. Then run the web doctor. Doctor is ready when it prints `"ok": true` and `"screen": "setup"` on a fresh browser profile. `"screen": "home"` is also a usable app, but only if that profile already completed setup.
 
@@ -89,9 +96,11 @@ egrep -c '(vmx|svm)' /proc/cpuinfo
 
 `/dev/kvm` must exist and be readable and writable by this user. The `egrep` count is non-zero when the CPU exposes virtualization. A cloud VM with a count of zero, or no `/dev/kvm`, cannot run the emulator until nested virtualization is turned on for that VM.
 
-When the preflight passes, the same command builds the debug APK, boots an AVD, and installs it with `adb install -r -d` so a debug build can replace a store build that has a higher versionCode. Launch refuses to start when `adb devices` already lists a device, because adb is used without a serial and would install on, drive, and later kill that one. `VERIFY_ANDROID_AVD` selects that AVD by the name `emulator -list-avds` prints. When the variable is unset, launch prefers `Pixel_3a_API_33_arm64-v8a` if it exists, and otherwise boots the first listed AVD. On Linux, or when `DISPLAY` is unset, the emulator is started with `-no-window -no-audio -gpu swiftshader_indirect`. On a Mac the hypervisor is Hypervisor.framework (`sysctl -n kern.hv_support`), not KVM. Say which one the run used.
+When the preflight passes, the same command builds the debug APK, boots an AVD, and installs it with `adb install -r -d` so a debug build can replace a store build that has a higher versionCode. Launch refuses to start when `adb devices` already lists a device, because adb is used without a serial and would install on, drive, and later kill that one. It also fails preflight when macOS reports `kern.hv_support=0`, and `adb wait-for-device` has a three-minute deadline so a machine that cannot boot the emulator exits 1 instead of hanging.
 
-The API 33 system image ships Chrome/WebView 101, which has no `Array.prototype.toSorted`. `getAvailableYears` uses `toSorted`, so on that image the shell opens and the timetable stays on its skeleton. The console error is `TypeError: Object.keys(...).map(...).toSorted is not a function`. Set `VERIFY_ANDROID_AVD` to an arm64 AVD on API 34, 35, or 36 whose WebView is Chrome 110 or newer before `pass android`. This skill does not patch the app and does not create that AVD.
+`VERIFY_ANDROID_AVD` selects that AVD by the name `emulator -list-avds` prints. When the variable is unset, launch boots the newest installed AVD whose name carries `API_34` or later (here that is `Pixel_3a_API_36_arm64-v8a`), and falls back to the first listed AVD only when there is none. An API 33 AVD is booted only when `VERIFY_ANDROID_AVD` names it. On Linux, or when `DISPLAY` is unset, the emulator is started with `-no-window -no-audio -gpu swiftshader_indirect`; macOS normally has `DISPLAY` unset too, so a Mac run is headless as well. On a Mac the hypervisor is Hypervisor.framework (`sysctl -n kern.hv_support`), not KVM. Say which one the run used.
+
+The API 33 system image ships Chrome/WebView 101, which has no `Array.prototype.toSorted`. `getAvailableYears` uses `toSorted`, so on that image the shell opens and the timetable stays on its skeleton. The console error is `TypeError: Object.keys(...).map(...).toSorted is not a function`. That is why the default AVD is the newest API 34+ one; do not name an API 33 AVD for a run that is meant to prove the timetable. This skill does not patch the app and does not create that AVD.
 
 ## Doctor
 
@@ -110,7 +119,9 @@ node .cursor/skills/verify-london-prayer-times/native.mjs doctor ios
 node .cursor/skills/verify-london-prayer-times/native.mjs doctor android
 ```
 
-Pass when `"ok": true` and `"screen"` is `setup` or `home`. A fresh install is `setup`.
+Pass when `"ok": true` and `"screen"` is `setup` or `home`. A first install is `setup`; `adb install -r -d` keeps existing app data, so an AVD that has run the app before comes back as `home`. Both are a usable app.
+
+The verdict comes from the Maestro flow that launched the app, not from a separate `maestro hierarchy` process: on Android the WebView's text is only in the accessibility tree of the process that launched it, and a cold WebView made a separate process read every good install as broken. The tree is still written to `evidence/<platform>-doctor-hierarchy.txt` to read when the doctor fails.
 
 ## Drive
 
@@ -145,7 +156,7 @@ Empty storage, **Set up**, **Done**, read the six times, compare them to today's
 
 Playwright cannot attach to the Capacitor WKWebView, so the native pass does not go through `drive.mjs`. The driver is [Maestro](https://maestro.dev) 2.12.0, which taps and asserts the words on screen (Done, Fajr, Keep London time, Notify 5 minutes before prayer). It is not an npm dependency. `launch` downloads the CLI and, when the machine has no JDK 21, a Temurin JDK 21 into `.cursor/skills/verify-london-prayer-times/.tools/`. That directory is gitignored. Maestro and the Android Gradle build share that JDK. Gradle 8.14 cannot run on JDK 25, which is what Android Studio's JBR is, so a newer studio runtime is not a substitute.
 
-The regression pass walks the feature map: setup, today's times against the timetable, the open month's name, setup still there after a relaunch, Hanafi asr and back, Belfast and back to London, the widget row, dark theme still dark after a relaunch, and the five-minute reminder still on after a relaunch.
+The regression pass walks the feature map: setup, today's times against the timetable, the month table's last day row, setup still there after a relaunch, Hanafi asr and back, Belfast and back to London, the widget row, dark theme still dark after a relaunch, and the five-minute reminder still on after a relaunch.
 
 The expected times are worked out again before each step, for the same reason: after a location's Isha its strip shows tomorrow, London and Belfast pass Isha at different moments, and a pass is long enough to cross one. A step that is running at that exact moment can still fail; run the pass again.
 
@@ -160,10 +171,12 @@ node .cursor/skills/verify-london-prayer-times/native.mjs pass ios
 node .cursor/skills/verify-london-prayer-times/native.mjs pass android
 ```
 
-Exit 0 only when every step in `evidence/<platform>-pass.json` has `"ok": true`. A step that cannot be reached is named in that JSON. Two of them are expected, not failures of the app:
+Exit 0 only when every step in `evidence/<platform>-pass.json` has `"ok": true`. A failed assertion does not stop the pass: the steps after it depend on the state it was meant to leave, so they are named with `"skipped": true` rather than silently missing. Only a harness failure (a flow that cannot be written, Maestro that cannot run) aborts the pass.
 
-- Changing month. `MonthPicker` is an `IonIcon` with no accessible name, so the pass does not tap by coordinate. It checks the open month's name. Counting rows stays on `npm run test:e2e` (`e2e/month-table.spec.ts`).
-- Placing a home-screen widget. That is Springboard or the launcher, outside the app. The pass checks the in-app row: on iOS, "Touch and hold a widget, then choose Edit Widget"; on Android, "Colours and countdown for each home screen widget".
+Two steps are recorded as `"status": "verified-unreachable"` rather than run, expected and not failures of the app:
+
+- Changing month (`monthChange`). `MonthPicker` is an `IonIcon` with no accessible name, so the pass does not tap by coordinate. It checks the open month's name and scrolls to the table's last day row, where the row's Fajr time proves the month loaded. Counting rows stays on `npm run test:e2e` (`e2e/month-table.spec.ts`).
+- Placing a home-screen widget (`widgetPlacement`). That is Springboard or the launcher, outside the app. The pass checks the in-app row: on iOS, "Touch and hold a widget, then choose Edit Widget"; on Android, "Colours and countdown for each home screen widget".
 
 Do not weaken a timetable comparison to make a step pass. If the strip does not match `london-<year>.json` formatted in `Europe/London`, the journey fails.
 
@@ -175,15 +188,18 @@ Web, from `drive.mjs today`:
 
 - `evidence/today-setup.png` — setup before **Done**
 - `evidence/today-home.png` — home after **Done**
-- `evidence/today.json` — London date, timetable row, strip text, countdown, highlighted prayer, stored location, reload result
+- `evidence/today.json` — London date, timetable row, strip text and its order, countdown, card text, highlighted prayer, the tail (`painted` and the column it lands in), stored location, reload result
 - `evidence/vite.log`
 
 Native, from `pass`. Screenshots are the simulator framebuffer (`simctl io screenshot`) or `adb exec-out screencap`, not a desktop browser.
 
-- `evidence/ios-setup.png`, `evidence/ios-today-home.png`, `evidence/ios-month.png`, `evidence/ios-settings.png`, `evidence/ios-hanafi.png`, `evidence/ios-belfast.png`, `evidence/ios-widgets.png`, `evidence/ios-theme-dark.png`, `evidence/ios-reminders.png`
-- `evidence/ios-pass.json` — expected times, device zone, and each step
+- `evidence/ios-setup.png`, `evidence/ios-today-home.png`, `evidence/ios-after-relaunch.png`, `evidence/ios-month.png`, `evidence/ios-settings.png`, `evidence/ios-hanafi.png`, `evidence/ios-belfast.png`, `evidence/ios-widgets.png`, `evidence/ios-theme-dark.png`, `evidence/ios-theme-light.png`, `evidence/ios-reminders.png`, `evidence/ios-reminders-persisted.png`
+- `evidence/ios-pass.json` — expected times, the device's zone, each step, and the `monthChange` and `widgetPlacement` entries
 - `evidence/ios-pass.mp4` — the pass, from `simctl io recordVideo`
 - `evidence/ios-xcodebuild.log` when a build was attempted
+- `evidence/ios-doctor.png` and `evidence/ios-doctor-hierarchy.txt` from `doctor`
+- `evidence/ios-failure.png` from the step that failed, when one did
+- `evidence/flows/*.yaml` — every Maestro flow the run wrote, named after its step
 - The same names with an `android-` prefix, plus `evidence/android-preflight.txt` when Android launch ran
 
 Android screenshots use the `android-` prefix in place of `ios-`. A run that exits during preflight has the preflight text and no screenshots. Say so. Do not describe a screenshot that was not written.
@@ -196,6 +212,7 @@ Web: stop only the server whose pid you recorded. Never `pkill` by name. Never d
 
 ```bash
 PIDFILE=.cursor/skills/verify-london-prayer-times/vite.pid
+VITE_SESSION=verify-london-prayer-times
 if [ -f "$PIDFILE" ]; then
   PID=$(cat "$PIDFILE")
   cmd=$(ps -p "$PID" -o command= 2>/dev/null || true)
@@ -204,9 +221,21 @@ if [ -f "$PIDFILE" ]; then
   esac
   rm -f "$PIDFILE"
 fi
+
+# Fallback for a pid file that named a wrapper rather than vite, or one that
+# is already gone: whoever is listening on 3000, killed only if its command
+# is vite.
+LISTENER=$(lsof -nP -iTCP:3000 -sTCP:LISTEN -t 2>/dev/null | head -1)
+if [ -n "$LISTENER" ]; then
+  cmd=$(ps -p "$LISTENER" -o command= 2>/dev/null || true)
+  case "$cmd" in
+    *vite*) kill "$LISTENER" ;;
+  esac
+fi
+tmux kill-session -t "$VITE_SESSION" 2>/dev/null || true
 ```
 
-Native: shut down only the simulator or emulator this run booted, and terminate the app. Quit Simulator.app only when no simulator is still booted.
+Native: shut down only the simulator or emulator this run booted, and terminate the app. Quit Simulator.app only when no simulator is still booted. Android is force-stopped with `adb shell am force-stop` before the emulator is killed, so the two platforms do the same thing.
 
 ```bash
 node .cursor/skills/verify-london-prayer-times/native.mjs cleanup ios

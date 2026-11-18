@@ -59,11 +59,41 @@ async function waitForScreen(page) {
 async function readStrip(page) {
   return page.locator("[data-testid=prayer-strip]").evaluate((strip) => {
     const times = {};
+    const order = [];
     for (const cell of strip.querySelectorAll("[data-testid=strip-cell]")) {
       const [name, time] = cell.querySelectorAll("span");
+      order.push(name.textContent.trim());
       times[name.textContent.trim()] = time.textContent.trim();
     }
-    return times;
+    // The map alone cannot see a strip in the wrong order, so keep the DOM
+    // order as well.
+    return { order, times };
+  });
+}
+
+/**
+ * The card's tail, read off the screen rather than out of the markup.
+ *
+ * `painted` asks the page what is drawn in the gap below the card, because a
+ * clipped tail keeps its box and its position. Same test as `tailTarget` in
+ * e2e/support/app.ts.
+ */
+async function tailTarget(page) {
+  return page.evaluate(() => {
+    const tail = document.querySelector(".PrayerDayCard__tail");
+    const bubble = document.querySelector(".PrayerDayCard__bubble");
+    if (!tail || !bubble) return { painted: false, column: null };
+    const box = tail.getBoundingClientRect();
+    const x = box.x + box.width / 2;
+    const y = bubble.getBoundingClientRect().bottom + 2;
+    let column = null;
+    for (const cell of document.querySelectorAll("[data-testid=strip-cell]")) {
+      const rect = cell.getBoundingClientRect();
+      if (x >= rect.left && x <= rect.right) {
+        column = cell.querySelector("span").textContent.trim();
+      }
+    }
+    return { painted: document.elementFromPoint(x, y) === tail, column };
   });
 }
 
@@ -120,7 +150,12 @@ async function today() {
     const shown = stripDay(repoRoot, "london");
     const when = shown.date;
     const { utc, expected } = shown.times;
-    const times = await readStrip(page);
+    const { order, times } = await readStrip(page);
+    const tail = await tailTarget(page);
+    const cardMeta = (await page.locator(".PrayerDayCard__meta").innerText()).trim();
+    const countdownLine = (
+      await page.locator(".PrayerDayCard__countdown").innerText()
+    ).trim();
     const tomorrowBadge = await page.getByTestId("tomorrow-badge").count();
     const dayDate = (await page.getByTestId("day-date").innerText()).trim();
     const countdown = (await page.getByTestId("countdown").innerText()).trim();
@@ -139,12 +174,18 @@ async function today() {
     const mismatches = names.filter((name) => times[name] !== expected[name]);
     const countdownOk = /^\d/.test(countdown);
     const storedOk = storedSettings?.location === "london";
+    const orderOk = order.join(",") === names.join(",");
+    // The card names the location and the previous prayer ("Duhr was 12m ago").
+    const cardLocationOk = cardMeta.split("\n").includes("London");
+    const previousPrayerOk = /\bwas\b.+\bago\b/.test(countdownLine);
+    // The tail must point at the column the strip highlights, and be painted.
+    const tailOk = tail.painted && tail.column === highlighted;
 
     await page.screenshot({ path: join(evidenceDir, "today-home.png") });
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("[data-testid=prayer-strip]").waitFor({ state: "visible" });
-    const afterReload = await readStrip(page);
+    const afterReload = (await readStrip(page)).times;
     const doneAfterReload = await page.getByRole("button", { name: "Done" }).count();
     const reloadOk =
       doneAfterReload === 0 &&
@@ -157,6 +198,10 @@ async function today() {
         tomorrowBadge === (shown.rolled ? 1 : 0) &&
         countdownOk &&
         names.includes(highlighted) &&
+        orderOk &&
+        cardLocationOk &&
+        previousPrayerOk &&
+        tailOk &&
         storedOk &&
         reloadOk,
       baseURL,
@@ -167,9 +212,13 @@ async function today() {
       timetableUtc: utc,
       expected,
       times,
+      stripOrder: order,
       mismatches,
       countdown,
       highlighted,
+      cardMeta,
+      countdownLine,
+      tail,
       storedLocation: storedSettings?.location ?? null,
       reloadOk,
     };
@@ -185,7 +234,7 @@ async function today() {
 
 // Playwright's clock and the dev server are independent. Fail fast when the
 // port is closed so the error is the server, not a 20s selector timeout.
-const probe = spawnSync("curl", ["-sf", "-o", "/dev/null", "-w", "%{http_code}", `${baseURL}/`], {
+const probe = spawnSync("curl", ["-sf", "-o", "/dev/null", `${baseURL}/`], {
   encoding: "utf8",
 });
 if (probe.status !== 0) {

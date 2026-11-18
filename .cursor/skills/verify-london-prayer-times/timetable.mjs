@@ -112,7 +112,6 @@ function pack(row, instantYear, month, day, file) {
   return {
     file,
     utc,
-    hanafiAsrUtc: row[6],
     expected: Object.fromEntries(
       Object.entries(utc).map(([name, hhmm]) => [
         name,
@@ -134,7 +133,7 @@ export function londonTimes(repoRoot, year, month, day) {
   return pack(row, year, month, day, file);
 }
 
-export function resolveFileYear(repoRoot, location, targetYear) {
+function resolveFileYear(repoRoot, location, targetYear) {
   const years = readdirSync(join(repoRoot, "src", "prayer_data"))
     .map((name) => new RegExp(`^${location}-(\\d{4})\\.json$`).exec(name))
     .filter(Boolean)
