@@ -30,6 +30,8 @@ The script uses a fresh context, so it always starts on setup. It clicks the but
 
 Columns in the JSON row are month, day, fajr, shuruq, duhr, asr (Shafi), asr (Hanafi), maghrib, isha. Those clock strings are UTC instants. The script formats each one in `Europe/London` the same way `formatTimeInZone` does, and that formatted value is what the strip must show. The strip's Asr is the Shafi column unless settings say otherwise. This journey never turns Hanafi on.
 
+It also requires the strip's columns to be in timetable order (the map of times would hide a swapped strip, so it reads the DOM order too), the card to name `London` and to show the previous prayer as `was … ago`, and the tail to be painted and pointing at the highlighted column (`elementFromPoint`, as `tailTarget` does in `e2e/support/app.ts`).
+
 It then reads `localStorage["CapacitorStorage.settings"]`, reloads, and requires the strip to still match and the **Done** button to stay absent.
 
 Screenshots: `evidence/today-setup.png` before the click, `evidence/today-home.png` after the strip is up. `evidence/today.json` is the comparison.

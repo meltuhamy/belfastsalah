@@ -32,7 +32,7 @@ Read rows with the page, the same way `monthRows` does in `e2e/support/app.ts`: 
 
 `npm run test:e2e` (`e2e/month-table.spec.ts`) is the web regression for row counts and for changing month.
 
-Native, in `pass`: scroll until the open month's full name is visible (`November`, not the abbreviated date) and screenshot `evidence/<platform>-month.png`. Changing month is `verified-unreachable` here. `MonthPicker` is an `IonIcon` with no accessible name, and the pass does not tap by coordinate. Do not treat the month name as proof that another month's rows were checked.
+Native, in `pass`: assert the open month's full name on the card (`November`, not the abbreviated date), then scroll to the table's last day cell and assert the Fajr time to the right of it, and screenshot `evidence/<platform>-month.png`. The day cell alone is also in the 30-row skeleton; the time is not, so the pair is what proves the month loaded. Scrolling to the month name proved nothing: it is already the card's subtitle, so the screenshot was the home screen. Changing month is `verified-unreachable` here. `MonthPicker` is an `IonIcon` with no accessible name, and the pass does not tap by coordinate. Do not treat the month name as proof that another month's rows were checked.
 
 ## Gotchas
 

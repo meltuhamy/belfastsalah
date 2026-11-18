@@ -33,7 +33,9 @@ import {
   PRAYER_NAMES,
   UK_TIME_ZONE,
   londonNow,
+  londonTimes,
   stripDay,
+  zoneOffsetMinutes,
   zonesAgree,
 } from "./timetable.mjs";
 
@@ -48,6 +50,9 @@ const DEVELOPER_DIR = "/Applications/Xcode.app/Contents/Developer";
 const XCODEBUILD = join(DEVELOPER_DIR, "usr", "bin", "xcodebuild");
 const SIMCTL = join(DEVELOPER_DIR, "usr", "bin", "simctl");
 const MAESTRO_VERSION = "2.12.0";
+// adb wait-for-device has no timeout of its own. A machine that cannot boot
+// the emulator would otherwise hang here instead of exiting 1.
+const ADB_WAIT_MS = 180_000;
 
 const command = process.argv[2];
 const platform = process.argv[3];
@@ -372,6 +377,20 @@ function androidOpenSettings() {
 `;
 }
 
+function adbWaitForDevice(adb, env = process.env) {
+  const result = spawnSync(adb, ["wait-for-device"], {
+    encoding: "utf8",
+    env,
+    timeout: ADB_WAIT_MS,
+  });
+  if (result.error || result.status !== 0) {
+    const why = result.error ? result.error.message : `exit ${result.status}`;
+    throw new Error(
+      `adb wait-for-device did not see a device within ${ADB_WAIT_MS / 1000}s (${why}). The emulator did not connect: check that Hypervisor.framework (macOS) or KVM (Linux) is available, then launch again.`
+    );
+  }
+}
+
 function waitForAdb() {
   let androidHome = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT || "";
   if (!androidHome && existsSync(sessionPath)) {
@@ -384,7 +403,11 @@ function waitForAdb() {
   if (!androidHome) return;
   const adb = join(androidHome, "platform-tools", "adb");
   spawnSync(adb, ["reconnect"], { stdio: "inherit" });
-  spawnSync(adb, ["wait-for-device"], { stdio: "inherit" });
+  try {
+    adbWaitForDevice(adb);
+  } catch (error) {
+    console.log(String(error.message || error));
+  }
   sleep(5000);
 }
 
@@ -411,18 +434,24 @@ function maestroTest(flowFile) {
   }
 }
 
-function runMaestro(flowFile) {
-  const args = ["test"];
-  if (existsSync(sessionPath)) {
-    try {
-      const session = JSON.parse(readFileSync(sessionPath, "utf8"));
-      if (session.udid) {
-        args.push("--udid", session.udid);
-      }
-    } catch {
-      // A corrupt session is reported by readSession. Driving still needs a device.
-    }
+// Maestro 2.12 lists a chromium web device beside the emulator, so `maestro
+// hierarchy` refuses to run unscoped ("Multiple devices connected"). `maestro
+// test` picks one by itself, but passing this is harmless and keeps both
+// commands pointed at the device this run booted.
+function maestroDeviceArgs() {
+  if (!existsSync(sessionPath)) return [];
+  try {
+    const session = JSON.parse(readFileSync(sessionPath, "utf8"));
+    if (session.udid) return ["--udid", session.udid];
+    if (session.platform) return ["--platform", session.platform];
+  } catch {
+    // A corrupt session is reported by readSession. Driving still needs a device.
   }
+  return [];
+}
+
+function runMaestro(flowFile) {
+  const args = ["test", ...maestroDeviceArgs()];
   args.push(flowFile);
   const result = spawnSync(maestroBin(), args, {
     env: maestroEnv(),
@@ -543,9 +572,17 @@ function androidPreflight() {
   lines.push(`uname: ${process.platform} ${process.arch}`);
   if (darwin) {
     const hv = spawnSync("sysctl", ["-n", "kern.hv_support"], { encoding: "utf8" });
+    const hvSupport = (hv.stdout || "").trim();
     lines.push(
-      `Hypervisor.framework kern.hv_support=${(hv.stdout || "").trim() || "unknown"} (this is not KVM; KVM is a Linux device).`
+      `Hypervisor.framework kern.hv_support=${hvSupport || "unknown"} (this is not KVM; KVM is a Linux device).`
     );
+    // Without the hypervisor the emulator never reaches adb, and launch would
+    // sit on `adb wait-for-device` rather than say why.
+    if (hvSupport === "0") {
+      missing.push(
+        "kern.hv_support is 0: Hypervisor.framework is not available, so the Android emulator cannot boot. Do not load kernel modules from this skill."
+      );
+    }
   } else if (process.platform === "linux") {
     const kvm = existsSync("/dev/kvm");
     lines.push(`/dev/kvm: ${kvm ? "present" : "MISSING"}`);
@@ -647,8 +684,15 @@ function chooseAvd(avds) {
     }
     return requested;
   }
-  const preferred = "Pixel_3a_API_33_arm64-v8a";
-  return avds.includes(preferred) ? preferred : avds[0];
+  // API 33's WebView is Chrome 101, which has no Array.prototype.toSorted, so
+  // the timetable never leaves its skeleton there. Boot the newest API 34+
+  // AVD instead; API 33 is only used when the caller names it.
+  const modern = avds
+    .map((name) => ({ name, api: Number((/API_(\d+)/.exec(name) || [])[1] || 0) }))
+    .filter((avd) => avd.api >= 34)
+    .sort((a, b) => b.api - a.api);
+  if (modern.length > 0) return modern[0].name;
+  return avds[0];
 }
 
 function attachedAndroidDevices(adb) {
@@ -722,7 +766,7 @@ async function launchAndroid() {
     emulatorPid: emu.pid,
     bootedByUs: true,
   });
-  await run(adb, ["wait-for-device"], { env: { ...process.env, ANDROID_HOME: androidHome } });
+  await adbWaitForDevice(adb, { ...process.env, ANDROID_HOME: androidHome });
   const bootDeadline = Date.now() + 180000;
   let bootCompleted = false;
   while (Date.now() < bootDeadline) {
@@ -744,35 +788,100 @@ async function launchAndroid() {
   console.log(JSON.stringify({ ok: true, platform: "android", avd }));
 }
 
+// The screen is read in the flow that launches the app, not from a second
+// `maestro hierarchy` process: on Android the WebView's text is only in the
+// tree of the process that launched it, and a cold WebView was reported as
+// broken four times in a row that way. The hierarchy is still written beside
+// the screenshot, to read when something is off.
+function doctorProbe(text, timeout = 15000) {
+  return `- launchApp
+- extendedWaitUntil:
+    visible: "${text}"
+    timeout: ${timeout}
+`;
+}
+
 async function doctor(session) {
   ensureTools();
-  maestroTest(writeFlow("doctor", "- launchApp"));
-  sleep(5000);
-  const hierarchy = spawnSync(maestroBin(), ["hierarchy"], {
-    env: maestroEnv(),
-    encoding: "utf8",
-    maxBuffer: 20 * 1024 * 1024,
-  });
-  const text = `${hierarchy.stdout || ""}\n${hierarchy.stderr || ""}`;
-  writeFileSync(join(evidenceDir, `${session.platform}-doctor-hierarchy.txt`), text);
-  const screen = text.includes("Set up")
-    ? "setup"
-    : text.includes("Fajr") || text.includes("Prayer Times")
-      ? "home"
-      : null;
+  let screen = null;
+  let lastError = null;
+  for (const [name, text] of [
+    ["setup", "Set up"],
+    ["home", "Fajr"],
+  ]) {
+    try {
+      maestroTest(writeFlow(`doctor-${name}`, doctorProbe(text)));
+      screen = name;
+      break;
+    } catch (error) {
+      lastError = String(error.message || error).slice(-800);
+    }
+  }
+  // Scoped to this run's device: Maestro 2.12 lists a Chromium web device
+  // beside the emulator, and an unscoped `hierarchy` refuses to run.
+  const hierarchy = spawnSync(
+    maestroBin(),
+    [...maestroDeviceArgs(), "hierarchy"],
+    {
+      env: maestroEnv(),
+      encoding: "utf8",
+      maxBuffer: 20 * 1024 * 1024,
+    }
+  );
+  const tree = `${hierarchy.stdout || ""}\n${hierarchy.stderr || ""}`;
+  mkdirSync(evidenceDir, { recursive: true });
+  writeFileSync(join(evidenceDir, `${session.platform}-doctor-hierarchy.txt`), tree);
   screenshot(session, "doctor");
   const report = {
-    ok: hierarchy.status === 0 && screen !== null,
+    ok: screen !== null,
     platform: session.platform,
     udid: session.udid ?? null,
     name: session.name ?? null,
     runtime: session.runtime ?? null,
     screen,
+    ...(screen === null ? { error: lastError } : {}),
   };
   console.log(JSON.stringify(report));
   if (!report.ok) {
     process.exitCode = 1;
   }
+}
+
+function parseUtcOffset(text) {
+  const match = /^([+-])(\d{2})(\d{2})$/.exec((text || "").trim());
+  if (!match) return null;
+  const minutes = Number(match[2]) * 60 + Number(match[3]);
+  return match[1] === "-" ? -minutes : minutes;
+}
+
+// The zone that decides the notice is the device's, not the machine's: a
+// simulator or emulator can be set to a different zone than the host running
+// this script, and reading the host's Intl zone flipped passing runs.
+function deviceZone(session) {
+  if (session.platform === "android") {
+    const adb = join(session.androidHome, "platform-tools", "adb");
+    const prop = spawnSync(adb, ["shell", "getprop", "persist.sys.timezone"], {
+      encoding: "utf8",
+    });
+    const date = spawnSync(adb, ["shell", "date", "+%z"], { encoding: "utf8" });
+    return {
+      label: (prop.stdout || "").trim() || null,
+      offsetMinutes: parseUtcOffset(date.stdout),
+    };
+  }
+  // An iOS simulator has no getprop, and its runtime has no `date` binary, so
+  // the zone can't be asked of it. A simulator follows the host's zone.
+  const host = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return { label: host, offsetMinutes: zoneOffsetMinutes(host), source: "host" };
+}
+
+function offsetLabel(minutes) {
+  if (minutes === null) return null;
+  const sign = minutes < 0 ? "-" : "+";
+  const absolute = Math.abs(minutes);
+  const hh = String(Math.floor(absolute / 60)).padStart(2, "0");
+  const mm = String(absolute % 60).padStart(2, "0");
+  return `UTC${sign}${hh}:${mm}`;
 }
 
 function startRecording(session) {
@@ -808,8 +917,11 @@ async function stopRecording(child) {
 async function pass(session) {
   ensureTools();
   mkdirSync(evidenceDir, { recursive: true });
-  const deviceZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const foreignZone = !zonesAgree(UK_TIME_ZONE, deviceZone);
+  const device = deviceZone(session);
+  const foreignZone =
+    device.offsetMinutes === null
+      ? !zonesAgree(UK_TIME_ZONE, Intl.DateTimeFormat().resolvedOptions().timeZone)
+      : device.offsetMinutes !== zoneOffsetMinutes(UK_TIME_ZONE);
   const recorder = startRecording(session);
   const report = {
     ok: false,
@@ -818,13 +930,21 @@ async function pass(session) {
       name: session.name ?? null,
       runtime: session.runtime ?? null,
       udid: session.udid ?? null,
-      timeZone: deviceZone,
+      timeZone: device.label ?? offsetLabel(device.offsetMinutes) ?? "unknown",
+      utcOffsetMinutes: device.offsetMinutes,
+      // iOS only: the zone is the host's.
+      ...(device.source ? { zoneSource: device.source } : {}),
     },
     foreignZone,
     monthChange: {
       status: "verified-unreachable",
       reason:
-        "MonthPicker is an IonIcon with no accessible name (src/components/MonthPicker.tsx). The native driver does not tap by coordinate. The open month name is checked. Row counts stay on the Playwright month spec.",
+        "MonthPicker is an IonIcon with no accessible name (src/components/MonthPicker.tsx). The native driver does not tap by coordinate. The open month name and the month table's last day row are checked. Row counts stay on the Playwright month spec.",
+    },
+    widgetPlacement: {
+      status: "verified-unreachable",
+      reason:
+        "Placing a widget is the launcher's or Springboard's job, outside the app. The pass checks the in-app row instead: iOS \"Touch and hold a widget, then choose Edit Widget\", Android \"Colours and countdown for each home screen widget\".",
     },
     steps: [],
   };
@@ -857,7 +977,21 @@ async function pass(session) {
     });
   };
 
+  // A failed assertion does not stop the pass. The steps after it depend on
+  // the state it was meant to leave, so they are recorded as skipped rather
+  // than run; the JSON still names every step. Only a harness failure (the
+  // flow could not be written, Maestro could not run) aborts the pass.
+  let blocked = false;
   const runStep = (name, steps, shot) => {
+    if (blocked) {
+      report.steps.push({
+        name,
+        ok: false,
+        skipped: true,
+        reason: "not reached: an earlier step failed",
+      });
+      return;
+    }
     console.log(`\n--- ${name} ---`);
     try {
       refresh();
@@ -875,8 +1009,12 @@ async function pass(session) {
       } catch {
         // The simulator may already be gone; the maestro output is the error.
       }
-      report.steps.push({ name, ok: false, error: String(error.message || error).slice(-1500) });
-      throw error;
+      const message = String(error.message || error);
+      report.steps.push({ name, ok: false, error: message.slice(-1500) });
+      if (!message.startsWith("maestro test")) {
+        throw error;
+      }
+      blocked = true;
     }
   };
 
@@ -979,15 +1117,27 @@ ${stripAsserts(london.expected)}
       "today-home"
     );
 
+    // The month name alone is already the card's subtitle, so scrolling to it
+    // scrolled nowhere and android-month.png was the home screen again. Go to
+    // the table: its last day cell is below the fold, and the row next to it
+    // proves the month's timetable is loaded rather than the 30-row skeleton.
     runStep(
       "month",
-      () => `
-${androidLaunch()}- scrollUntilVisible:
-    element: "${today.monthName}"
+      () => {
+        const lastDay = new Date(Date.UTC(today.year, today.month, 0)).getUTCDate();
+        const lastRow = londonTimes(repoRoot, today.year, today.month, lastDay);
+        return `
+${androidLaunch()}- assertVisible: "${today.monthName}"
+- scrollUntilVisible:
+    element: "^${lastDay}$"
     direction: DOWN
     timeout: 20000
-- assertVisible: "${today.monthName}"
-`,
+- assertVisible: "^${lastDay}$"
+- assertVisible:
+    text: "${lastRow.expected.Fajr}"
+    rightOf: "^${lastDay}$"
+`;
+      },
       "month"
     );
 
@@ -1202,7 +1352,7 @@ ${androidOpenSettings()}- scrollUntilVisible:
   } finally {
     await stopRecording(recorder);
     writeFileSync(join(evidenceDir, `${session.platform}-pass.json`), `${JSON.stringify(report, null, 2)}\n`);
-    console.log(JSON.stringify({ ok: report.ok, steps: report.steps.map((step) => ({ name: step.name, ok: step.ok })) }, null, 2));
+    console.log(JSON.stringify({ ok: report.ok, steps: report.steps.map((step) => ({ name: step.name, ok: step.ok, ...(step.skipped ? { skipped: true } : {}) })) }, null, 2));
   }
   if (!report.ok) {
     process.exitCode = 1;
@@ -1246,6 +1396,9 @@ function cleanup(session) {
     }
   } else if (session.emulatorPid) {
     const adb = join(session.androidHome, "platform-tools", "adb");
+    // Terminate the app as cleanup says it does. The kill below would take it
+    // with the emulator, but a reader relying on this has a force-stop.
+    spawnSync(adb, ["shell", "am", "force-stop", APP_ID], { stdio: "ignore" });
     spawnSync(adb, ["emu", "kill"], { stdio: "ignore" });
     if (pidRuns(session.emulatorPid, /emulator|qemu/)) {
       try {
