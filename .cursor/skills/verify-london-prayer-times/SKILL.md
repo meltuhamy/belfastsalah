@@ -225,17 +225,18 @@ if [ -f "$PIDFILE" ]; then
     *vite*) kill "$PID" ;;
   esac
   rm -f "$PIDFILE"
-fi
 
-# Fallback for a pid file that named a wrapper rather than vite, or one that
-# is already gone: whoever is listening on 3000, killed only if its command
-# is vite.
-LISTENER=$(lsof -nP -iTCP:3000 -sTCP:LISTEN -t 2>/dev/null | head -1)
-if [ -n "$LISTENER" ]; then
-  cmd=$(ps -p "$LISTENER" -o command= 2>/dev/null || true)
-  case "$cmd" in
-    *vite*) kill "$LISTENER" ;;
-  esac
+  # Fallback for a pid file that named a wrapper rather than vite: whoever is
+  # listening on 3000, killed only if its command is vite. Only when this run
+  # wrote a pid file - a launch that stopped at "3000 is already in use"
+  # wrote none, and the listener then is someone else's server.
+  LISTENER=$(lsof -nP -iTCP:3000 -sTCP:LISTEN -t 2>/dev/null | head -1)
+  if [ -n "$LISTENER" ]; then
+    cmd=$(ps -p "$LISTENER" -o command= 2>/dev/null || true)
+    case "$cmd" in
+      *vite*) kill "$LISTENER" ;;
+    esac
+  fi
 fi
 tmux kill-session -t "$VITE_SESSION" 2>/dev/null || true
 ```
