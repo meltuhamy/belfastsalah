@@ -869,10 +869,10 @@ function deviceZone(session) {
       offsetMinutes: parseUtcOffset(date.stdout),
     };
   }
-  // An iOS simulator has no getprop; its numeric offset is enough to compare
-  // against Europe/London, which is what the notice and the pass react to.
-  const date = simctl(["spawn", session.udid, "date", "+%z"], { allowFail: true });
-  return { label: null, offsetMinutes: parseUtcOffset(date.stdout) };
+  // An iOS simulator has no getprop, and its runtime has no `date` binary, so
+  // the zone can't be asked of it. A simulator follows the host's zone.
+  const host = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return { label: host, offsetMinutes: zoneOffsetMinutes(host), source: "host" };
 }
 
 function offsetLabel(minutes) {
@@ -932,6 +932,8 @@ async function pass(session) {
       udid: session.udid ?? null,
       timeZone: device.label ?? offsetLabel(device.offsetMinutes) ?? "unknown",
       utcOffsetMinutes: device.offsetMinutes,
+      // iOS only: the zone is the host's.
+      ...(device.source ? { zoneSource: device.source } : {}),
     },
     foreignZone,
     monthChange: {
