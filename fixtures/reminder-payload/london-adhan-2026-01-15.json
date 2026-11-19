@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "generatedAt": 1768435200000,
+  "reminders": [
+    {
+      "at": 1768457700000,
+      "title": "Fajr is at 06:20",
+      "body": "5 minute reminder",
+      "sound": "adhan-5"
+    },
+    {
+      "at": 1768463520000,
+      "title": "Shuruq is at 07:57",
+      "body": "5 minute reminder"
+    },
+    {
+      "at": 1768479000000,
+      "title": "Duhr is at 12:15",
+      "body": "5 minute reminder",
+      "sound": "adhan-2"
+    },
+    {
+      "at": 1768485420000,
+      "title": "Asr is at 14:02",
+      "body": "5 minute reminder",
+      "sound": "adhan-2"
+    },
+    {
+      "at": 1768493940000,
+      "title": "Maghrib is at 16:24",
+      "body": "5 minute reminder",
+      "sound": "adhan-2"
+    },
+    {
+      "at": 1768499760000,
+      "title": "Isha is at 18:01",
+      "body": "5 minute reminder",
+      "sound": "adhan-2"
+    },
+    {
+      "at": 1768544040000,
+      "title": "Fajr is at 06:19",
+      "body": "5 minute reminder",
+      "sound": "adhan-5"
+    },
+    {
+      "at": 1768549860000,
+      "title": "Shuruq is at 07:56",
+      "body": "5 minute reminder"
+    },
+    {
+      "at": 1768565400000,
+      "title": "Duhr is at 12:15",
+      "body": "5 minute reminder",
+      "sound": "adhan-2"
+    },
+    {
+      "at": 1768571880000,
+      "title": "Asr is at 14:03",
+      "body": "5 minute reminder",
+      "sound": "adhan-2"
+    },
+    {
+      "at": 1768580460000,
+      "title": "Maghrib is at 16:26",
+      "body": "5 minute reminder",
+      "sound": "adhan-2"
+    },
+    {
+      "at": 1768586280000,
+      "title": "Isha is at 18:03",
+      "body": "5 minute reminder",
+      "sound": "adhan-2"
+    },
+    {
+      "at": 1768630380000,
+      "title": "Fajr is at 06:18",
+      "body": "5 minute reminder",
+      "sound": "adhan-5"
+    },
+    {
+      "at": 1768636200000,
+      "title": "Shuruq is at 07:55",
+      "body": "5 minute reminder"
+    },
+    {
+      "at": 1768651860000,
+      "title": "Duhr is at 12:16",
+      "body": "5 minute reminder",
+      "sound": "adhan-2"
+    },
+    {
+      "at": 1768658400000,
+      "title": "Asr is at 14:05",
+      "body": "5 minute reminder",
+      "sound": "adhan-2"
+    },
+    {
+      "at": 1768666920000,
+      "title": "Maghrib is at 16:27",
+      "body": "5 minute reminder",
+      "sound": "adhan-2"
+    },
+    {
+      "at": 1768672740000,
+      "title": "Isha is at 18:04",
+      "body": "5 minute reminder",
+      "sound": "adhan-2"
+    },
+    {
+      "at": 1768716720000,
+      "title": "Fajr is at 06:17",
+      "body": "5 minute reminder",
+      "sound": "adhan-5"
+    },
+    {
+      "at": 1768722540000,
+      "title": "Shuruq is at 07:54",
+      "body": "5 minute reminder"
+    },
+    {
+      "at": 1768738260000,
+      "title": "Duhr is at 12:16",
+      "body": "5 minute reminder",
+      "sound": "adhan-2"
+    },
+    {
+      "at": 1768744860000,
+      "title": "Asr is at 14:06",
+      "body": "5 minute reminder",
+      "sound": "adhan-2"
+    },
+    {
+      "at": 1768753440000,
+      "title": "Maghrib is at 16:29",
+      "body": "5 minute reminder",
+      "sound": "adhan-2"
+    },
+    {
+      "at": 1768759260000,
+      "title": "Isha is at 18:06",
+      "body": "5 minute reminder",
+      "sound": "adhan-2"
+    },
+    {
+      "at": 1768759560000,
+      "title": "Prayer reminders stop here",
+      "body": "Open the app to keep them coming."
+    }
+  ]
+}

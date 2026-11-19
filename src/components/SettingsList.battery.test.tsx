@@ -80,6 +80,8 @@ function renderList() {
       }}
       onNotifyChange={() => {}}
       onNotifyMinutesChange={() => {}}
+      onNotifySoundChange={() => {}}
+      onFajrSoundChange={() => {}}
       onLocationChange={() => {}}
       onAsrMethodChange={() => {}}
       onThemeChange={() => {}}

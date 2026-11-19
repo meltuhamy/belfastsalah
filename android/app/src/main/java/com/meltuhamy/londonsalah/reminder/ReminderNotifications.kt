@@ -1,7 +1,6 @@
 package com.meltuhamy.londonsalah.reminder
 
 import android.app.Notification
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
@@ -11,15 +10,15 @@ import com.meltuhamy.londonsalah.MainActivity
 import com.meltuhamy.londonsalah.R
 
 /**
- * Posts one reminder from the stored list.
+ * Posts one reminder from the stored list, on the channel for its sound
+ * ([ReminderSounds]).
  *
- * The channel id matches @capacitor/local-notifications' default, so a phone
- * that already has that channel keeps the user's sound and importance instead
- * of growing a second "Prayer reminders" row. The test notification stays on
- * the plugin and uses a different id.
+ * The default sound's channel id matches @capacitor/local-notifications'
+ * default, so a phone that already has that channel keeps the user's sound
+ * and importance instead of growing a second row. The test notification
+ * stays on the plugin and uses a different id.
  */
 object ReminderNotifications {
-    private const val CHANNEL_ID = "default"
     private const val CONTENT_REQUEST_CODE = 8190
 
     /** Posts only if [payload], the current list, still has this reminder. */
@@ -32,7 +31,7 @@ object ReminderNotifications {
 
         val notifications =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        ensureChannel(notifications)
+        ReminderSounds.ensureChannels(context)
 
         val open = PendingIntent.getActivity(
             context,
@@ -43,7 +42,7 @@ object ReminderNotifications {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = notificationBuilder(context)
+        val notification = notificationBuilder(context, entry.sound)
             .setSmallIcon(R.drawable.ic_stat_name)
             .setContentTitle(entry.title)
             .setContentText(entry.body)
@@ -63,24 +62,20 @@ object ReminderNotifications {
         }
     }
 
-    private fun notificationBuilder(context: Context): Notification.Builder {
+    private fun notificationBuilder(context: Context, sound: String): Notification.Builder {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            return Notification.Builder(context, CHANNEL_ID)
+            return Notification.Builder(context, ReminderSounds.channelId(sound))
         }
+        // Android 7 has no channels: the sound goes on the notification.
         @Suppress("DEPRECATION")
-        return Notification.Builder(context)
-    }
-
-    private fun ensureChannel(notifications: NotificationManager) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        if (notifications.getNotificationChannel(CHANNEL_ID) != null) return
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Default",
-            NotificationManager.IMPORTANCE_DEFAULT
-        )
-        channel.description = "Default"
-        notifications.createNotificationChannel(channel)
+        val builder = Notification.Builder(context)
+        val uri = ReminderSounds.soundUri(context, sound)
+        @Suppress("DEPRECATION")
+        when {
+            uri != null -> builder.setSound(uri, ReminderSounds.audioAttributes())
+            sound == ReminderSounds.DEFAULT -> builder.setDefaults(Notification.DEFAULT_SOUND)
+        }
+        return builder
     }
 
     /**

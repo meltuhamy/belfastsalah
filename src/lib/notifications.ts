@@ -3,6 +3,11 @@ import {
   LocalNotificationSchema,
 } from "@capacitor/local-notifications";
 import { addSeconds } from "date-fns";
+import {
+  androidChannelId,
+  iosSoundName,
+  ReminderSound,
+} from "./reminderSound";
 
 // Well clear of the prayer reminders. Those use the low ids (up to the
 // platform limit in reminderSchedule), so firing a test never disturbs one,
@@ -136,7 +141,9 @@ export type TestNotificationResult = "scheduled" | "denied";
  * can be checked end to end without waiting for a prayer time. Reached by
  * long-pressing the timer icon on the settings screen.
  */
-export async function sendTestNotification(): Promise<TestNotificationResult> {
+export async function sendTestNotification(
+  sound: ReminderSound = "default"
+): Promise<TestNotificationResult> {
   if (!(await ensureNotificationPermission())) {
     return "denied";
   }
@@ -151,6 +158,11 @@ export async function sendTestNotification(): Promise<TestNotificationResult> {
           at: addSeconds(new Date(), TEST_NOTIFICATION_DELAY_SECONDS),
           allowWhileIdle: true,
         },
+        // The chosen sound, so the test checks it too. Android's channels
+        // are created by the native reminder sync, which runs before the
+        // reminder row (and so this long-press) is ever on screen.
+        sound: iosSoundName(sound),
+        channelId: androidChannelId(sound),
         actionTypeId: "",
         extra: null,
       },

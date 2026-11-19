@@ -59,6 +59,8 @@ const SetupPage: React.FC<Props> = ({ onThemePreview }) => {
             onNotifyMinutesChange={(notifyMinutes) =>
               setSetting({ notifyMinutes })
             }
+            onNotifySoundChange={(notifySound) => setSetting({ notifySound })}
+            onFajrSoundChange={(fajrSound) => setSetting({ fajrSound })}
             onLocationChange={(location, asrMethod) =>
               setSetting({ location, asrMethod })
             }

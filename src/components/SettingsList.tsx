@@ -23,6 +23,8 @@ import {
   lockClosed,
   openOutline,
   warningOutline,
+  musicalNotesOutline,
+  moonOutline,
 } from "ionicons/icons";
 import { PrayerLocation, locationNames } from "../lib/PrayerTimeData";
 import supportsHanafiAsr, { AsrMethod } from "../lib/PrayerTimes";
@@ -45,6 +47,13 @@ import {
 } from "../lib/notifications";
 import { describeNotifyMinutes } from "../lib/notifyText";
 import {
+  FajrSound,
+  REMINDER_SOUNDS,
+  ReminderSound,
+  reminderSoundLabels,
+} from "../lib/reminderSound";
+import { previewSound, stopPreview } from "../lib/soundPreview";
+import {
   isBatteryRestricted,
   openBatteryOptimizationSettings,
   openWidgetSettings,
@@ -57,6 +66,8 @@ type Props = {
   settings: AppSettings;
   onNotifyChange: (newNotify: boolean) => void;
   onNotifyMinutesChange: (newNotifyMinutes: number) => void;
+  onNotifySoundChange: (newNotifySound: ReminderSound) => void;
+  onFajrSoundChange: (newFajrSound: FajrSound) => void;
   onLocationChange: (newLocation: PrayerLocation, asrMethod: AsrMethod) => void;
   onAsrMethodChange: (newAsrMethod: AsrMethod) => void;
   onThemeChange: (newTheme: Theme) => void;
@@ -67,6 +78,8 @@ const SettingsList: React.FC<Props> = ({
   settings,
   onNotifyChange,
   onNotifyMinutesChange,
+  onNotifySoundChange,
+  onFajrSoundChange,
   onLocationChange,
   onAsrMethodChange,
   onThemeChange,
@@ -148,6 +161,9 @@ const SettingsList: React.FC<Props> = ({
     };
   }, []);
 
+  // A preview still playing when the screen goes would carry on over the next.
+  useEffect(() => stopPreview, []);
+
   async function openExactAlarmSettings() {
     try {
       const status = await LocalNotifications.changeExactNotificationSetting();
@@ -169,7 +185,7 @@ const SettingsList: React.FC<Props> = ({
   // seconds out, so the whole reminder path can be checked without waiting for
   // a prayer time.
   const testNotificationPress = useLongPress(async () => {
-    const result = await sendTestNotification();
+    const result = await sendTestNotification(settings.notifySound);
     setTestResult(
       result === "scheduled"
         ? `Test notification in ${TEST_NOTIFICATION_DELAY_SECONDS} seconds`
@@ -308,6 +324,55 @@ const SettingsList: React.FC<Props> = ({
             ></IonRange>
           </div>
         </IonItem>
+      )}
+      {settings.notify && (
+        <>
+          <IonItem>
+            <IonIcon icon={musicalNotesOutline} slot="start" />
+            <IonSelect
+              label="Sound"
+              value={settings.notifySound}
+              interface="alert"
+              okText="Choose"
+              cancelText="Cancel"
+              data-testid="notify-sound-select"
+              onIonChange={(event) => {
+                const sound = event.detail.value as ReminderSound;
+                previewSound(sound);
+                onNotifySoundChange(sound);
+              }}
+            >
+              {REMINDER_SOUNDS.map((sound) => (
+                <IonSelectOption key={sound} value={sound}>
+                  {reminderSoundLabels[sound]}
+                </IonSelectOption>
+              ))}
+            </IonSelect>
+          </IonItem>
+          <IonItem>
+            <IonIcon icon={moonOutline} slot="start" />
+            <IonSelect
+              label="Fajr sound"
+              value={settings.fajrSound}
+              interface="alert"
+              okText="Choose"
+              cancelText="Cancel"
+              data-testid="fajr-sound-select"
+              onIonChange={(event) => {
+                const sound = event.detail.value as FajrSound;
+                previewSound(sound === "same" ? settings.notifySound : sound);
+                onFajrSoundChange(sound);
+              }}
+            >
+              <IonSelectOption value="same">Same as other prayers</IonSelectOption>
+              {REMINDER_SOUNDS.map((sound) => (
+                <IonSelectOption key={sound} value={sound}>
+                  {reminderSoundLabels[sound]}
+                </IonSelectOption>
+              ))}
+            </IonSelect>
+          </IonItem>
+        </>
       )}
       {settings.notify && exactAlarmsOff && (
         <IonItem

@@ -35,6 +35,16 @@ const FIXTURES: Record<string, { now: string; settings: Partial<AppSettings> }> 
       now: "2026-10-24T00:00:00Z",
       settings: { location: PrayerLocation.London },
     },
+    // Sounds: an adhan for most prayers, another for Fajr, and the default
+    // for sunrise and the prompt, so the Kotlin side reads every case.
+    "london-adhan-2026-01-15.json": {
+      now: "2026-01-15T00:00:00Z",
+      settings: {
+        location: PrayerLocation.London,
+        notifySound: "adhan-2",
+        fajrSound: "adhan-5",
+      },
+    },
   };
 
 describe("reminder payload fixtures", () => {

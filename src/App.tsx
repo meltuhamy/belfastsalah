@@ -68,6 +68,7 @@ import {
   reminderTitle,
 } from "./lib/reminderSchedule";
 import { syncAndroidReminders } from "./lib/nativeReminders";
+import { iosSoundName, soundForPrayer } from "./lib/reminderSound";
 import { addSaveListener, removeSaveListener } from "./lib/settings";
 import { refreshWidgets } from "./lib/widgets";
 import FullPageSpinner from "./components/FullPageSpinner";
@@ -104,6 +105,8 @@ const App: React.FC = () => {
   const asrMethod = settings == null ? null : settings.asrMethod;
   const notificationsEnabled = settings == null ? null : settings.notify;
   const notificationMinutes = settings == null ? null : settings.notifyMinutes;
+  const notifySound = settings == null ? null : settings.notifySound;
+  const fajrSound = settings == null ? null : settings.fajrSound;
   // The System setting resolved against the phone's own switch, kept current
   // by the native plugin. Everything that prints a clock time reads this.
   const timeFormat = settings == null ? null : settings.timeFormat;
@@ -121,6 +124,8 @@ const App: React.FC = () => {
     asrMethod,
     notificationsEnabled,
     notificationMinutes,
+    notifySound,
+    fajrSound,
     timeFormat,
     uses24Hour,
   });
@@ -130,6 +135,8 @@ const App: React.FC = () => {
     asrMethod,
     notificationsEnabled,
     notificationMinutes,
+    notifySound,
+    fajrSound,
     timeFormat,
     uses24Hour,
   };
@@ -167,6 +174,8 @@ const App: React.FC = () => {
         {
           notify: inputs.notificationsEnabled,
           notifyMinutes: inputs.notificationMinutes,
+          notifySound: inputs.notifySound ?? "default",
+          fajrSound: inputs.fajrSound ?? "same",
           location: inputs.location,
           asrMethod: inputs.asrMethod,
           showTimesInDeviceZone: inputs.showTimesInDeviceZone === true,
@@ -188,6 +197,10 @@ const App: React.FC = () => {
     }
 
     const minutesBefore = inputs.notificationMinutes;
+    const sounds = {
+      notifySound: inputs.notifySound ?? "default",
+      fajrSound: inputs.fajrSound ?? "same",
+    };
     const slots = await planReminders(
       notificationLimit(Capacitor.getPlatform()),
       minutesBefore,
@@ -204,6 +217,7 @@ const App: React.FC = () => {
             body: REMINDERS_ENDED_BODY,
             id: slot.id,
             schedule: { at: slot.at },
+            sound: iosSoundName(soundForPrayer(null, sounds)),
             actionTypeId: "",
             extra: null,
           };
@@ -225,6 +239,8 @@ const App: React.FC = () => {
           body: reminderBody(minutesBefore),
           id: slot.id,
           schedule: { at: slot.at },
+          // iOS only: Android posts its own reminders (nativeReminders.ts).
+          sound: iosSoundName(soundForPrayer(slot.prayer, sounds)),
           actionTypeId: "",
           extra: null,
         };
@@ -294,6 +310,8 @@ const App: React.FC = () => {
     asrMethod,
     notificationsEnabled,
     notificationMinutes,
+    notifySound,
+    fajrSound,
     showTimesInDeviceZone,
     timeFormat,
   ]);

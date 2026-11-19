@@ -23,6 +23,7 @@ import {
 import { resolveDisplayTimeZone } from "./displayZone";
 import { getZonedDateParts, middayOn } from "./timeZone";
 import { formatClockTime, uses24Hour } from "./timeFormat";
+import { ReminderSound, soundForPrayer } from "./reminderSound";
 import {
   REMINDERS_ENDED_BODY,
   REMINDERS_ENDED_TITLE,
@@ -45,6 +46,12 @@ export type ReminderEntry = {
   at: number;
   title: string;
   body: string;
+  /**
+   * Left out for the default sound, which most lists are entirely and which
+   * keeps an 11,000 entry list the size it was. Native reads a missing sound
+   * as "default", so a list written before sounds existed still plays one.
+   */
+  sound?: ReminderSound;
 };
 
 export type ReminderPayload = {
@@ -112,6 +119,7 @@ export async function buildReminderPayload(
         if (fireAt <= now.getTime()) {
           continue;
         }
+        const sound = soundForPrayer(prayerTime.prayer, settings);
         reminders.push({
           at: fireAt,
           title: reminderTitle(
@@ -121,6 +129,7 @@ export async function buildReminderPayload(
             })
           ),
           body,
+          ...(sound === "default" ? {} : { sound }),
         });
       }
       if (pastHorizon) {

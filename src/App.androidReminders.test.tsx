@@ -17,6 +17,8 @@ const harness = vi.hoisted(() => {
     current: {
       notify: true,
       notifyMinutes: 5,
+      notifySound: "default",
+      fajrSound: "same",
       asrMethod: "shafi" as AppSettings["asrMethod"],
       theme: "system",
       timeFormat: "24",
@@ -79,6 +81,8 @@ function enabledSettings(): AppSettings {
   return {
     notify: true,
     notifyMinutes: 5,
+    notifySound: "default",
+    fajrSound: "same",
     asrMethod: AsrMethod.Shafi,
     theme: "system",
     timeFormat: "24",

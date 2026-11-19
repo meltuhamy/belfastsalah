@@ -38,4 +38,19 @@ final class AppGroupTests: XCTestCase {
         let reader = WidgetStore(defaults: try XCTUnwrap(UserDefaults(suiteName: WidgetStore.appGroup)))
         XCTAssertEqual(WidgetPayload.parse(reader.read()), Fixture.payload())
     }
+
+    /**
+     * Not about the group, but this is the bundle hosted by the app. A
+     * reminder names its sound by file, and iOS plays the default for a name
+     * it cannot find at the root of the app bundle, so a missing file would
+     * pass for working. scripts/ios/add-reminder-sounds.rb adds them.
+     */
+    func testTheAdhanSoundsAreAtTheRootOfTheAppBundle() {
+        for n in 1...5 {
+            XCTAssertNotNil(
+                Bundle.main.url(forResource: "adhan-\(n)", withExtension: "caf"),
+                "adhan-\(n).caf is not in the app bundle"
+            )
+        }
+    }
 }

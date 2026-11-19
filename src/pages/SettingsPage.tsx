@@ -44,6 +44,8 @@ const SettingsTab: React.FC = () => {
             onNotifyMinutesChange={(notifyMinutes) =>
               setSetting({ notifyMinutes })
             }
+            onNotifySoundChange={(notifySound) => setSetting({ notifySound })}
+            onFajrSoundChange={(fajrSound) => setSetting({ fajrSound })}
             onLocationChange={(location, asrMethod) =>
               setSetting({ location, asrMethod })
             }

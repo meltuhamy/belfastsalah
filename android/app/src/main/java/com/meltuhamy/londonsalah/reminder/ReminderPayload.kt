@@ -8,9 +8,16 @@ import org.json.JSONObject
  *
  * `at` is the instant to fire, in epoch milliseconds. `title` and `body` are
  * already the strings to show: the title carries the prayer clock in the
- * user's display zone, and nothing here formats a time.
+ * user's display zone, and nothing here formats a time. `sound` names the
+ * channel it is posted on.
  */
-data class ReminderEntry(val at: Long, val title: String, val body: String)
+data class ReminderEntry(
+    val at: Long,
+    val title: String,
+    val body: String,
+    /** One of [ReminderSounds.all]. Absent in the JSON for the default sound. */
+    val sound: String = ReminderSounds.DEFAULT
+)
 
 data class ReminderPayload(
     val generatedAt: Long,
@@ -40,7 +47,8 @@ data class ReminderPayload(
                     ReminderEntry(
                         entry.getLong("at"),
                         entry.getString("title"),
-                        entry.getString("body")
+                        entry.getString("body"),
+                        ReminderSounds.normalise(entry.optString("sound", ReminderSounds.DEFAULT))
                     )
                 }
                 ReminderPayload(root.getLong("generatedAt"), reminders)

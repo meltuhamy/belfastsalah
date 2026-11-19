@@ -20,6 +20,8 @@ const harness = vi.hoisted(() => {
     current: {
       notify: true,
       notifyMinutes: 5,
+      notifySound: "default",
+      fajrSound: "same",
       asrMethod: "shafi" as AppSettings["asrMethod"],
       theme: "system",
       timeFormat: "24",
@@ -90,6 +92,8 @@ function enabledSettings(): AppSettings {
   return {
     notify: true,
     notifyMinutes: 5,
+    notifySound: "default",
+    fajrSound: "same",
     asrMethod: AsrMethod.Shafi,
     theme: "system",
     timeFormat: "24",
@@ -173,9 +177,57 @@ describe("reminder scheduling when the app returns to the foreground", () => {
       body: "Open the app to keep them coming.",
       id: 64,
       schedule: { at: new Date("2026-11-26T16:02:00Z") },
+      // A name with no file behind it is iOS's default sound. Leaving it out
+      // was silence, which is how every reminder used to arrive.
+      sound: "default",
       actionTypeId: "",
       extra: null,
     });
+  });
+
+  it("Should give each prayer its sound, with Fajr's own and none at sunrise", async () => {
+    harness.settings.current = {
+      ...enabledSettings(),
+      notifySound: "adhan-2",
+      fajrSound: "adhan-4",
+    };
+    renderApp();
+
+    await waitFor(() => {
+      expect(harness.clearAndSetNotifications).toHaveBeenCalledTimes(1);
+    });
+
+    const scheduled = harness.clearAndSetNotifications.mock.calls[0][0] as Array<{
+      title: string;
+      sound?: string;
+    }>;
+    const soundOf = (prayer: string) =>
+      new Set(
+        scheduled
+          .filter((item) => item.title.startsWith(`${prayer} is at`))
+          .map((item) => item.sound)
+      );
+    expect(soundOf("Fajr")).toEqual(new Set(["adhan-4.caf"]));
+    expect(soundOf("Shuruq")).toEqual(new Set(["default"]));
+    for (const prayer of ["Duhr", "Asr", "Maghrib", "Isha"]) {
+      expect(soundOf(prayer)).toEqual(new Set(["adhan-2.caf"]));
+    }
+  });
+
+  it("Should schedule silent reminders without a sound", async () => {
+    harness.settings.current = { ...enabledSettings(), notifySound: "silent" };
+    renderApp();
+
+    await waitFor(() => {
+      expect(harness.clearAndSetNotifications).toHaveBeenCalledTimes(1);
+    });
+
+    const scheduled = harness.clearAndSetNotifications.mock.calls[0][0] as Array<{
+      sound?: string;
+    }>;
+    expect(scheduled.slice(0, 63).every((item) => item.sound === undefined)).toBe(
+      true
+    );
   });
 
   it("Should still schedule one reminder per prayer at the longest lead", async () => {

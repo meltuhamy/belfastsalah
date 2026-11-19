@@ -188,3 +188,45 @@ describe("buildReminderPayload", () => {
     expect(await buildReminderPayload(getDefaultSettings(), MORNING)).toBeNull();
   });
 });
+
+describe("reminder sounds in the payload", () => {
+  it("Should leave the sound out for the default, keeping the list its old size", async () => {
+    const payload = await buildReminderPayload(london(), MORNING, 2);
+    expect(payload!.reminders.length).toBeGreaterThan(0);
+    expect(payload!.reminders.every((entry) => !("sound" in entry))).toBe(true);
+  });
+
+  it("Should give Fajr its own sound, the rest theirs, and sunrise no adhan", async () => {
+    const payload = await buildReminderPayload(
+      london({ notifySound: "adhan-3", fajrSound: "adhan-1" }),
+      MORNING,
+      3
+    );
+    const soundsFor = (prayer: string) =>
+      new Set(
+        payload!.reminders
+          .filter((entry) => entry.title.startsWith(`${prayer} is at`))
+          .map((entry) => entry.sound)
+      );
+    expect(soundsFor("Fajr")).toEqual(new Set(["adhan-1"]));
+    expect(soundsFor("Shuruq")).toEqual(new Set([undefined]));
+    for (const prayer of ["Duhr", "Asr", "Maghrib", "Isha"]) {
+      expect(soundsFor(prayer)).toEqual(new Set(["adhan-3"]));
+    }
+    const last = payload!.reminders[payload!.reminders.length - 1];
+    expect(last.title).toBe(REMINDERS_ENDED_TITLE);
+    expect(last.sound).toBeUndefined();
+  });
+
+  it("Should mark silent reminders as silent", async () => {
+    const payload = await buildReminderPayload(
+      london({ notifySound: "silent" }),
+      MORNING,
+      2
+    );
+    const prayers = payload!.reminders.filter(
+      (entry) => entry.title !== REMINDERS_ENDED_TITLE
+    );
+    expect(prayers.every((entry) => entry.sound === "silent")).toBe(true);
+  });
+});

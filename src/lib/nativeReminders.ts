@@ -18,6 +18,8 @@ type ReminderSettings = Pick<
   AppSettings,
   | "notify"
   | "notifyMinutes"
+  | "notifySound"
+  | "fajrSound"
   | "location"
   | "asrMethod"
   | "showTimesInDeviceZone"

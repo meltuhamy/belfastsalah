@@ -178,6 +178,80 @@ class ReminderAlarmsTest {
     }
 
     @Test
+    fun `reads each reminder's sound, and a missing one as the default`() {
+        val adhan = fixture("london-adhan-2026-01-15.json")
+        fun soundsFor(prayer: String) =
+            adhan.reminders.filter { it.title.startsWith("$prayer is at") }.map { it.sound }.toSet()
+
+        assertEquals(setOf("adhan-5"), soundsFor("Fajr"))
+        assertEquals(setOf("default"), soundsFor("Shuruq"))
+        for (prayer in listOf("Duhr", "Asr", "Maghrib", "Isha")) {
+            assertEquals(setOf("adhan-2"), soundsFor(prayer))
+        }
+        assertEquals("default", adhan.reminders.last().sound)
+        // Written before sounds existed: no field at all.
+        assertTrue(fixture("london-spring-2026-03-28.json").reminders.all { it.sound == "default" })
+        // A sound this version does not ship plays the default.
+        val unknown = fixtureText("london-adhan-2026-01-15.json").replace("\"adhan-5\"", "\"adhan-9\"")
+        assertEquals("default", ReminderPayload.parse(unknown)!!.reminders.first().sound)
+    }
+
+    @Test
+    fun `posts an adhan reminder on that adhan's channel, which plays its file`() {
+        val payload = stored("london-adhan-2026-01-15.json")
+        val fajr = payload.reminders.first { it.title.startsWith("Fajr") }
+
+        ReminderAlarms.handle(context, fireIntent(fajr), fajr.at)
+
+        val notifications = context.getSystemService(NotificationManager::class.java)
+        val posted = shadowOf(notifications).allNotifications.single()
+        assertEquals("adhan-5", posted.channelId)
+        val channel = notifications.getNotificationChannel("adhan-5")
+        assertEquals(
+            "android.resource://${context.packageName}/raw/adhan_5",
+            channel.sound.toString()
+        )
+        assertEquals("Adhan 5", channel.name)
+        assertEquals(NotificationManager.IMPORTANCE_DEFAULT, channel.importance)
+    }
+
+    @Test
+    fun `creates a channel for every sound, quiet for silent, and keeps an existing default`() {
+        val notifications = context.getSystemService(NotificationManager::class.java)
+        val existing = android.app.NotificationChannel(
+            "default",
+            "Default",
+            NotificationManager.IMPORTANCE_HIGH
+        )
+        notifications.createNotificationChannel(existing)
+
+        ReminderSounds.ensureChannels(context)
+
+        assertEquals(
+            listOf("default", "silent", "adhan-1", "adhan-2", "adhan-3", "adhan-4", "adhan-5"),
+            ReminderSounds.all
+        )
+        for (sound in ReminderSounds.all) {
+            assertTrue(sound, notifications.getNotificationChannel(sound) != null)
+        }
+        assertEquals(
+            NotificationManager.IMPORTANCE_HIGH,
+            notifications.getNotificationChannel("default").importance
+        )
+        val silent = notifications.getNotificationChannel("silent")
+        assertNull(silent.sound)
+        assertEquals(NotificationManager.IMPORTANCE_LOW, silent.importance)
+    }
+
+    @Test
+    fun `ships a sound file for every adhan`() {
+        for (n in 1..ReminderSounds.ADHAN_COUNT) {
+            val id = context.resources.getIdentifier("adhan_$n", "raw", context.packageName)
+            assertTrue("adhan_$n", id != 0)
+        }
+    }
+
+    @Test
     fun `still arms the window when exact alarms are not allowed`() {
         ShadowAlarmManager.setCanScheduleExactAlarms(false)
         val payload = stored("london-spring-2026-03-28.json")
@@ -217,6 +291,12 @@ class ReminderAlarmsTest {
         )
         alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending)
     }
+
+    private fun fireIntent(entry: ReminderEntry): Intent =
+        Intent(ReminderAlarms.ACTION_FIRE)
+            .putExtra(ReminderAlarms.EXTRA_AT, entry.at)
+            .putExtra(ReminderAlarms.EXTRA_TITLE, entry.title)
+            .putExtra(ReminderAlarms.EXTRA_BODY, entry.body)
 
     private fun stored(name: String): ReminderPayload {
         val text = fixtureText(name)

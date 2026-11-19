@@ -21,6 +21,9 @@ class PrayerRemindersPlugin : Plugin() {
         val appContext = context.applicationContext
         // Before the new alarms, so the plugin's old batch cannot fire beside them.
         PluginReminderMigration.cancel(appContext)
+        // Every sound's channel, so the test notification can post to one
+        // before any reminder has fired.
+        ReminderSounds.ensureChannels(appContext)
         val payload = call.getString("payload")
         if (payload.isNullOrEmpty()) {
             ReminderStore.clear(appContext)

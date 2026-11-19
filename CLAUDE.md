@@ -334,6 +334,32 @@ in `src/lib/notifications.ts` uses id 9999, clear of the prayer reminders,
 which use ids 0 up to `notificationLimit` in `src/lib/reminderSchedule.ts`
 (181 on Android, 64 elsewhere).
 
+## Reminder sounds
+
+Two settings, `notifySound` and `fajrSound` (`"same"` follows the first),
+decided per reminder by `soundForPrayer` in `src/lib/reminderSound.ts`. A new
+install gets `"default"`: an adhan is opt-in. Sunrise never plays an adhan,
+and the "reminders stop here" prompt always uses the default sound.
+
+- **The adhans are numbered, never named**, in the picker and in Android's
+  channel list. Each is the opening takbir of a longer recording, cut to 30
+  seconds or less, which is iOS's limit for a notification sound.
+- **Each one ships three times**: `public/sounds/adhan-N.mp3` (the preview
+  played when it is chosen in settings), `android/app/src/main/res/raw/adhan_N.ogg`
+  and `ios/App/App/Sounds/adhan-N.caf`. `reminderSound.test.ts` fails if one
+  is missing. Adding one means all three files, a line in `REMINDER_SOUNDS`
+  and `ReminderSounds.ADHAN_COUNT`, and `ruby scripts/ios/add-reminder-sounds.rb`.
+- **Android: one channel per sound** (`ReminderSounds.kt`), because a
+  channel's sound cannot change once it exists. The ids are the sound names;
+  `default` is the channel reminders always used, so whatever the user set on
+  it stays. The payload only carries `sound` when it is not the default,
+  which keeps the 11,000 entry list the size it was and the older fixtures
+  unchanged. Every sync creates any missing channel, so the test
+  notification, posted by the plugin, has one to land on.
+- **iOS: the sound is a file name** at the root of the app bundle. Leaving
+  `sound` out is silence, which is how every iOS reminder used to arrive;
+  `"default"`, a name with no file, is the system sound.
+
 ## Theming
 
 One setting, `theme`, with four values: `system` (default), `light`, `dark`,
