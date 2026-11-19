@@ -83,6 +83,7 @@ function renderList() {
       onLocationChange={() => {}}
       onAsrMethodChange={() => {}}
       onThemeChange={() => {}}
+      onTimeFormatChange={() => {}}
       onShowTimesInDeviceZoneChange={() => {}}
     />
   );

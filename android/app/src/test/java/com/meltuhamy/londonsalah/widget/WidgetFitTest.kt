@@ -56,6 +56,35 @@ class WidgetFitTest {
         assertTrue(report(problems), problems.isEmpty())
     }
 
+    /**
+     * The app writes the clock strings, so a 12-hour setting changes every one
+     * of them ("2:01" rather than "14:01"). They carry no AM or PM and are
+     * never wider than the 24-hour ones, but the widgets are only known to
+     * fit what they have been measured with.
+     */
+    @Test
+    fun `every widget fits a 12-hour clock`() {
+        val problems = mutableListOf<String>()
+
+        for ((kind, sizes) in WidgetHarness.SIZES) {
+            for (size in sizes) {
+                for ((now, clock) in worstCases) {
+                    for (mode in CountdownMode.values()) {
+                        val config = WidgetConfig(palette = WidgetPalette.LIGHT, countdown = mode)
+                        val widget = draw(
+                            kind, size, config, now, PayloadFixture.forJan15TwelveHour()
+                        )
+                        TextFit.problems(widget.root).forEach {
+                            problems += "$kind at ${size.first}x${size.second}dp, $clock, $mode: $it"
+                        }
+                    }
+                }
+            }
+        }
+
+        assertTrue(report(problems), problems.isEmpty())
+    }
+
     @Test
     fun `every widget fits its text before the app has run`() {
         // "No times" and "Open the app" are not the lines the layouts were

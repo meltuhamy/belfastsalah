@@ -21,6 +21,7 @@ vi.mock("./notifications", () => ({
 }));
 
 vi.mock("./reminderPayload", () => ({
+  REMINDER_HORIZON_DAYS: 365,
   buildReminderPayload: (...args: unknown[]) => harness.build(...args),
 }));
 

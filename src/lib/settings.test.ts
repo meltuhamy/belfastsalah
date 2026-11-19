@@ -60,6 +60,14 @@ describe("migrateSettings", () => {
     const migrated = migrateSettings(legacyStored());
     expect(migrated.showTimesInDeviceZone).toBe(false);
     expect(migrated.timeZoneNoticeSeen).toBe(false);
+    // System follows the phone's switch, which is the least surprising
+    // default for someone who never saw the setting.
+    expect(migrated.timeFormat).toEqual("system");
+  });
+
+  it("Should keep a time format that was already chosen", () => {
+    const migrated = migrateSettings(legacyStored({ timeFormat: "12" }));
+    expect(migrated.timeFormat).toEqual("12");
   });
 
   it("Should leave already-current settings alone", () => {

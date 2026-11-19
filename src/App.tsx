@@ -4,7 +4,12 @@ import { IonApp, IonRouterOutlet, IonToast } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
 import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
-import { formatTimeInZone, getDeviceTimeZone } from "./lib/timeZone";
+import { getDeviceTimeZone } from "./lib/timeZone";
+import {
+  formatClockTime,
+  uses24Hour as resolveUses24Hour,
+} from "./lib/timeFormat";
+import { useDeviceUses24Hour } from "./lib/useTimeFormat";
 import { locationTimeZones } from "./lib/PrayerTimeData";
 import HomePage from "./pages/HomePage";
 import SettingsPage from "./pages/SettingsPage";
@@ -99,6 +104,14 @@ const App: React.FC = () => {
   const asrMethod = settings == null ? null : settings.asrMethod;
   const notificationsEnabled = settings == null ? null : settings.notify;
   const notificationMinutes = settings == null ? null : settings.notifyMinutes;
+  // The System setting resolved against the phone's own switch, kept current
+  // by the native plugin. Everything that prints a clock time reads this.
+  const timeFormat = settings == null ? null : settings.timeFormat;
+  const deviceUses24Hour = useDeviceUses24Hour();
+  const uses24Hour = resolveUses24Hour(
+    timeFormat ?? "system",
+    deviceUses24Hour
+  );
 
   // The effect below closes over one render, but a follow-up can run after
   // settings have moved on. Read these at the start of each run.
@@ -108,6 +121,8 @@ const App: React.FC = () => {
     asrMethod,
     notificationsEnabled,
     notificationMinutes,
+    timeFormat,
+    uses24Hour,
   });
   reminderInputs.current = {
     location,
@@ -115,6 +130,8 @@ const App: React.FC = () => {
     asrMethod,
     notificationsEnabled,
     notificationMinutes,
+    timeFormat,
+    uses24Hour,
   };
 
   const remindersInFlight = useRef<Promise<void> | null>(null);
@@ -153,6 +170,7 @@ const App: React.FC = () => {
           location: inputs.location,
           asrMethod: inputs.asrMethod,
           showTimesInDeviceZone: inputs.showTimesInDeviceZone === true,
+          timeFormat: inputs.timeFormat ?? "system",
         },
         now,
         silent
@@ -195,7 +213,14 @@ const App: React.FC = () => {
           // the app disagree about when the prayer is.
           title: reminderTitle(
             prayerToString(slot.prayer),
-            formatTimeInZone(slot.prayerTime, notificationZone)
+            // AM and PM stay in a notification, read on its own on the lock
+            // screen, as in Android's titles (reminderPayload.ts).
+            formatClockTime(
+              slot.prayerTime,
+              notificationZone,
+              inputs.uses24Hour,
+              { withPeriod: true }
+            )
           ),
           body: reminderBody(minutesBefore),
           id: slot.id,
@@ -269,15 +294,32 @@ const App: React.FC = () => {
     asrMethod,
     notificationsEnabled,
     notificationMinutes,
-    showTimesInDeviceZone
+    showTimesInDeviceZone,
+    timeFormat,
   ]);
+
+  // The phone's own switch changing is a refresh the user did not ask for
+  // here - it arrives when they come back from the system settings, or when
+  // the native read lands just after launch - so it reschedules silently:
+  // no toast and no permission prompt. Only System follows the switch.
+  const deviceFormatSeen = useRef(false);
+  useEffect(() => {
+    if (!deviceFormatSeen.current) {
+      deviceFormatSeen.current = true;
+      return;
+    }
+    if (timeFormat === "system") {
+      scheduleReminders(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deviceUses24Hour]);
 
   // Same dependencies as the reminder scheduling above: anything that changes
   // which times are shown changes what the widgets should say.
   useEffect(() => {
-    refreshWidgets(settings);
+    refreshWidgets(settings, undefined, uses24Hour);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location, asrMethod, showTimesInDeviceZone]);
+  }, [location, asrMethod, showTimesInDeviceZone, timeFormat, uses24Hour]);
 
   useEffect(() => {
     function handleSavedEvent() {

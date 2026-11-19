@@ -100,6 +100,39 @@ describe("buildWidgetPayload", () => {
     // Either way the instants are identical - only the rendering differs.
     expect(onDeviceClock.upcoming[0].at).toEqual(onTimetableClock.upcoming[0].at);
   });
+
+  it("Should write the widget's times in the chosen format", async () => {
+    const twelveHour = (await buildWidgetPayload(
+      settingsWith({ timeFormat: "12" }),
+      MORNING
+    ))!;
+
+    expect(twelveHour.days[0].prayers.map((p) => p.time)).toEqual([
+      "5:35",
+      "7:12",
+      "12:20",
+      "2:46",
+      "5:19",
+      "6:49",
+    ]);
+    expect(twelveHour.upcoming[0].time).toEqual("12:20");
+
+    // System follows the device, so the same settings can render either way.
+    const systemOn24 = (await buildWidgetPayload(
+      settingsWith({ timeFormat: "system" }),
+      MORNING,
+      31,
+      true
+    ))!;
+    const systemOn12 = (await buildWidgetPayload(
+      settingsWith({ timeFormat: "system" }),
+      MORNING,
+      31,
+      false
+    ))!;
+    expect(systemOn24.days[0].prayers[0].time).toEqual("05:35");
+    expect(systemOn12.days[0].prayers[0].time).toEqual("5:35");
+  });
 });
 
 describe("the days", () => {

@@ -67,6 +67,7 @@ const SetupPage: React.FC<Props> = ({ onThemePreview }) => {
               setSetting({ theme });
               onThemePreview(theme);
             }}
+            onTimeFormatChange={(timeFormat) => setSetting({ timeFormat })}
             onShowTimesInDeviceZoneChange={(showTimesInDeviceZone) =>
               setSetting({ showTimesInDeviceZone, timeZoneNoticeSeen: true })
             }

@@ -30,6 +30,7 @@
 		ABF6826B77DB8CA8535E350C /* PrayerWidgetIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = E788BBD2843B9046DCC7D757 /* PrayerWidgetIntents.swift */; };
 		B0C0921AA0F4E1140D16BF6F /* Support.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B8BE075956E498288B928AA /* Support.swift */; };
 		B6B9F22BDD01F41378C4B16F /* PrayerWidgetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F7C73A4D7C6F9880A14990E /* PrayerWidgetPlugin.swift */; };
+		B2C3D4E5F60718293A4B5C6D /* DeviceClockPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* DeviceClockPlugin.swift */; };
 		B6F0A529A3FFD6DAA9A2D126 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE79AEC13FE6CF9CA4B42F77 /* WidgetStore.swift */; };
 		B82A64292FC4A24A8D8A1CDC /* FitProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78E97BC7972EA842DA3A8FAE /* FitProbe.swift */; };
 		B85E77F689F0CA361C3D9F19 /* PrayerWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E7C96C292C681ABE4A202B1 /* PrayerWidgetView.swift */; };
@@ -110,6 +111,7 @@
 		8B030677ADC1B37697F799A2 /* WidgetFitTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetFitTests.swift; sourceTree = "<group>"; };
 		8E7C96C292C681ABE4A202B1 /* PrayerWidgetView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrayerWidgetView.swift; sourceTree = "<group>"; };
 		8F7C73A4D7C6F9880A14990E /* PrayerWidgetPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrayerWidgetPlugin.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5C /* DeviceClockPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeviceClockPlugin.swift; sourceTree = "<group>"; };
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		9A7513816E28EAA429D7BA4F /* WidgetSnapshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotTests.swift; sourceTree = "<group>"; };
@@ -196,6 +198,7 @@
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
 				8F7C73A4D7C6F9880A14990E /* PrayerWidgetPlugin.swift */,
+				A1B2C3D4E5F60718293A4B5C /* DeviceClockPlugin.swift */,
 				D25FED8C8F0736410F5264BF /* MainViewController.swift */,
 				72B0459552F099D830AFCC09 /* App.entitlements */,
 			);
@@ -437,6 +440,7 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				B6B9F22BDD01F41378C4B16F /* PrayerWidgetPlugin.swift in Sources */,
+				B2C3D4E5F60718293A4B5C6D /* DeviceClockPlugin.swift in Sources */,
 				5FAC35D5B528F9053E76FFBF /* MainViewController.swift in Sources */,
 				B6F0A529A3FFD6DAA9A2D126 /* WidgetStore.swift in Sources */,
 			);

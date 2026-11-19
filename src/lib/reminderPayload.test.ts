@@ -55,6 +55,33 @@ describe("buildReminderPayload", () => {
     expect(onDevice.reminders[0].title).toEqual("Duhr is at 15:50");
   });
 
+  it("Should write the title in the chosen format", async () => {
+    const twelveHour = (await buildReminderPayload(
+      london({ timeFormat: "12" }),
+      MORNING,
+      2
+    ))!;
+    expect(twelveHour.reminders[0].title).toEqual("Duhr is at 11:50 AM");
+
+    // System follows the device: the same settings can produce either form.
+    const systemOn12 = (await buildReminderPayload(
+      london({ timeFormat: "system" }),
+      MORNING,
+      2,
+      undefined,
+      false
+    ))!;
+    const systemOn24 = (await buildReminderPayload(
+      london({ timeFormat: "system" }),
+      MORNING,
+      2,
+      undefined,
+      true
+    ))!;
+    expect(systemOn12.reminders[0].title).toEqual("Duhr is at 11:50 AM");
+    expect(systemOn24.reminders[0].title).toEqual("Duhr is at 11:50");
+  });
+
   it("Should fire earlier for a longer lead and skip a reminder already due", async () => {
     const longer = (await buildReminderPayload(
       london({ notifyMinutes: 20 }),

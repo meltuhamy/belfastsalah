@@ -1097,6 +1097,22 @@ ${caption()}`
 - assertNotVisible: "Your device isn't on.*"
 `;
 
+    // The timetable below is compared as 24-hour strings. The app's default,
+    // System, prints whatever the phone is set to, and a simulator or
+    // emulator can be a 12-hour one, so pin the format before comparing.
+    const use24Hour = `
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Time format"
+    timeout: 20000
+- tapOn: "Time format"
+- tapOn: "24-hour"
+- tapOn: "Choose"
+- tapOn: "Home"
+- extendedWaitUntil:
+    visible: "Fajr"
+    timeout: 15000`;
+
     runStep(
       "today",
       () => `
@@ -1106,7 +1122,7 @@ ${androidLaunch()}- scrollUntilVisible:
     timeout: 20000
     centerElement: true
 - tapOn: "Done"
-${notice()}
+${notice()}${use24Hour}
 - extendedWaitUntil:
     visible: "${london.expected.Fajr}"
     timeout: 20000

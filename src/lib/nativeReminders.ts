@@ -1,6 +1,7 @@
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { AppSettings, getDefaultSettings } from "./settings";
-import { buildReminderPayload } from "./reminderPayload";
+import { buildReminderPayload, REMINDER_HORIZON_DAYS } from "./reminderPayload";
+import { getDeviceUses24Hour } from "./deviceTimeFormat";
 import {
   announceReminderChange,
   ensureNotificationPermission,
@@ -20,6 +21,7 @@ type ReminderSettings = Pick<
   | "location"
   | "asrMethod"
   | "showTimesInDeviceZone"
+  | "timeFormat"
 >;
 
 // What was last written successfully this session, and what it was made from.
@@ -68,7 +70,10 @@ export async function syncAndroidReminders(
 
   const payload = await buildReminderPayload(
     { ...getDefaultSettings(), ...settings },
-    now
+    now,
+    REMINDER_HORIZON_DAYS,
+    undefined,
+    getDeviceUses24Hour()
   );
   if (payload === null || payload.reminders.length === 0) {
     await write("", "", false);
