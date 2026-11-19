@@ -10,6 +10,7 @@ import { getAvailableYears } from "./PrayerTimeData";
 
 const londonShafi = new LondonPrayerTimes(AsrMethod.Shafi);
 const londonHanafi = new LondonPrayerTimes(AsrMethod.Hanafi);
+const belfast = new BelfastPrayerTimes();
 
 // Prayer times are stored and compared in UTC so that these tests give the
 // same result regardless of the machine's timezone.
@@ -68,8 +69,9 @@ expect.extend({
 describe("Prayer data year selection", () => {
   it("Should offer every year we ship data for", () => {
     // 2022-2025 from the older spreadsheets, 2026 on from londonsalahtimes.com.
+    // London 2027+ is calculated on the device, so files are shipped for 2022-2026.
     expect(getAvailableYears(PrayerLocation.London)).toEqual(
-      Array.from({ length: 2076 - 2022 + 1 }, (_, i) => 2022 + i)
+      Array.from({ length: 2026 - 2022 + 1 }, (_, i) => 2022 + i)
     );
     expect(getAvailableYears(PrayerLocation.Belfast)).toEqual([2019]);
   });
@@ -93,12 +95,18 @@ describe("Prayer data year selection", () => {
     expect(dayTimes[Prayer.Fajr].prayer).toEqual(Prayer.Fajr);
   });
 
-  it("Should clamp to the latest year we have when asked for a future one", async () => {
-    // 2099 is beyond our data, so it falls back to the latest (2076), whose
-    // 4 March Fajr is 04:57.
+  it("Should calculate on the device for London years beyond 2026", async () => {
+    // London 2027+ (including post-2076) is calculated on the device rather
+    // than clamped to a file. 2099-03-04 Fajr is 04:58 UTC.
     const dayTimes = await londonShafi.getDay(utc(2099, 3, 4));
     expect(dayTimes[Prayer.Fajr].time.getUTCHours()).toEqual(4);
-    expect(dayTimes[Prayer.Fajr].time.getUTCMinutes()).toEqual(57);
+    expect(dayTimes[Prayer.Fajr].time.getUTCMinutes()).toEqual(58);
+  });
+
+  it("Should clamp to the latest year we have when asked for a future one for Belfast", async () => {
+    // Belfast only has 2019 data, so asking for 2099 falls back to 2019.
+    const dayTimes = await belfast.getDay(utc(2099, 3, 4));
+    expect(dayTimes[Prayer.Fajr].prayer).toEqual(Prayer.Fajr);
   });
 });
 
@@ -378,8 +386,6 @@ describe("London Prayer Times", () => {
 });
 
 describe("Belfast Prayer Times", () => {
-  const belfast = new BelfastPrayerTimes();
-
   // 2019-07-08: ["7","8","01:58","03:56","12:30","16:57",null,"21:01","22:50"]
   it("Should allow getting a prayer day", async () => {
     const julyEighthTimes = await belfast.getDay(utc(2019, 7, 8, 6));
