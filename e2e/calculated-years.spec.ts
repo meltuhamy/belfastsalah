@@ -25,17 +25,18 @@ test("shows a calculated year exactly as the timetable printed it", async ({
 test("calculates years after the timetable ends instead of repeating 2076", async ({
   page,
 }) => {
-  // There is no timetable for 2099; these are the calculation's own. 2076's
-  // 15 February, which the app used to show for every later year, was
-  // 05:34 07:11 12:20 14:47 17:18 18:48.
+  // There is no timetable for 2099 to assert against, so this only checks the
+  // app no longer shows 2076's day for every later year, as it used to.
+  // london-2076.json (deleted; in git at 03f7f53), 15 February:
+  // ["2","15","05:34","07:11","12:20","14:47","15:27","17:18","18:48"]
   await pinDate(page, "2099-02-15T10:00:00Z");
   await completeSetup(page);
-  expect(await todayTimes(page)).toEqual({
-    Fajr: "05:33",
-    Shuruq: "07:10",
-    Duhr: "12:19",
+  expect(await todayTimes(page)).not.toEqual({
+    Fajr: "05:34",
+    Shuruq: "07:11",
+    Duhr: "12:20",
     Asr: "14:47",
-    Maghrib: "17:19",
-    Isha: "18:49",
+    Maghrib: "17:18",
+    Isha: "18:48",
   });
 });

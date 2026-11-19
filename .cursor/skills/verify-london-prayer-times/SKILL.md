@@ -5,7 +5,7 @@ description: Drive London Prayer Times (meltuhamy/belfastsalah) on the Vite web 
 
 # Verify London Prayer Times
 
-The app is one React UI on three surfaces: the Vite web app, the Capacitor iOS shell, and the Capacitor Android shell. Home-screen widgets exist only in the native shells. Prayer times are compiled in from `src/prayer_data/`. There is no database and no seed step.
+The app is one React UI on three surfaces: the Vite web app, the Capacitor iOS shell, and the Capacitor Android shell. Home-screen widgets exist only in the native shells. Prayer times are compiled in from `src/prayer_data/`, except London from 2027 on, which the app calculates (`src/lib/londonCalculation.ts`). There is no database and no seed step.
 
 On the web, settings live in `localStorage` under `CapacitorStorage.settings` (`@capacitor/preferences`). A browser context with empty storage shows **Set up** until **Done**. On a phone, the same key is the native Preferences store. Quitting and opening the app again, without clearing the app, is the persistence check. A reload in the browser is the web equivalent.
 
@@ -153,7 +153,7 @@ Smoke proof:
 node .cursor/skills/verify-london-prayer-times/drive.mjs today
 ```
 
-Empty storage, **Set up**, **Done**, read the six times, compare them to today's row in `src/prayer_data/london-<year>.json` (Shafi asr, the first asr column, each UTC instant formatted in `Europe/London`), read `CapacitorStorage.settings`, reload, and read the strip again. It does not call React setters and it does not freeze the clock. Between Isha and London midnight the strip and the date on the card are tomorrow's, and the **Tomorrow** badge is up, so that is the row and the date the drive expects then (`stripDay` in `timetable.mjs`). Exit 0 only when the strip matches the timetable and the reload still shows home.
+Empty storage, **Set up**, **Done**, read the six times, compare them to today's row in `src/prayer_data/london-<year>.json`, or from 2027 on in what `calculateLondonYear` gives for the year (Shafi asr, the first asr column, each UTC instant formatted in `Europe/London`), read `CapacitorStorage.settings`, reload, and read the strip again. It does not call React setters and it does not freeze the clock. Between Isha and London midnight the strip and the date on the card are tomorrow's, and the **Tomorrow** badge is up, so that is the row and the date the drive expects then (`stripDay` in `timetable.mjs`). Exit 0 only when the strip matches the timetable and the reload still shows home.
 
 `npm run test:e2e` is the web regression suite. It pins the clock with `page.clock.setFixedTime` before `goto`, uses port 5173, and writes an HTML report, not this skill's evidence directory. Use it for the suite. Use `drive.mjs` for proof against the server you launched. The feature files name the spec that covers each journey.
 
