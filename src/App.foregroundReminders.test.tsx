@@ -36,8 +36,24 @@ const harness = vi.hoisted(() => {
     }
   );
   const state: { listener: StateListener | null } = { listener: null };
-  return { settings, clearAndSetNotifications, state };
+  // The phone's 12/24-hour switch, as the native plugin would report it.
+  const device = {
+    uses24Hour: true,
+    listeners: new Set<(uses24Hour: boolean) => void>(),
+  };
+  return { settings, clearAndSetNotifications, state, device };
 });
+
+vi.mock("./lib/deviceTimeFormat", () => ({
+  getDeviceUses24Hour: () => harness.device.uses24Hour,
+  startDeviceTimeFormatWatch: async () => {},
+  subscribeDeviceUses24Hour: (listener: (uses24Hour: boolean) => void) => {
+    harness.device.listeners.add(listener);
+    return () => {
+      harness.device.listeners.delete(listener);
+    };
+  },
+}));
 
 vi.mock("./lib/useSettings", () => ({
   useSettings: () => [harness.settings.current, async () => {}, true],
@@ -95,6 +111,7 @@ describe("reminder scheduling when the app returns to the foreground", () => {
   beforeEach(() => {
     harness.settings.current = enabledSettings();
     harness.state.listener = null;
+    harness.device.uses24Hour = true;
     harness.clearAndSetNotifications.mockReset();
     harness.clearAndSetNotifications.mockImplementation(() => Promise.resolve());
     vi.useFakeTimers({ toFake: ["Date"] });
@@ -180,6 +197,53 @@ describe("reminder scheduling when the app returns to the foreground", () => {
     expect(scheduled[0].schedule.at).toEqual(new Date("2026-11-16T11:30:00Z"));
     expect(scheduled[63].body).toEqual("Open the app to keep them coming.");
     expect(scheduled[63].schedule.at).toEqual(new Date("2026-11-26T16:02:00Z"));
+  });
+
+  it("Should keep AM and PM in a 12-hour reminder's title", async () => {
+    // Only notifications carry the half of the day; everything on screen
+    // leaves it off. Android's titles come from reminderPayload.ts.
+    harness.settings.current = { ...enabledSettings(), timeFormat: "12" };
+    renderApp();
+
+    await waitFor(() => {
+      expect(harness.clearAndSetNotifications).toHaveBeenCalledTimes(1);
+    });
+
+    const scheduled = harness.clearAndSetNotifications.mock.calls[0][0] as Array<{
+      title: string;
+    }>;
+    expect(scheduled[0].title).toMatch(/^Duhr is at 11:50\sAM$/);
+    expect(scheduled[1].title).toMatch(/^Asr is at 1:48\sPM$/);
+  });
+
+  it("Should follow the phone's switch on System, quietly", async () => {
+    harness.settings.current = { ...enabledSettings(), timeFormat: "system" };
+    renderApp();
+
+    await waitFor(() => {
+      expect(harness.clearAndSetNotifications).toHaveBeenCalledTimes(1);
+    });
+    const first = harness.clearAndSetNotifications.mock.calls[0][0] as Array<{
+      title: string;
+    }>;
+    expect(first[1].title).toEqual("Asr is at 13:48");
+
+    // Turned to 12-hour in the system settings while the app was open.
+    await act(async () => {
+      harness.device.uses24Hour = false;
+      harness.device.listeners.forEach((listener) => listener(false));
+    });
+
+    await waitFor(() => {
+      expect(harness.clearAndSetNotifications).toHaveBeenCalledTimes(2);
+    });
+    const [second, silent] = harness.clearAndSetNotifications.mock.calls[1] as [
+      Array<{ title: string }>,
+      boolean,
+    ];
+    expect(second[1].title).toMatch(/^Asr is at 1:48\sPM$/);
+    // Not a change made in the app, so no toast and no permission prompt.
+    expect(silent).toBe(true);
   });
 
   it("Should clear pending reminders on foreground when they are switched off", async () => {
