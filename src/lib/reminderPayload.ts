@@ -116,7 +116,9 @@ export async function buildReminderPayload(
           at: fireAt,
           title: reminderTitle(
             prayerToString(prayerTime.prayer),
-            formatClockTime(prayerTime.time, displayZone, twentyFourHour)
+            formatClockTime(prayerTime.time, displayZone, twentyFourHour, {
+              withPeriod: true,
+            })
           ),
           body,
         });

@@ -21,10 +21,10 @@ object PayloadFixture {
 
     /**
      * The same day on a 12-hour clock. The app writes these strings, so this is
-     * what the widgets have to draw when the time format setting is 12-hour.
-     * "12:15 PM" is the widest, and the reason WidgetFitTest has a case for it.
+     * what the widgets have to draw when the time format setting is 12-hour:
+     * no AM or PM, since the prayer's name already says which half of the day.
      */
-    val TIMES_12 = listOf("6:20 AM", "7:57 AM", "12:15 PM", "2:01 PM", "4:23 PM", "6:00 PM")
+    val TIMES_12 = listOf("6:20", "7:57", "12:15", "2:01", "4:23", "6:00")
 
     const val FAJR = 0
     const val DUHR = 2
@@ -37,7 +37,7 @@ object PayloadFixture {
     /** The 16th, which a widget shows once the 15th's Isha has gone. */
     val TOMORROW_TIMES = listOf("06:19", "07:56", "12:15", "14:03", "16:25", "18:02")
     val TOMORROW_TIMES_12 =
-        listOf("6:19 AM", "7:56 AM", "12:15 PM", "2:03 PM", "4:25 PM", "6:02 PM")
+        listOf("6:19", "7:56", "12:15", "2:03", "4:25", "6:02")
     const val TOMORROW_DATE = "Fri 16 Jan"
 
     private const val MINUTE = 60_000L

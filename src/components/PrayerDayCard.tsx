@@ -137,11 +137,7 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
           <IonSkeletonText animated />
         </div>
       ) : (
-        <div
-          className="PrayerDayCard__strip"
-          data-testid="prayer-strip"
-          data-hour12={uses24 ? undefined : "true"}
-        >
+        <div className="PrayerDayCard__strip" data-testid="prayer-strip">
           {strip.map((prayerTime) => (
             <div
               key={prayerTime.prayer}

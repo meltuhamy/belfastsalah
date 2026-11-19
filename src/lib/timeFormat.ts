@@ -63,7 +63,13 @@ function clockFormatter(
 }
 
 /**
- * A clock time in `timeZone`, in the chosen format: "05:16" or "5:16 AM".
+ * A clock time in `timeZone`, in the chosen format: "05:16" or "5:16".
+ *
+ * The 12-hour clock leaves out AM and PM unless asked for them. Next to a
+ * prayer's name the half of the day is never in doubt - Fajr is not in the
+ * afternoon - and the suffix made every time half again as wide, which the
+ * strip and the widgets had no room for. A notification, read on its own on
+ * the lock screen, asks for it.
  *
  * Cached like the formatters in timeZone.ts: the app re-renders every second
  * off the countdown ticker, and building an ICU formatter each time is work
@@ -72,7 +78,18 @@ function clockFormatter(
 export function formatClockTime(
   instant: Date,
   timeZone: string,
-  twentyFourHour: boolean
+  twentyFourHour: boolean,
+  { withPeriod = false }: { withPeriod?: boolean } = {}
 ): string {
-  return clockFormatter(timeZone, twentyFourHour).format(instant);
+  const formatter = clockFormatter(timeZone, twentyFourHour);
+  if (twentyFourHour || withPeriod) {
+    return formatter.format(instant);
+  }
+  // Built from the parts rather than by trimming the string: ICU puts a
+  // narrow no-break space before "AM" in some versions and a plain one in
+  // others.
+  const parts = formatter.formatToParts(instant);
+  const hour = parts.find((p) => p.type === "hour")?.value;
+  const minute = parts.find((p) => p.type === "minute")?.value;
+  return `${hour}:${minute}`;
 }

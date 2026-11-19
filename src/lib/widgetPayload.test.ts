@@ -108,14 +108,14 @@ describe("buildWidgetPayload", () => {
     ))!;
 
     expect(twelveHour.days[0].prayers.map((p) => p.time)).toEqual([
-      "5:35 AM",
-      "7:12 AM",
-      "12:20 PM",
-      "2:46 PM",
-      "5:19 PM",
-      "6:49 PM",
+      "5:35",
+      "7:12",
+      "12:20",
+      "2:46",
+      "5:19",
+      "6:49",
     ]);
-    expect(twelveHour.upcoming[0].time).toEqual("12:20 PM");
+    expect(twelveHour.upcoming[0].time).toEqual("12:20");
 
     // System follows the device, so the same settings can render either way.
     const systemOn24 = (await buildWidgetPayload(
@@ -131,7 +131,7 @@ describe("buildWidgetPayload", () => {
       false
     ))!;
     expect(systemOn24.days[0].prayers[0].time).toEqual("05:35");
-    expect(systemOn12.days[0].prayers[0].time).toEqual("5:35 AM");
+    expect(systemOn12.days[0].prayers[0].time).toEqual("5:35");
   });
 });
 

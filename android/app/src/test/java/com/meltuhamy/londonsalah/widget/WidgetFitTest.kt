@@ -57,10 +57,10 @@ class WidgetFitTest {
     }
 
     /**
-     * The app writes the clock strings, so a 12-hour setting makes every one
-     * of them longer: "11:51 AM" is half again the width of "11:51". A widget
-     * that was sized for the timetable's own clock clips the suffix, and a
-     * clipped suffix is invisible - "5:42" looks like a time.
+     * The app writes the clock strings, so a 12-hour setting changes every one
+     * of them ("2:01" rather than "14:01"). They carry no AM or PM and are
+     * never wider than the 24-hour ones, but the widgets are only known to
+     * fit what they have been measured with.
      */
     @Test
     fun `every widget fits a 12-hour clock`() {

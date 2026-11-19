@@ -18,6 +18,10 @@ export default defineConfig({
     // most of these tests behave differently on a US machine, or in winter.
     // Specs about that behaviour set their own zone with test.use.
     timezoneId: "Europe/London",
+    // Likewise the clock: the time format defaults to System, which on the web
+    // follows the locale, and Playwright's default en-US is a 12-hour one. The
+    // timetable prints a 24-hour clock, so the specs read it in en-GB.
+    locale: "en-GB",
   },
   projects: [
     {

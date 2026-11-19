@@ -129,29 +129,17 @@ object WidgetRenderer {
         val payload = WidgetPayload.parse(WidgetStore.read(context))
         val next = payload?.nextAfter(nowMillis)
         val day = if (payload != null && next != null) payload.dayOf(next) else null
-        // "11:51 AM" is half again as wide as "11:51", and the layouts were
-        // sized around the timetable's own clock. The strings are written by
-        // the app, so the widget can tell the two apart from them without
-        // knowing about the setting.
-        val twelveHour = payload?.twelveHourClock() == true
 
         return when (kind) {
             WidgetKind.TILE ->
                 renderTile(context, views, config, payload, next, sizeDp, nowMillis)
             WidgetKind.COMPACT ->
-                renderInline(context, views, config, day, next, COMPACT_IDS, nowMillis, 10f, twelveHour)
+                renderInline(context, views, config, day, next, COMPACT_IDS, nowMillis)
             WidgetKind.COLUMN ->
-                renderInline(context, views, config, day, next, COLUMN_IDS_INLINE, nowMillis, 11f, twelveHour)
-            WidgetKind.WIDE ->
-                renderTimetable(context, views, config, payload, day, next, nowMillis, 10f, twelveHour)
-            WidgetKind.TALL ->
-                renderTimetable(context, views, config, payload, day, next, nowMillis, 11f, twelveHour)
+                renderInline(context, views, config, day, next, COLUMN_IDS_INLINE, nowMillis)
+            else -> renderTimetable(context, views, config, payload, day, next, nowMillis)
         }
     }
-
-    /** Whether any clock string in this payload carries AM or PM. */
-    private fun WidgetPayload.twelveHourClock(): Boolean =
-        days.any { day -> day.prayers.any { it.time.endsWith(" AM") || it.time.endsWith(" PM") } }
 
     /**
      * The whole timetable, with no room for a countdown of its own.
@@ -169,16 +157,9 @@ object WidgetRenderer {
         day: WidgetDay?,
         next: WidgetUpcoming?,
         ids: InlineIds,
-        nowMillis: Long,
-        twelveHourSp: Float,
-        twelveHour: Boolean
+        nowMillis: Long
     ): RemoteViews {
         views.setOnClickPendingIntent(ids.root, openApp(context))
-        if (twelveHour) {
-            for (id in ids.times) {
-                views.setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_SP, twelveHourSp)
-            }
-        }
         views.setInt(ids.root, "setBackgroundColor", config.backgroundColor(context))
 
         val primary = config.primaryTextColor(context)
@@ -288,16 +269,9 @@ object WidgetRenderer {
         payload: WidgetPayload?,
         day: WidgetDay?,
         next: WidgetUpcoming?,
-        nowMillis: Long,
-        twelveHourSp: Float?,
-        twelveHour: Boolean
+        nowMillis: Long
     ): RemoteViews {
         views.setOnClickPendingIntent(R.id.widget_root, openApp(context))
-        if (twelveHour && twelveHourSp != null) {
-            for (id in TIME_IDS) {
-                views.setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_SP, twelveHourSp)
-            }
-        }
 
         val primary = config.primaryTextColor(context)
         val secondary = config.secondaryTextColor(context)
