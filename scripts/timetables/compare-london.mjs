@@ -59,7 +59,7 @@ for (let year = from; year <= to; year++) {
     }
     columns.forEach((c, k) => {
       if (g[k + 2] === w[k + 2]) return;
-      const raw = L.londonTimes(year, +w[0], +w[1])[c];
+      const raw = L.londonTimes?.(year, +w[0], +w[1])[c];
       const past = raw === undefined ? "" : ` (+${(raw % 1).toFixed(5)})`;
       misses[c].push(`${year}-${w[0]}-${w[1]} file ${w[k + 2]} calc ${g[k + 2]}${past}`);
     });

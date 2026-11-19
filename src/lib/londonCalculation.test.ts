@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { calculateLondonYear, londonTimes } from "./londonCalculation";
+import { calculateLondonYear } from "./londonCalculation";
 
 // The London Unified Prayer Timetable's files for 2027 to 2076 are no longer
 // shipped: the app calculates those years. This is what proves the
@@ -29,7 +29,7 @@ describe("London calculation", () => {
   // anyone reaches for the script.
   it.each([
     [2030, ["7", "8", "01:58", "03:51", "12:11", "16:28", "17:41", "20:21", "21:31"]],
-    // The two days the calculation's rounding is overridden on.
+    // The two days adhan's method corrects to the published rounding.
     [2057, ["2", "10", "05:43", "07:20", "12:20", "14:41", "15:19", "17:10", "18:41"]],
     [2064, ["3", "10", "04:44", "06:21", "12:16", "15:17", "16:04", "18:00", "19:22"]]
   ])("Should match the %s file's row for %j", (year, row) => {
@@ -73,10 +73,4 @@ describe("London calculation", () => {
     expect(calculateLondonYear(2077)).not.toEqual(calculateLondonYear(2076));
   });
 
-  it("Should only override roundings that really are on the half minute", () => {
-    // 07:20 and 12:16 in the files. The calculation is within milliseconds of
-    // both, so the overrides cannot be hiding a real error.
-    expect(londonTimes(2057, 2, 10).sunrise % 1).toBeCloseTo(0.5, 3);
-    expect(londonTimes(2064, 3, 10).zuhr % 1).toBeCloseTo(0.5, 3);
-  });
 });

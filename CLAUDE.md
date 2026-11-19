@@ -360,23 +360,42 @@ with the files, which meant London users were served the 2024 timetable
 throughout 2025 and 2026.
 
 London after 2026 has no files: `src/lib/londonCalculation.ts` calculates
-it on the device, as the London Unified Prayer Timetable's
-[technical page](https://londonsalahtimes.com/technical/) describes, with the
-sun's position from adhan-js's Meeus code (`adhan/lib/esm/Astronomical`; not
-its `PrayerTimes`, which interpolates and misses the timetable by a minute on
-a third of days). Fajr and Isha are a fixed gap per calendar day,
-`londonGaps.ts`. `getPrayerData` calculates any London year past the last
-file, so years after 2076 work too.
+it on the device with adhan-js's `CalculationMethod.LondonUnified()` at
+Charing Cross, which reproduces the London Unified Prayer Timetable
+([technical page](https://londonsalahtimes.com/technical/)) to the minute.
+`getPrayerData` calculates any London year past the last file, so years
+after 2076 work too.
 
 - `londonCalculation.test.ts` pins the calculation to a hash of the 2027 to
   2076 files as they were at 03f7f53, the last commit that had them: all seven
-  times, every day. Two days are rounding overrides, commented in the code.
+  times, every day. It is what proves an adhan-js upgrade still matches.
 - `node scripts/timetables/compare-london.mjs [from] [to]` is the loop for
   working on it: in about a second it diffs the calculation against those
   files (read back from git) and prints how many days each time differs on,
   with the first few. Run it after any change to the calculation.
 - Do not re-import 2027 onwards with `lupt-to-utc-json.js`: a file for a year
   takes over from the calculation for that year.
+
+### The vendored adhan-js
+
+`adhan` is not the npm package. It is `vendor/adhan-<version>-london.<n>.tgz`,
+built by the private repo `meltuhamy/adhan-london`: upstream adhan-js
+`develop` plus the London Unified method (`SolarModel.Noon`, per-day
+`fajrInterval`/`ishaInterval`, `methodDailyAdjustments`,
+`CalculationMethod.LondonUnified()`) and that repo's own build plumbing.
+
+- **Never edit or rebuild the tarball here.** Its `london-sync` workflow
+  rebases onto upstream every Monday, runs adhan's tests (including an
+  exact published-times fixture), releases the tarball there, and opens a
+  pull request here that swaps the file and the lockfile. The lockfile's
+  `integrity` is the release's sha512, so `npm ci` refuses anything else.
+- **Dependabot does not see it** - `file:` dependencies are skipped - and
+  needs nothing: that pull request is the update.
+- **Its CI is the check that matters**: `londonCalculation.test.ts` fails on
+  any London day from 2027 to 2076 that moves.
+- There is only ever one tarball in `vendor/`; history keeps the old ones.
+- If upstream adhan-js ever ships the London method, go back to the npm
+  package and archive `adhan-london`.
 
 The London files that remain are generated, so regenerate rather than
 editing them by hand:
