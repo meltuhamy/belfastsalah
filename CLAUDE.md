@@ -359,16 +359,34 @@ nothing else. It used to be a hardcoded list that silently fell out of step
 with the files, which meant London users were served the 2024 timetable
 throughout 2025 and 2026.
 
-The London files are generated, so regenerate rather than editing them by
-hand:
+London after 2026 has no files: `src/lib/londonCalculation.ts` calculates
+it on the device, as the London Unified Prayer Timetable's
+[technical page](https://londonsalahtimes.com/technical/) describes, with the
+sun's position from adhan-js's Meeus code (`adhan/lib/esm/Astronomical`; not
+its `PrayerTimes`, which interpolates and misses the timetable by a minute on
+a third of days). Fajr and Isha are a fixed gap per calendar day,
+`londonGaps.ts`. `getPrayerData` calculates any London year past the last
+file, so years after 2076 work too.
 
-- **2026 to 2076** come from the official London Unified Prayer Timetable,
-  `node scripts/timetables/lupt-to-utc-json.js 2026 2076`, which downloads
-  each year's .xlsx from londonsalahtimes.com/downloads into
-  `scripts/timetables/data/lupt` (not committed). Those sheets change their
-  clocks on the real dates, and the script refuses one that does not. The
-  2026 file only has a 12-hour sheet, which the script turns back into
-  24-hour times.
+- `londonCalculation.test.ts` pins the calculation to a hash of the 2027 to
+  2076 files as they were at 03f7f53, the last commit that had them: all seven
+  times, every day. Two days are rounding overrides, commented in the code.
+- `node scripts/timetables/compare-london.mjs [from] [to]` is the loop for
+  working on it: in about a second it diffs the calculation against those
+  files (read back from git) and prints how many days each time differs on,
+  with the first few. Run it after any change to the calculation.
+- Do not re-import 2027 onwards with `lupt-to-utc-json.js`: a file for a year
+  takes over from the calculation for that year.
+
+The London files that remain are generated, so regenerate rather than
+editing them by hand:
+
+- **2026** comes from the official timetable,
+  `node scripts/timetables/lupt-to-utc-json.js 2026 2026`, which downloads the
+  .xlsx from londonsalahtimes.com/downloads into
+  `scripts/timetables/data/lupt` (not committed). It only has a 12-hour
+  sheet, which the script turns back into 24-hour times, and the script
+  refuses a sheet that does not change its clocks on the real dates.
 - **2022 to 2025** come from the CSVs in `scripts/timetables/data`, through
   `scripts/timetables/spreadsheet-to-utc-json.js`. 2025's sheet moves its
   clocks on 1 April and 28 October, not on the real dates, so that script

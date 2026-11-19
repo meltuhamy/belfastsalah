@@ -6,7 +6,7 @@ import {
   Prayer,
   PrayerLocation
 } from "./PrayerTimes";
-import { getAvailableYears } from "./PrayerTimeData";
+import { getAvailableYears, getPrayerData } from "./PrayerTimeData";
 
 const londonShafi = new LondonPrayerTimes(AsrMethod.Shafi);
 const londonHanafi = new LondonPrayerTimes(AsrMethod.Hanafi);
@@ -67,10 +67,11 @@ expect.extend({
 
 describe("Prayer data year selection", () => {
   it("Should offer every year we ship data for", () => {
-    // 2022-2025 from the older spreadsheets, 2026 on from londonsalahtimes.com.
-    expect(getAvailableYears(PrayerLocation.London)).toEqual(
-      Array.from({ length: 2076 - 2022 + 1 }, (_, i) => 2022 + i)
-    );
+    // 2022-2025 from the older spreadsheets, 2026 from londonsalahtimes.com.
+    // Later London years are calculated (londonCalculation.ts).
+    expect(getAvailableYears(PrayerLocation.London)).toEqual([
+      2022, 2023, 2024, 2025, 2026
+    ]);
     expect(getAvailableYears(PrayerLocation.Belfast)).toEqual([2019]);
   });
 
@@ -93,12 +94,28 @@ describe("Prayer data year selection", () => {
     expect(dayTimes[Prayer.Fajr].prayer).toEqual(Prayer.Fajr);
   });
 
-  it("Should clamp to the latest year we have when asked for a future one", async () => {
-    // 2099 is beyond our data, so it falls back to the latest (2076), whose
-    // 4 March Fajr is 04:57.
-    const dayTimes = await londonShafi.getDay(utc(2099, 3, 4));
-    expect(dayTimes[Prayer.Fajr].time.getUTCHours()).toEqual(4);
-    expect(dayTimes[Prayer.Fajr].time.getUTCMinutes()).toEqual(57);
+  it("Should calculate London years after its last file", async () => {
+    // 4 March 2027 in the timetable's file, which the app no longer ships:
+    // ["3","4","04:59","06:36","12:17","15:09","15:54","17:48","19:13"]
+    const dayTimes = await londonShafi.getDay(utc(2027, 3, 4));
+    expect(dayTimes[Prayer.Fajr]).toBePrayer(Prayer.Fajr, utc(2027, 3, 4, 4, 59));
+    expect(dayTimes[Prayer.Asr]).toBePrayer(Prayer.Asr, utc(2027, 3, 4, 15, 9));
+    expect(dayTimes[Prayer.Isha]).toBePrayer(Prayer.Isha, utc(2027, 3, 4, 19, 13));
+  });
+
+  it("Should calculate years past 2076 rather than repeat the last one", async () => {
+    // Before London was calculated, 2099 was served 2076's file.
+    const in2099 = await londonShafi.getDay(utc(2099, 3, 4));
+    expect(in2099[Prayer.Fajr].time.getUTCFullYear()).toBe(2099);
+    const year2099 = await getPrayerData(PrayerLocation.London, AsrMethod.Shafi, 2099);
+    const year2076 = await getPrayerData(PrayerLocation.London, AsrMethod.Shafi, 2076);
+    expect(year2099).not.toEqual(year2076);
+  });
+
+  it("Should still clamp Belfast to its one year", async () => {
+    const year2030 = await getPrayerData(PrayerLocation.Belfast, AsrMethod.Shafi, 2030);
+    const year2019 = await getPrayerData(PrayerLocation.Belfast, AsrMethod.Shafi, 2019);
+    expect(year2030).toBe(year2019);
   });
 });
 

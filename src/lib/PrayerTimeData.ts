@@ -1,5 +1,6 @@
 import { Prayer, AsrMethod } from "./PrayerTimes";
 import { UK_TIME_ZONE, getZonedDateParts } from "./timeZone";
+import { calculateLondonYear } from "./londonCalculation";
 
 export enum PrayerLocation {
   London = "london",
@@ -131,21 +132,36 @@ export function getAvailableYears(location: PrayerLocation): Array<number> {
     .sort((a, b) => a - b);
 }
 
+// London's times after its last file are calculated on the device, the way
+// the timetable itself calculates them (londonCalculation.ts). The files that
+// remain, 2022 to 2026, came from older spreadsheets that differ from the
+// calculation by a minute on many days, and are what users already saw.
+const calculators: Partial<
+  Record<PrayerLocation, (year: number) => Array<PrayerDataRow>>
+> = {
+  [PrayerLocation.London]: calculateLondonYear
+};
+
 // Pick the closest year we can actually serve: an exact match when we have
-// it, otherwise the nearest year above, otherwise the latest year we hold.
+// a file, otherwise the nearest year above. After the last file a location
+// that can be calculated is calculated for the year itself; one that cannot
+// gets its latest file.
 function getAvailableYear(
   targetYear: number,
   location: PrayerLocation
-): number {
+): { year: number; calculated: boolean } {
   const availableYears = getAvailableYears(location);
 
   for (let i = 0; i < availableYears.length; i++) {
     if (availableYears[i] >= targetYear) {
-      return availableYears[i];
+      return { year: availableYears[i], calculated: false };
     }
   }
 
-  return availableYears[availableYears.length - 1];
+  if (calculators[location]) {
+    return { year: targetYear, calculated: true };
+  }
+  return { year: availableYears[availableYears.length - 1], calculated: false };
 }
 
 const getPrayerYearCache: Map<string, PrayerYear> = new Map();
@@ -154,15 +170,17 @@ export async function getPrayerData(
   asrMethod: AsrMethod,
   targetYear: number
 ): Promise<PrayerYear> {
-  const year = getAvailableYear(targetYear, location);
+  const { year, calculated } = getAvailableYear(targetYear, location);
   const cacheKey = JSON.stringify({ location, asrMethod, year });
   const cacheResult = getPrayerYearCache.get(cacheKey);
   if (cacheResult) {
     return cacheResult;
   }
 
-  const data = await prayerDataLoaders[location][year]();
-  const prayerYear = parsePrayerData(data.default, asrMethod);
+  const rows = calculated
+    ? calculators[location]!(year)
+    : (await prayerDataLoaders[location][year]()).default;
+  const prayerYear = parsePrayerData(rows, asrMethod);
   getPrayerYearCache.set(cacheKey, prayerYear);
   return prayerYear;
 }

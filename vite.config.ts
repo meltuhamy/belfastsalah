@@ -17,6 +17,12 @@ export default defineConfig({
   server: {
     port: 3000,
   },
+  // londonCalculation.ts imports adhan-js's Astronomical module directly; the
+  // package's public entry does not export it. adhan's ESM build uses
+  // extensionless imports, which the bundler resolves but Node does not, so
+  // anything that runs it under Node (vitest, scripts/timetables) has Vite
+  // transform it instead of handing it to Node.
+  ssr: { noExternal: ["adhan"] },
   test: {
     globals: true,
     // Per-file jsdom setup is the largest cost in the suite, and only the
@@ -30,5 +36,6 @@ export default defineConfig({
     // own zone, so the suite has to pass wherever the machine happens to be -
     // run it under several with npm run test:zones.
     env: { TZ: process.env.TZ ?? "Europe/London" },
+    server: { deps: { inline: ["adhan"] } },
   },
 });
