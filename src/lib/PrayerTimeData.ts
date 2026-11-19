@@ -1,5 +1,6 @@
 import { Prayer, AsrMethod } from "./PrayerTimes";
 import { UK_TIME_ZONE, getZonedDateParts } from "./timeZone";
+import { calculateLondonPrayerTimes } from "./londonCalculation";
 
 export enum PrayerLocation {
   London = "london",
@@ -154,15 +155,26 @@ export async function getPrayerData(
   asrMethod: AsrMethod,
   targetYear: number
 ): Promise<PrayerYear> {
-  const year = getAvailableYear(targetYear, location);
+  const isCalculatedLondon =
+    location === PrayerLocation.London && targetYear >= 2027;
+  const year = isCalculatedLondon
+    ? targetYear
+    : getAvailableYear(targetYear, location);
   const cacheKey = JSON.stringify({ location, asrMethod, year });
   const cacheResult = getPrayerYearCache.get(cacheKey);
   if (cacheResult) {
     return cacheResult;
   }
 
-  const data = await prayerDataLoaders[location][year]();
-  const prayerYear = parsePrayerData(data.default, asrMethod);
+  let rawRows: Array<PrayerDataRow>;
+  if (isCalculatedLondon) {
+    rawRows = calculateLondonPrayerTimes(year);
+  } else {
+    const data = await prayerDataLoaders[location][year]();
+    rawRows = data.default;
+  }
+
+  const prayerYear = parsePrayerData(rawRows, asrMethod);
   getPrayerYearCache.set(cacheKey, prayerYear);
   return prayerYear;
 }
