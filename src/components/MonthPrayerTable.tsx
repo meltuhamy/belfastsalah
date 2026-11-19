@@ -8,19 +8,22 @@ import {
   AsrMethod,
 } from "../lib/PrayerTimes";
 import { AppContext } from "../State";
-import { getZonedDateParts, formatTimeInZone } from "../lib/timeZone";
+import { getZonedDateParts } from "../lib/timeZone";
+import { formatClockTime } from "../lib/timeFormat";
 import { useDisplayTimeZone } from "../lib/useDisplayTimeZone";
+import { useUses24Hour } from "../lib/useTimeFormat";
 import { locationTimeZones } from "../lib/PrayerTimeData";
 import { IonSkeletonText } from "@ionic/react";
 import "./MonthPrayerTable.css";
 
-const MonthPrayerTableCol: React.FC<{ prayer: PrayerTime; timeZone: string }> = ({
-  prayer,
-  timeZone
-}) => {
+const MonthPrayerTableCol: React.FC<{
+  prayer: PrayerTime;
+  timeZone: string;
+  uses24: boolean;
+}> = ({ prayer, timeZone, uses24 }) => {
   return (
     <td className="MonthPrayerTable__col">
-      {formatTimeInZone(prayer.time, timeZone)}
+      {formatClockTime(prayer.time, timeZone, uses24)}
     </td>
   );
 };
@@ -30,6 +33,7 @@ type Props = { month: number; year: number };
 const MonthPrayerTable: React.FC<Props> = ({ month, year }) => {
   const { state } = useContext(AppContext);
   const displayTimeZone = useDisplayTimeZone();
+  const uses24 = useUses24Hour(state.settings.value);
   const now = state.tick;
   // Which row is "today" is a question about the timetable's calendar, not the
   // device's, so it stays in the timetable zone whatever times are shown in.
@@ -118,6 +122,7 @@ const MonthPrayerTable: React.FC<Props> = ({ month, year }) => {
                   <MonthPrayerTableCol
                     prayer={p}
                     timeZone={displayTimeZone}
+                    uses24={uses24}
                     key={p.time.getTime()}
                   />
                 ))}

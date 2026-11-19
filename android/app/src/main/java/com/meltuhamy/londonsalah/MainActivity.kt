@@ -12,6 +12,7 @@ class MainActivity : BridgeActivity() {
         // bridge that reads the registry.
         registerPlugin(PrayerWidgetPlugin::class.java)
         registerPlugin(PrayerRemindersPlugin::class.java)
+        registerPlugin(DeviceClockPlugin::class.java)
         // Before the bridge, so the web layer's rescheduling comes after it.
         LegacyReminderAlarms.clearOnce(applicationContext)
         super.onCreate(savedInstanceState)

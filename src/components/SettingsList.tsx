@@ -17,6 +17,7 @@ import {
   map,
   sunny,
   contrast,
+  timeOutline,
   globeOutline,
   gridOutline,
   lockClosed,
@@ -27,6 +28,11 @@ import { PrayerLocation, locationNames } from "../lib/PrayerTimeData";
 import supportsHanafiAsr, { AsrMethod } from "../lib/PrayerTimes";
 import { AppSettings } from "../lib/settings";
 import { THEMES, Theme, themeLabels } from "../lib/theme";
+import {
+  TIME_FORMATS,
+  TimeFormat,
+  timeFormatLabels,
+} from "../lib/timeFormat";
 import { describeTimeZone, getDeviceTimeZone } from "../lib/timeZone";
 import { zoneChoiceApplies } from "../lib/displayZone";
 import LocationSelector from "./LocationSelector";
@@ -54,6 +60,7 @@ type Props = {
   onLocationChange: (newLocation: PrayerLocation, asrMethod: AsrMethod) => void;
   onAsrMethodChange: (newAsrMethod: AsrMethod) => void;
   onThemeChange: (newTheme: Theme) => void;
+  onTimeFormatChange: (newTimeFormat: TimeFormat) => void;
   onShowTimesInDeviceZoneChange: (newShowTimesInDeviceZone: boolean) => void;
 };
 const SettingsList: React.FC<Props> = ({
@@ -63,6 +70,7 @@ const SettingsList: React.FC<Props> = ({
   onLocationChange,
   onAsrMethodChange,
   onThemeChange,
+  onTimeFormatChange,
   onShowTimesInDeviceZoneChange,
 }) => {
   const [testResult, setTestResult] = useState<string | null>(null);
@@ -363,6 +371,26 @@ const SettingsList: React.FC<Props> = ({
           {THEMES.map((theme) => (
             <IonSelectOption key={theme} value={theme}>
               {themeLabels[theme]}
+            </IonSelectOption>
+          ))}
+        </IonSelect>
+      </IonItem>
+      <IonItem>
+        <IonIcon icon={timeOutline} slot="start" />
+        <IonSelect
+          label="Time format"
+          value={settings.timeFormat}
+          interface="alert"
+          okText="Choose"
+          cancelText="Cancel"
+          data-testid="time-format-select"
+          onIonChange={(event) =>
+            onTimeFormatChange(event.detail.value as TimeFormat)
+          }
+        >
+          {TIME_FORMATS.map((format) => (
+            <IonSelectOption key={format} value={format}>
+              {timeFormatLabels[format]}
             </IonSelectOption>
           ))}
         </IonSelect>

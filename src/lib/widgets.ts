@@ -1,6 +1,7 @@
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { AppSettings } from "./settings";
 import { buildWidgetPayload } from "./widgetPayload";
+import { getDeviceUses24Hour } from "./deviceTimeFormat";
 
 type PrayerWidgetPlugin = {
   update(options: { payload: string }): Promise<void>;
@@ -40,7 +41,8 @@ export async function openBatteryOptimizationSettings(): Promise<void> {
  */
 export async function refreshWidgets(
   settings: AppSettings | null,
-  now: Date = new Date()
+  now: Date = new Date(),
+  deviceUses24Hour: boolean = getDeviceUses24Hour()
 ): Promise<void> {
   // No widgets on the web, and registerPlugin's proxy rejects there.
   if (!Capacitor.isNativePlatform()) {
@@ -48,7 +50,12 @@ export async function refreshWidgets(
   }
 
   try {
-    const payload = await buildWidgetPayload(settings, now);
+    const payload = await buildWidgetPayload(
+      settings,
+      now,
+      undefined,
+      deviceUses24Hour
+    );
     if (payload === null) {
       return;
     }

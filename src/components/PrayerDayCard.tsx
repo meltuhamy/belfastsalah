@@ -7,9 +7,11 @@ import {
   prayerToString,
 } from "../lib/PrayerTimes";
 import { timeDurationString } from "../lib/dateUtils";
-import { formatDateInZone, formatTimeInZone } from "../lib/timeZone";
+import { formatDateInZone } from "../lib/timeZone";
+import { formatClockTime } from "../lib/timeFormat";
 import { useDisplayTimeZone } from "../lib/useDisplayTimeZone";
 import { useSettings } from "../lib/useSettings";
+import { useUses24Hour } from "../lib/useTimeFormat";
 import { showsForeignZone } from "../lib/displayZone";
 import { locationNames } from "../lib/PrayerTimeData";
 import { usePrayerStrip } from "../lib/usePrayerStrip";
@@ -35,6 +37,7 @@ type Props = {
 const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   const timeZone = useDisplayTimeZone();
   const [settings] = useSettings();
+  const uses24 = useUses24Hour(settings);
   const strip = usePrayerStrip(today, next);
 
   // Prayer is ordered as the strip is, so the next prayer's own value is the
@@ -134,7 +137,11 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
           <IonSkeletonText animated />
         </div>
       ) : (
-        <div className="PrayerDayCard__strip" data-testid="prayer-strip">
+        <div
+          className="PrayerDayCard__strip"
+          data-testid="prayer-strip"
+          data-hour12={uses24 ? undefined : "true"}
+        >
           {strip.map((prayerTime) => (
             <div
               key={prayerTime.prayer}
@@ -146,7 +153,7 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
                 {prayerToString(prayerTime.prayer)}
               </span>
               <span className="PrayerDayCard__cell-time">
-                {formatTimeInZone(prayerTime.time, timeZone)}
+                {formatClockTime(prayerTime.time, timeZone, uses24)}
               </span>
             </div>
           ))}

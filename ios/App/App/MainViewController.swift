@@ -13,6 +13,7 @@ import Capacitor
 class MainViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(PrayerWidgetPlugin())
+        bridge?.registerPluginInstance(DeviceClockPlugin())
         NSLog("PrayerWidget: plugin registered")
     }
 }

@@ -1,6 +1,7 @@
 import { Preferences } from "@capacitor/preferences";
 import { AsrMethod, PrayerLocation } from "./PrayerTimes";
 import { Theme } from "./theme";
+import { TimeFormat } from "./timeFormat";
 
 import debounce from "./debounce";
 
@@ -14,6 +15,9 @@ export type AppSettings = {
   asrMethod: AsrMethod;
   // Light, dark, follow the device, or dark between Maghrib and sunrise.
   theme: Theme;
+  // System follows the phone's own 12/24-hour switch; the other two override
+  // it. Missing in settings saved by older versions, which reads as System.
+  timeFormat: TimeFormat;
   location: PrayerLocation | null;
   // False shows the timetable's own clock, which is what the mosque prints.
   showTimesInDeviceZone: boolean;
@@ -31,6 +35,7 @@ export function getDefaultSettings(): AppSettings {
     // Following the device is the default. It used to be a boolean seeded
     // from the device once at first launch and then never updated again.
     theme: "system",
+    timeFormat: "system",
     location: null,
     showTimesInDeviceZone: false,
     timeZoneNoticeSeen: false,

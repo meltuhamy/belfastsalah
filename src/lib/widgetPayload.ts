@@ -24,11 +24,8 @@ import {
 import { locationNames, locationTimeZones } from "./PrayerTimeData";
 import { AppSettings } from "./settings";
 import { resolveDisplayTimeZone } from "./displayZone";
-import {
-  formatDateInZone,
-  formatTimeInZone,
-  getZonedDateParts,
-} from "./timeZone";
+import { formatDateInZone, getZonedDateParts } from "./timeZone";
+import { formatClockTime, uses24Hour } from "./timeFormat";
 
 /** Bump when the shape changes, so an old widget ignores a payload it cannot read. */
 export const WIDGET_PAYLOAD_VERSION = 3;
@@ -98,7 +95,13 @@ function prayerTimesFor(settings: AppSettings): PrayerTimes | null {
 export async function buildWidgetPayload(
   settings: AppSettings | null,
   now: Date,
-  horizonDays: number = DEFAULT_HORIZON_DAYS
+  horizonDays: number = DEFAULT_HORIZON_DAYS,
+  /**
+   * The phone's 12/24-hour switch, for the System setting. Defaults to the
+   * 24-hour clock so a test that is not about the format stays deterministic;
+   * the app always passes the real value.
+   */
+  deviceUses24Hour: boolean = true
 ): Promise<WidgetPayload | null> {
   if (settings == null || settings.location === null) {
     return null;
@@ -109,6 +112,7 @@ export async function buildWidgetPayload(
   }
 
   const displayZone = resolveDisplayTimeZone(settings);
+  const twentyFourHour = uses24Hour(settings.timeFormat, deviceUses24Hour);
   const timetableZone = locationTimeZones[settings.location];
   const todayParts = getZonedDateParts(now, timetableZone);
   const horizonEnd = now.getTime() + horizonDays * 24 * 60 * 60 * 1000;
@@ -160,14 +164,14 @@ export async function buildWidgetPayload(
         dateLabel: formatDateInZone(dayTimes[Prayer.Duhr].time, displayZone),
         prayers: dayTimes.map((p) => ({
           name: prayerToString(p.prayer),
-          time: formatTimeInZone(p.time, displayZone),
+          time: formatClockTime(p.time, displayZone, twentyFourHour),
         })),
       });
       for (const prayerTime of ahead) {
         upcoming.push({
           name: prayerToString(prayerTime.prayer),
           at: prayerTime.time.getTime(),
-          time: formatTimeInZone(prayerTime.time, displayZone),
+          time: formatClockTime(prayerTime.time, displayZone, twentyFourHour),
           day: index,
         });
       }

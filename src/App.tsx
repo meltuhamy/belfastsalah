@@ -4,7 +4,9 @@ import { IonApp, IonRouterOutlet, IonToast } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
 import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
-import { formatTimeInZone, getDeviceTimeZone } from "./lib/timeZone";
+import { getDeviceTimeZone } from "./lib/timeZone";
+import { formatClockTime } from "./lib/timeFormat";
+import { useUses24Hour } from "./lib/useTimeFormat";
 import { locationTimeZones } from "./lib/PrayerTimeData";
 import HomePage from "./pages/HomePage";
 import SettingsPage from "./pages/SettingsPage";
@@ -99,6 +101,9 @@ const App: React.FC = () => {
   const asrMethod = settings == null ? null : settings.asrMethod;
   const notificationsEnabled = settings == null ? null : settings.notify;
   const notificationMinutes = settings == null ? null : settings.notifyMinutes;
+  // The System setting resolved against the phone's own switch, kept current
+  // by the native plugin. Everything that prints a clock time reads this.
+  const uses24Hour = useUses24Hour(settings);
 
   // The effect below closes over one render, but a follow-up can run after
   // settings have moved on. Read these at the start of each run.
@@ -108,6 +113,7 @@ const App: React.FC = () => {
     asrMethod,
     notificationsEnabled,
     notificationMinutes,
+    uses24Hour,
   });
   reminderInputs.current = {
     location,
@@ -115,6 +121,7 @@ const App: React.FC = () => {
     asrMethod,
     notificationsEnabled,
     notificationMinutes,
+    uses24Hour,
   };
 
   const remindersInFlight = useRef<Promise<void> | null>(null);
@@ -153,6 +160,7 @@ const App: React.FC = () => {
           location: inputs.location,
           asrMethod: inputs.asrMethod,
           showTimesInDeviceZone: inputs.showTimesInDeviceZone === true,
+          timeFormat: settings?.timeFormat ?? "system",
         },
         now,
         silent
@@ -195,7 +203,7 @@ const App: React.FC = () => {
           // the app disagree about when the prayer is.
           title: reminderTitle(
             prayerToString(slot.prayer),
-            formatTimeInZone(slot.prayerTime, notificationZone)
+            formatClockTime(slot.prayerTime, notificationZone, inputs.uses24Hour)
           ),
           body: reminderBody(minutesBefore),
           id: slot.id,
@@ -269,15 +277,17 @@ const App: React.FC = () => {
     asrMethod,
     notificationsEnabled,
     notificationMinutes,
-    showTimesInDeviceZone
+    showTimesInDeviceZone,
+    settings?.timeFormat,
+    uses24Hour,
   ]);
 
   // Same dependencies as the reminder scheduling above: anything that changes
   // which times are shown changes what the widgets should say.
   useEffect(() => {
-    refreshWidgets(settings);
+    refreshWidgets(settings, undefined, uses24Hour);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location, asrMethod, showTimesInDeviceZone]);
+  }, [location, asrMethod, showTimesInDeviceZone, settings?.timeFormat, uses24Hour]);
 
   useEffect(() => {
     function handleSavedEvent() {

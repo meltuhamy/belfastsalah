@@ -21,7 +21,8 @@ import {
   PrayerTimes,
 } from "./PrayerTimes";
 import { resolveDisplayTimeZone } from "./displayZone";
-import { getZonedDateParts, formatTimeInZone, middayOn } from "./timeZone";
+import { getZonedDateParts, middayOn } from "./timeZone";
+import { formatClockTime, uses24Hour } from "./timeFormat";
 import {
   REMINDERS_ENDED_BODY,
   REMINDERS_ENDED_TITLE,
@@ -63,13 +64,20 @@ export async function buildReminderPayload(
   settings: AppSettings,
   now: Date,
   horizonDays: number = REMINDER_HORIZON_DAYS,
-  deviceTimeZone?: string
+  deviceTimeZone?: string,
+  /**
+   * The phone's 12/24-hour switch, for the System setting. Defaults to the
+   * 24-hour clock so a test that is not about the format stays deterministic;
+   * the app always passes the real value.
+   */
+  deviceUses24Hour: boolean = true
 ): Promise<ReminderPayload | null> {
   if (settings.location === null) {
     return null;
   }
   const prayerTimes = createPrayerTimes(settings.location, settings.asrMethod);
   const displayZone = resolveDisplayTimeZone(settings, deviceTimeZone);
+  const twentyFourHour = uses24Hour(settings.timeFormat, deviceUses24Hour);
   const timetableZone = locationTimeZones[settings.location];
   const horizonEnd = now.getTime() + horizonDays * 24 * 60 * 60 * 1000;
   const body = reminderBody(settings.notifyMinutes);
@@ -108,7 +116,7 @@ export async function buildReminderPayload(
           at: fireAt,
           title: reminderTitle(
             prayerToString(prayerTime.prayer),
-            formatTimeInZone(prayerTime.time, displayZone)
+            formatClockTime(prayerTime.time, displayZone, twentyFourHour)
           ),
           body,
         });

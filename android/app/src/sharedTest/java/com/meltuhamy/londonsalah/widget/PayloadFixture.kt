@@ -19,6 +19,13 @@ object PayloadFixture {
     val NAMES = listOf("Fajr", "Shuruq", "Duhr", "Asr", "Maghrib", "Isha")
     val TIMES = listOf("06:20", "07:57", "12:15", "14:01", "16:23", "18:00")
 
+    /**
+     * The same day on a 12-hour clock. The app writes these strings, so this is
+     * what the widgets have to draw when the time format setting is 12-hour.
+     * "12:15 PM" is the widest, and the reason WidgetFitTest has a case for it.
+     */
+    val TIMES_12 = listOf("6:20 AM", "7:57 AM", "12:15 PM", "2:01 PM", "4:23 PM", "6:00 PM")
+
     const val FAJR = 0
     const val DUHR = 2
     const val ASR = 3
@@ -29,6 +36,8 @@ object PayloadFixture {
 
     /** The 16th, which a widget shows once the 15th's Isha has gone. */
     val TOMORROW_TIMES = listOf("06:19", "07:56", "12:15", "14:03", "16:25", "18:02")
+    val TOMORROW_TIMES_12 =
+        listOf("6:19 AM", "7:56 AM", "12:15 PM", "2:03 PM", "4:25 PM", "6:02 PM")
     const val TOMORROW_DATE = "Fri 16 Jan"
 
     private const val MINUTE = 60_000L
@@ -82,6 +91,14 @@ object PayloadFixture {
      * For tests on a device, where the widgets read the real clock and a fixed
      * date would already be in the past.
      */
+    /** The 15th's payload on a 12-hour clock. */
+    fun forJan15TwelveHour(): String {
+        val upcoming = NAMES.indices.map { i ->
+            Upcoming(NAMES[i], on15th(TIMES[i]), TIMES_12[i], day = 0)
+        } + Upcoming("Fajr", JAN_16_FAJR, TOMORROW_TIMES_12[FAJR], day = 1)
+        return json(listOf(DATE to TIMES_12, TOMORROW_DATE to TOMORROW_TIMES_12), upcoming)
+    }
+
     fun relativeTo(now: Long, next: Int, inMillis: Long = 2 * HOUR): String {
         val upcoming = (next until NAMES.size).map { i ->
             Upcoming(NAMES[i], now + inMillis + (i - next) * HOUR, TIMES[i], day = 0)

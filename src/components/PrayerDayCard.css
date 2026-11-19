@@ -194,6 +194,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+/*
+  "11:51 AM" is half again as wide as "11:51", and six columns of a phone
+  cannot hold it at 14px: without this, Duhr wrapped to two lines while the
+  rest stayed on one. Strings never wrap in this mode - 12px is small enough
+  for a 360px-wide screen, and the narrower rule below shrinks it again.
+*/
+.PrayerDayCard__strip[data-hour12="true"] .PrayerDayCard__cell-time {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .PrayerDayCard__cell[data-next="true"] {
   background: var(--ion-color-primary);
 }
@@ -210,6 +221,10 @@
 
   .PrayerDayCard__cell-time {
     font-size: 12px;
+  }
+
+  .PrayerDayCard__strip[data-hour12="true"] .PrayerDayCard__cell-time {
+    font-size: 10px;
   }
 }
 
