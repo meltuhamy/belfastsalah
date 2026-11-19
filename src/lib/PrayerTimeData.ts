@@ -142,15 +142,23 @@ const calculators: Partial<
   [PrayerLocation.London]: calculateLondonYear
 };
 
-// Pick the closest year we can actually serve: an exact match when we have
-// a file, otherwise the nearest year above. After the last file a location
-// that can be calculated is calculated for the year itself; one that cannot
-// gets its latest file.
-function getAvailableYear(
+// Pick the year to serve. A location that can be calculated uses a file only
+// for that file's own year, and calculates every year after its first file
+// that has none - so a file added for a later year never stands in for the
+// years before it. Before the first file, and for a location that cannot be
+// calculated, it is the nearest file above, otherwise the latest one.
+export function chooseYear(
   targetYear: number,
-  location: PrayerLocation
+  availableYears: Array<number>,
+  canCalculate: boolean
 ): { year: number; calculated: boolean } {
-  const availableYears = getAvailableYears(location);
+  if (
+    canCalculate &&
+    targetYear > availableYears[0] &&
+    !availableYears.includes(targetYear)
+  ) {
+    return { year: targetYear, calculated: true };
+  }
 
   for (let i = 0; i < availableYears.length; i++) {
     if (availableYears[i] >= targetYear) {
@@ -158,10 +166,24 @@ function getAvailableYear(
     }
   }
 
-  if (calculators[location]) {
-    return { year: targetYear, calculated: true };
-  }
   return { year: availableYears[availableYears.length - 1], calculated: false };
+}
+
+// A calculated year's rows carry both asr columns, so they are worked out once
+// per year and shared by both asr methods; only the parsing below is per
+// method.
+const calculatedRows: Map<string, Array<PrayerDataRow>> = new Map();
+function getCalculatedRows(
+  location: PrayerLocation,
+  year: number
+): Array<PrayerDataRow> {
+  const key = `${location}-${year}`;
+  let rows = calculatedRows.get(key);
+  if (!rows) {
+    rows = calculators[location]!(year);
+    calculatedRows.set(key, rows);
+  }
+  return rows;
 }
 
 const getPrayerYearCache: Map<string, PrayerYear> = new Map();
@@ -170,7 +192,11 @@ export async function getPrayerData(
   asrMethod: AsrMethod,
   targetYear: number
 ): Promise<PrayerYear> {
-  const { year, calculated } = getAvailableYear(targetYear, location);
+  const { year, calculated } = chooseYear(
+    targetYear,
+    getAvailableYears(location),
+    Boolean(calculators[location])
+  );
   const cacheKey = JSON.stringify({ location, asrMethod, year });
   const cacheResult = getPrayerYearCache.get(cacheKey);
   if (cacheResult) {
@@ -178,7 +204,7 @@ export async function getPrayerData(
   }
 
   const rows = calculated
-    ? calculators[location]!(year)
+    ? getCalculatedRows(location, year)
     : (await prayerDataLoaders[location][year]()).default;
   const prayerYear = parsePrayerData(rows, asrMethod);
   getPrayerYearCache.set(cacheKey, prayerYear);

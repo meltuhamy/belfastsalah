@@ -1,7 +1,6 @@
 // Compares London times calculated by src/lib/londonCalculation.ts with the
 // London Unified Prayer Timetable's own files, and prints a summary: the
-// number of days each time differs on, and the first few, with how far the
-// unrounded time is past the minute.
+// number of days each time differs on, and the first few.
 //
 //   node scripts/timetables/compare-london.mjs [fromYear] [toYear]
 //
@@ -11,7 +10,8 @@
 // comparison works after the files are gone.
 //
 // WRITE_GAPS=<file> also writes the Fajr and Isha gaps read off the files, as
-// JSON, which is where src/lib/londonGaps.ts came from.
+// JSON: the source of the interval tables in adhan-london's
+// src/LondonUnified.ts, should they ever need checking.
 //
 // It loads the module through Vite, as the app does, so it runs the code the
 // app ships. About a second for all fifty years.
@@ -59,9 +59,7 @@ for (let year = from; year <= to; year++) {
     }
     columns.forEach((c, k) => {
       if (g[k + 2] === w[k + 2]) return;
-      const raw = L.londonTimes?.(year, +w[0], +w[1])[c];
-      const past = raw === undefined ? "" : ` (+${(raw % 1).toFixed(5)})`;
-      misses[c].push(`${year}-${w[0]}-${w[1]} file ${w[k + 2]} calc ${g[k + 2]}${past}`);
+      misses[c].push(`${year}-${w[0]}-${w[1]} file ${w[k + 2]} calc ${g[k + 2]}`);
     });
     // A non-leap year's 29 February repeats the 28th, so it says nothing
     // about the gap on a real 29 February.
