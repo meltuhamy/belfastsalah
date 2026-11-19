@@ -32,14 +32,18 @@ object PluginReminderMigration {
         val notifications =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         for (id in 0..PLUGIN_REMINDER_ID_LIMIT) {
+            // FLAG_NO_CREATE returns null when the plugin never set this id, so
+            // only alarms that exist are cancelled.
             val pending = PendingIntent.getBroadcast(
                 context,
                 id,
                 Intent(context, TimedNotificationPublisher::class.java),
-                pendingFlags()
+                pendingFlags() or PendingIntent.FLAG_NO_CREATE
             )
-            alarmManager.cancel(pending)
-            pending.cancel()
+            if (pending != null) {
+                alarmManager.cancel(pending)
+                pending.cancel()
+            }
             notifications.cancel(id)
         }
 
