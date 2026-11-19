@@ -384,18 +384,41 @@ built by the private repo `meltuhamy/adhan-london`: upstream adhan-js
 `fajrInterval`/`ishaInterval`, `methodDailyAdjustments`,
 `CalculationMethod.LondonUnified()`) and that repo's own build plumbing.
 
-- **Never edit or rebuild the tarball here.** Its `london-sync` workflow
-  rebases onto upstream every Monday, runs adhan's tests (including an
-  exact published-times fixture), releases the tarball there, and opens a
-  pull request here that swaps the file and the lockfile. The lockfile's
-  `integrity` is the release's sha512, so `npm ci` refuses anything else.
-- **Dependabot does not see it** - `file:` dependencies are skipped - and
-  needs nothing: that pull request is the update.
-- **Its CI is the check that matters**: `londonCalculation.test.ts` fails on
-  any London day from 2027 to 2076 that moves.
+- **Never edit or rebuild the tarball here.** Builds come only from that
+  repo's London sync workflow, which rebases onto upstream, runs adhan's
+  tests (including an exact published-times fixture) and releases the
+  tarball there. The lockfile's `integrity` is the release's sha512, so
+  `npm ci` refuses anything else.
+- **Dependabot does not see it** - `file:` dependencies are skipped. Updates
+  are done by hand, now and then, as below.
 - There is only ever one tarball in `vendor/`; history keeps the old ones.
 - If upstream adhan-js ever ships the London method, go back to the npm
   package and archive `adhan-london`.
+
+Updating it. The repo is private, so this needs a machine signed in to
+GitHub as meltuhamy - from a cloud session, attach the user's Mac, which has
+`gh` and a clone at `~/dev/adhan-london` (`LONDON.md` there explains it):
+
+1. `gh workflow run london-sync.yml -R meltuhamy/adhan-london`, then
+   `gh run watch` it. It does nothing if upstream `develop` has not moved
+   (`-f force=true` rebuilds anyway). If it fails it opens an issue there
+   and releases nothing; a rebase conflict is resolved by hand in the clone,
+   `london-unified` pushed, and the workflow run again.
+2. `gh release download v<version> -R meltuhamy/adhan-london` for the new
+   `adhan-<version>.tgz`, and get it into this checkout. A cloud session
+   cannot download it, but `npm pack` is reproducible: building the same
+   commit gives the same bytes, so a tarball made elsewhere is fine once its
+   sha512 matches the release's (`openssl dgst -sha512 -binary <file> |
+   base64`).
+3. Here: `git rm vendor/adhan-*.tgz`, put the new file in `vendor/`, then
+   `npm install --ignore-scripts ./vendor/adhan-<version>.tgz`, and check the
+   lockfile's `integrity` for `node_modules/adhan` is that sha512.
+4. `node scripts/timetables/compare-london.mjs` must say 0 for every time,
+   then `npm run test:zones` and the e2e suite. `londonCalculation.test.ts`
+   is the check that matters: it fails on any London day from 2027 to 2076
+   that moves.
+5. Commit, push, and hand back the APK as usual. It is an app change for
+   releases: `vendor/` and the lockfile's `adhan` entry both count.
 
 The London files that remain are generated, so regenerate rather than
 editing them by hand:
