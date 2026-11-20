@@ -3,7 +3,10 @@
 // reproduces the timetable's published times to the minute.
 import { CalculationMethod, Coordinates, Madhab, PrayerTimes } from "adhanfork";
 import type { PrayerDataRow } from "./PrayerTimeData";
-import { calculateYear, hhmm } from "./calculatedYear";
+// The extension is needed: .cursor/skills/verify-london-prayer-times loads
+// this module with Node's own type stripping, which resolves no extensionless
+// imports.
+import { calculateYear, hhmm } from "./calculatedYear.ts";
 
 // The timetable's reference point, Charing Cross. The method's adjustments
 // cover Greater London from here; any other point moves times by up to a

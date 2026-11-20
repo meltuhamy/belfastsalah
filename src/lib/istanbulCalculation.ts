@@ -6,7 +6,10 @@
 // tables are checked.
 import { CalculationMethod, Coordinates, PrayerTimes } from "adhanfork";
 import type { PrayerDataRow } from "./PrayerTimeData";
-import { calculateYear, hhmm } from "./calculatedYear";
+// The extension is needed: .cursor/skills/verify-london-prayer-times loads
+// this module with Node's own type stripping, which resolves no extensionless
+// imports.
+import { calculateYear, hhmm } from "./calculatedYear.ts";
 
 // Diyanet's reference point for Istanbul, fitted to its table: other points in
 // the city move times by up to a minute.
