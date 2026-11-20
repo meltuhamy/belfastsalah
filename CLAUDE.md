@@ -503,8 +503,10 @@ location with no files.
 - **Times are Istanbul's**, `Europe/Istanbul`, UTC+3 with no clock changes;
   every place that reads the timetable's calendar uses `timetableZoneFor`,
   never `UK_TIME_ZONE`.
-- **One Asr.** Diyanet publishes only the Shafi'i Asr, so `supportsHanafiAsr`
-  is false and settings shows `singleAsrNote` in place of the Hanafi switch.
+- **One Asr.** Diyanet publishes a single Asr, the first (shadow as long as
+  the object), so `supportsHanafiAsr` is false and settings has no asr switch,
+  as for Belfast. Turkey is Hanafi; settings deliberately says nothing about
+  madhab rather than label Diyanet's Asr "Shafi'i".
 
 ### The vendored adhan-js: `adhanfork`
 

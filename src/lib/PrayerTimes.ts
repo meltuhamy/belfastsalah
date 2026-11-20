@@ -148,8 +148,8 @@ export class BelfastPrayerTimes extends PrayerTimes {
   }
 }
 
-// Diyanet publishes one Asr, by the Shafi'i shadow length, so Istanbul always
-// shows that one, whatever the Hanafi setting says.
+// Diyanet publishes one Asr, the first (a shadow as long as the object), so
+// Istanbul always shows that one, whatever the asr setting says.
 export class IstanbulPrayerTimes extends PrayerTimes {
   constructor() {
     super({
@@ -199,20 +199,6 @@ export function prayerToString(prayer: Prayer): string {
       return "Maghrib";
     case Prayer.Isha:
       return "Isha";
-  }
-}
-
-/**
- * What settings says about Asr where there is no Hanafi choice to offer, so
- * nobody who asked for Hanafi is left wondering which Asr they are reading.
- */
-export function singleAsrNote(location: PrayerLocation): string | null {
-  switch (location) {
-    case PrayerLocation.Istanbul:
-      return "Asr as Diyanet publishes it (Shafi'i). Diyanet has no Hanafi Asr.";
-    case PrayerLocation.Belfast:
-    case PrayerLocation.London:
-      return null;
   }
 }
 

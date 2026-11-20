@@ -87,7 +87,7 @@ test.describe("on a phone set to Istanbul time", () => {
   });
 });
 
-test("shows Diyanet's Asr, and says so, for someone who chose Hanafi", async ({
+test("shows Diyanet's Asr, with no asr switch, for someone who chose Hanafi", async ({
   page,
 }) => {
   await completeSetup(page);
@@ -95,12 +95,8 @@ test("shows Diyanet's Asr, and says so, for someone who chose Hanafi", async ({
   await toggle(page, "Use Hanafi Asr");
   await chooseFromSelect(page, LOCATION_SELECT, "Istanbul");
 
-  // Diyanet publishes no Hanafi Asr, so there is no switch for it, and a line
-  // says which Asr is shown instead.
+  // Diyanet publishes one Asr, so there is no switch, as for Belfast.
   await expect(page.getByText("Use Hanafi Asr")).toHaveCount(0);
-  await expect(page.locator("[data-testid=single-asr-note]")).toContainText(
-    "Diyanet has no Hanafi Asr"
-  );
 
   await goHome(page);
   await expect.poll(() => todayTimes(page)).toEqual(ISTANBUL);

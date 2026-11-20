@@ -17,8 +17,9 @@ const ISTANBUL = new Coordinates(41.014, 28.972);
 
 const diyanet = CalculationMethod.Diyanet();
 
-// Diyanet publishes one Asr, by the Shafi'i shadow length, so the second asr
-// column is empty: Istanbul does not offer Hanafi Asr (supportsHanafiAsr).
+// Diyanet publishes one Asr, the first (a shadow as long as the object), so
+// the second asr column is empty and Istanbul has no asr switch
+// (supportsHanafiAsr).
 export function calculateIstanbulYear(year: number): Array<PrayerDataRow> {
   return calculateYear(year, date => {
     const times = new PrayerTimes(ISTANBUL, date, diyanet);
