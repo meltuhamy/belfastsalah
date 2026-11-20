@@ -2,19 +2,24 @@ import React from "react";
 import { useParams } from "react-router";
 import {
   IonBackButton,
+  IonButton,
   IonButtons,
   IonContent,
   IonHeader,
+  IonIcon,
   IonPage,
   IonTitle,
   IonToolbar,
+  useIonAlert,
 } from "@ionic/react";
+import { copyOutline } from "ionicons/icons";
 import { useSettings } from "../lib/useSettings";
 import FullPageSpinner from "../components/FullPageSpinner";
 import CenteredMaxWidthContainer from "../components/CenteredMaxWidthContainer";
 import PrayerReminderEditor from "../components/PrayerReminderEditor";
 import {
   commonReminder,
+  describeOffsetShort,
   isPrayerKey,
   PRAYER_KEYS,
   prayerOfKey,
@@ -26,6 +31,16 @@ import { usePrayerDay } from "../lib/usePrayerDay";
 import { useDisplayTimeZone } from "../lib/useDisplayTimeZone";
 import { useUses24Hour } from "../lib/useTimeFormat";
 import { reminderTimesLine } from "../lib/reminderTimes";
+import { reminderSoundLabels } from "../lib/reminderSound";
+import "./PrayerReminderPage.css";
+
+/** "Adhan 1, 5 min before", or "Off": what applying this one would give every prayer. */
+function summary(reminder: PrayerReminder): string {
+  if (!reminder.on) {
+    return "notifications off";
+  }
+  return `${reminderSoundLabels[reminder.sound]}, ${describeOffsetShort(reminder.offset).toLowerCase()}`;
+}
 
 /**
  * One prayer's reminder, or every prayer's at once ("all"). Every change is
@@ -37,6 +52,7 @@ const PrayerReminderPage: React.FC = () => {
   const [{ today }] = usePrayerDay();
   const zone = useDisplayTimeZone();
   const twentyFourHour = useUses24Hour(settings ?? null);
+  const [presentAlert] = useIonAlert();
 
   if (settings == null) {
     return <FullPageSpinner />;
@@ -71,6 +87,30 @@ const PrayerReminderPage: React.FC = () => {
     setSettings({ ...settings!, reminders });
   }
 
+  /** Gives every prayer this one's settings, once the user has said yes. */
+  function confirmApplyToAll() {
+    const source = value;
+    void presentAlert({
+      header: "Apply to all prayers?",
+      message: `Every prayer will be set like ${name}: ${summary(source)}.`,
+      buttons: [
+        { text: "Cancel", role: "cancel" },
+        {
+          text: "Apply",
+          role: "confirm",
+          handler: () => {
+            const reminders = {} as PrayerReminders;
+            for (const k of PRAYER_KEYS) {
+              reminders[k] = { ...source };
+            }
+            // The app's own "Your settings have been saved" says it worked.
+            setSettings({ ...settings!, reminders });
+          },
+        },
+      ],
+    });
+  }
+
   const todayTime =
     key === null || today === null ? null : today[prayerOfKey(key)].time;
 
@@ -97,9 +137,23 @@ const PrayerReminderPage: React.FC = () => {
             timesLine={
               todayTime === null
                 ? null
-                : reminderTimesLine(name, todayTime, value.offset, zone, twentyFourHour)
+                : (offset: number) =>
+                    reminderTimesLine(name, todayTime, offset, zone, twentyFourHour)
             }
           />
+          {key !== null ? (
+            <div className="prayer-reminder__apply">
+              <IonButton
+                expand="block"
+                fill="outline"
+                onClick={confirmApplyToAll}
+                data-testid="apply-to-all"
+              >
+                <IonIcon slot="start" icon={copyOutline} />
+                Apply to all prayers
+              </IonButton>
+            </div>
+          ) : null}
         </CenteredMaxWidthContainer>
       </IonContent>
     </IonPage>

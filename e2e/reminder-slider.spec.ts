@@ -138,3 +138,45 @@ test("commits the value it finished on", async ({ page }) => {
   await expect(page.getByTestId("reminder-when")).toBeVisible();
   await expect.poll(() => rangeValue(page)).toBe(settled);
 });
+
+/** "06:20" to minutes since midnight. */
+const minutesOf = (clock: string) => {
+  const [h, m] = clock.split(":").map(Number);
+  return h * 60 + m;
+};
+
+/** "5 minutes before Fajr" to -5, "At Fajr time" to 0, "3 minutes after Fajr" to 3. */
+const offsetOf = (when: string) => {
+  const match = /(\d+) minutes? (before|after)/.exec(when);
+  if (!match) return 0;
+  return Number(match[1]) * (match[2] === "before" ? -1 : 1);
+};
+
+test("keeps the reminder time in step with the label while dragging", async ({ page }) => {
+  await openReminderSlider(page);
+  const label = page.getByTestId("reminder-when");
+  const times = page.getByTestId("reminder-times");
+
+  const mismatches: Array<string> = [];
+  await dragRightAndSample(page, 6, async () => {
+    const when = await label.innerText();
+    const line = await times.innerText();
+    // "Fajr: 06:20. Reminder: 06:15"
+    const [prayer, reminder] = [...line.matchAll(/(\d{1,2}:\d{2})/g)].map((m) => m[1]);
+    if (minutesOf(reminder) - minutesOf(prayer) !== offsetOf(when)) {
+      mismatches.push(`${when} / ${line}`);
+    }
+  });
+  expect(mismatches).toEqual([]);
+});
+
+test("labels the knob with a signed number of minutes, which fits its bubble", async ({ page }) => {
+  await openReminderSlider(page);
+  const pins: Array<string> = [];
+  await dragRightAndSample(page, 4, async () => {
+    pins.push((await page.locator("ion-range .range-pin").innerText()).trim());
+  });
+  for (const pin of pins) {
+    expect(pin).toMatch(/^(0|[+−]\d+)$/);
+  }
+});

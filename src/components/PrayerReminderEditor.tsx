@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  IonButton,
   IonIcon,
   IonItem,
   IonLabel,
@@ -8,10 +9,11 @@ import {
   IonRange,
   IonToggle,
 } from "@ionic/react";
-import { radioButtonOff, radioButtonOn, stop } from "ionicons/icons";
+import { radioButtonOff, radioButtonOn, stop, volumeHigh } from "ionicons/icons";
 import {
   describeOffset,
   OFFSET_LIMIT,
+  offsetLabel,
   PrayerKey,
   PrayerReminder,
   PrayerReminders,
@@ -23,7 +25,12 @@ import {
   reminderSoundLabels,
   SOUND_SECONDS,
 } from "../lib/reminderSound";
-import { previewSound, stopPreview, useSoundPreview } from "../lib/soundPreview";
+import {
+  canPreview,
+  previewSound,
+  stopPreview,
+  useSoundPreview,
+} from "../lib/soundPreview";
 import "./PrayerReminderEditor.css";
 
 type Props = {
@@ -31,8 +38,11 @@ type Props = {
   prayerName: string;
   value: PrayerReminder;
   onChange: (next: PrayerReminder) => void;
-  /** "Fajr: 5:42. Reminder: 5:32", or nothing when there is no one prayer. */
-  timesLine?: string | null;
+  /**
+   * "Fajr: 5:42. Reminder: 5:32" for an offset, or nothing when there is no
+   * one prayer. A function so the line follows the slider while it is dragged.
+   */
+  timesLine?: ((offset: number) => string | null) | null;
   /** The switch's label: "Fajr notification", or "Notifications" for all. */
   switchLabel: string;
   /**
@@ -46,8 +56,8 @@ type Props = {
  * One prayer's reminder: on or off, when, and which sound. Used on its own
  * screen and in the sheet on the test day.
  *
- * Tapping a sound plays it and chooses it; tapping the one that is playing
- * stops it.
+ * Tapping a sound chooses it. Its speaker button plays it, and stops it
+ * again while it plays; choosing never plays anything.
  */
 const PrayerReminderEditor: React.FC<Props> = ({
   prayerName,
@@ -64,15 +74,21 @@ const PrayerReminderEditor: React.FC<Props> = ({
   const [draggingOffset, setDraggingOffset] = useState<number | null>(null);
   const offset = draggingOffset ?? value.offset;
   const playing = useSoundPreview();
+  const line = timesLine ? timesLine(offset) : null;
 
-  function tapSound(sound: ReminderSound) {
-    if (playing === sound) {
-      stopPreview();
-      return;
-    }
-    previewSound(sound);
+  function choose(sound: ReminderSound) {
     if (sound !== value.sound) {
       onChange({ ...value, sound });
+    }
+  }
+
+  function listen(event: React.MouseEvent, sound: ReminderSound) {
+    // The row behind the button chooses; listening alone does not.
+    event.stopPropagation();
+    if (playing === sound) {
+      stopPreview();
+    } else {
+      previewSound(sound);
     }
   }
 
@@ -101,9 +117,9 @@ const PrayerReminderEditor: React.FC<Props> = ({
               <p className="reminder-editor__when-text" data-testid="reminder-when">
                 {describeOffset(offset, prayerName)}
               </p>
-              {timesLine ? (
+              {line ? (
                 <p className="reminder-editor__times" data-testid="reminder-times">
-                  {timesLine}
+                  {line}
                 </p>
               ) : null}
               <IonRange
@@ -113,7 +129,8 @@ const PrayerReminderEditor: React.FC<Props> = ({
                 max={OFFSET_LIMIT}
                 step={1}
                 pin={true}
-                pinFormatter={(v: number) => (v === 0 ? "0" : v < 0 ? `${-v}m before` : `${v}m after`)}
+                // The pin is a small bubble: words do not fit in it.
+                pinFormatter={(v: number) => offsetLabel(v)}
                 value={offset}
                 onIonInput={(event) => setDraggingOffset(event.detail.value as number)}
                 onIonChange={(event) => {
@@ -134,18 +151,19 @@ const PrayerReminderEditor: React.FC<Props> = ({
           </IonListHeader>
           <IonItem lines="none" className="reminder-editor__hint-item">
             <IonLabel className="ion-text-wrap">
-              <p>Tap a sound to hear it. The one you tap is chosen.</p>
+              <p>Tap a sound to choose it, or its speaker to hear it.</p>
             </IonLabel>
           </IonItem>
           {REMINDER_SOUNDS.map((sound) => {
             const selected = sound === value.sound;
             const isPlaying = playing === sound;
+            const label = reminderSoundLabels[sound];
             return (
               <IonItem
                 key={sound}
                 button={true}
                 detail={false}
-                onClick={() => tapSound(sound)}
+                onClick={() => choose(sound)}
                 data-testid={`sound-option-${sound}`}
                 aria-pressed={selected}
                 className={selected ? "reminder-editor__sound--selected" : undefined}
@@ -155,15 +173,23 @@ const PrayerReminderEditor: React.FC<Props> = ({
                   icon={selected ? radioButtonOn : radioButtonOff}
                   color={selected ? "primary" : "medium"}
                 />
-                <IonLabel>{reminderSoundLabels[sound]}</IonLabel>
-                {isPlaying ? (
-                  <span slot="end" className="reminder-editor__stop">
-                    <IonIcon icon={stop} /> Stop
-                  </span>
-                ) : sound.startsWith("adhan-") ? (
+                <IonLabel>{label}</IonLabel>
+                {sound.startsWith("adhan-") ? (
                   <span slot="end" className="reminder-editor__length">
                     {Math.round(SOUND_SECONDS[sound])} s
                   </span>
+                ) : null}
+                {canPreview(sound) ? (
+                  <IonButton
+                    slot="end"
+                    fill="clear"
+                    className="reminder-editor__listen"
+                    data-testid={`sound-listen-${sound}`}
+                    aria-label={isPlaying ? `Stop ${label}` : `Play ${label}`}
+                    onClick={(event) => listen(event, sound)}
+                  >
+                    <IonIcon slot="icon-only" icon={isPlaying ? stop : volumeHigh} />
+                  </IonButton>
                 ) : null}
               </IonItem>
             );

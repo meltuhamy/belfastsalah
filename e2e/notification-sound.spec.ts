@@ -45,7 +45,7 @@ test("starts every prayer five minutes before, on the phone's sound", async ({ p
   await expect(page.getByTestId("reminder-row-all")).toContainText("Default sound");
 });
 
-test("lists the adhans by number only, and plays one when it is tapped", async ({ page }) => {
+test("lists the adhans by number only, and chooses one without playing it", async ({ page }) => {
   await notificationSettings(page);
   await openPrayer(page, "fajr");
 
@@ -60,10 +60,68 @@ test("lists the adhans by number only, and plays one when it is tapped", async (
     "Adhan 5",
   ]);
 
-  const played = page.waitForRequest(/\/sounds\/adhan-3\.mp3$/);
+  const sounds: Array<string> = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/sounds/")) sounds.push(request.url());
+  });
   await page.getByTestId("sound-option-adhan-3").click();
-  await played;
   await expect(page.getByTestId("sound-option-adhan-3")).toHaveClass(/reminder-editor__sound--selected/);
+  await page.waitForTimeout(300);
+  expect(sounds).toEqual([]);
+});
+
+test("plays a sound from its speaker, without choosing it", async ({ page }) => {
+  await notificationSettings(page);
+  await openPrayer(page, "fajr");
+
+  const played = page.waitForRequest(/\/sounds\/adhan-2\.mp3$/);
+  await page.getByTestId("sound-listen-adhan-2").click();
+  await played;
+  await expect(page.getByTestId("sound-listen-adhan-2")).toHaveAttribute("aria-label", "Stop Adhan 2");
+  await expect(page.getByTestId("sound-option-default")).toHaveClass(/reminder-editor__sound--selected/);
+  await expect(page.getByTestId("sound-option-adhan-2")).not.toHaveClass(/reminder-editor__sound--selected/);
+
+  await page.getByTestId("sound-listen-adhan-2").click();
+  await expect(page.getByTestId("sound-listen-adhan-2")).toHaveAttribute("aria-label", "Play Adhan 2");
+});
+
+test("has no speaker for silence, nor for the phone's sound on the web", async ({ page }) => {
+  await notificationSettings(page);
+  await openPrayer(page, "fajr");
+  await expect(page.getByTestId("sound-listen-adhan-1")).toBeVisible();
+  await expect(page.getByTestId("sound-listen-silent")).toHaveCount(0);
+  await expect(page.getByTestId("sound-listen-default")).toHaveCount(0);
+});
+
+test("applies one prayer's reminder to every prayer, once confirmed", async ({ page }) => {
+  await notificationSettings(page);
+  await openPrayer(page, "maghrib");
+  await page.getByTestId("sound-option-adhan-4").click();
+
+  // Cancelling changes nothing.
+  await page.getByTestId("apply-to-all").click();
+  const alert = page.locator("ion-alert");
+  await expect(alert).toContainText("Every prayer will be set like Maghrib: Adhan 4, 5 min before.");
+  await alert.getByRole("button", { name: "Cancel" }).click();
+  await expect(alert).toHaveCount(0);
+  await page.goBack();
+  await expect(page.getByTestId("reminder-row-fajr")).toContainText("Default sound");
+
+  await openPrayer(page, "maghrib");
+  await page.getByTestId("apply-to-all").click();
+  await page.locator("ion-alert").getByRole("button", { name: "Apply" }).click();
+  await page.goBack();
+  for (const key of ["fajr", "shuruq", "duhr", "asr", "maghrib", "isha"]) {
+    await expect(page.getByTestId(`reminder-row-${key}`)).toContainText("Adhan 4");
+  }
+  await expect(page.getByTestId("reminder-row-all")).toContainText("Adhan 4");
+});
+
+test("offers Apply to all only on one prayer's screen", async ({ page }) => {
+  await notificationSettings(page);
+  await page.getByTestId("reminder-row-all").click();
+  await expect(page.getByTestId("reminder-on")).toBeVisible();
+  await expect(page.getByTestId("apply-to-all")).toHaveCount(0);
 });
 
 test("shows today's prayer and reminder time as the timing changes", async ({ page }) => {

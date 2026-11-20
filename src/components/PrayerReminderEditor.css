@@ -43,11 +43,12 @@
   color: var(--ion-color-medium, #92949c);
 }
 
-.reminder-editor__stop {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--ion-color-primary, #3880ff);
+/* Square and the height of the row, so it is an easy tap of its own. */
+.reminder-editor__listen {
+  --padding-start: 10px;
+  --padding-end: 10px;
+  margin: 0;
+  margin-inline-start: 4px;
+  min-height: 44px;
+  font-size: 1rem;
 }

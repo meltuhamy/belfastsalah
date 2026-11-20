@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0FE0E5A88821D9C1CFFDF900 /* adhan-5.caf in Resources */ = {isa = PBXBuildFile; fileRef = ABCAE3F2F516E3F6DB508CD8 /* adhan-5.caf */; };
 		13BE3C978D76E8B9B3A3B6CB /* PrayerTimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AA48F6B530FE5615F57FF2A /* PrayerTimelineProvider.swift */; };
+		199963C4F1CE2613DC61245E /* PrayerRemindersPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 289821CAC8E3C313EC1AEEC2 /* PrayerRemindersPlugin.swift */; };
 		215B6605ED3F67170121EE7F /* widget-payload in Resources */ = {isa = PBXBuildFile; fileRef = 62DC98E8CB9ABEFE5A311C51 /* widget-payload */; };
 		2A215776FB38E1B05BA35796 /* PrayerWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 363B0CC19BA310111BDBFBFF /* PrayerWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		2AB9AC0A02C310ED597FA0FA /* WidgetPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B0893C831C31973C0B9E255 /* WidgetPayload.swift */; };
@@ -94,6 +95,7 @@
 
 /* Begin PBXFileReference section */
 		0C087419A24C80151F39416D /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		289821CAC8E3C313EC1AEEC2 /* PrayerRemindersPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrayerRemindersPlugin.swift; sourceTree = "<group>"; };
 		2946BD469A952A0D980547E5 /* adhan-1.caf */ = {isa = PBXFileReference; includeInIndex = 1; path = "adhan-1.caf"; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		363B0CC19BA310111BDBFBFF /* PrayerWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PrayerWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -212,6 +214,7 @@
 				D25FED8C8F0736410F5264BF /* MainViewController.swift */,
 				72B0459552F099D830AFCC09 /* App.entitlements */,
 				6FA90A21A5F0D2083FA8C3A9 /* Sounds */,
+				289821CAC8E3C313EC1AEEC2 /* PrayerRemindersPlugin.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -472,6 +475,7 @@
 				B2C3D4E5F60718293A4B5C6D /* DeviceClockPlugin.swift in Sources */,
 				5FAC35D5B528F9053E76FFBF /* MainViewController.swift in Sources */,
 				B6F0A529A3FFD6DAA9A2D126 /* WidgetStore.swift in Sources */,
+				199963C4F1CE2613DC61245E /* PrayerRemindersPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

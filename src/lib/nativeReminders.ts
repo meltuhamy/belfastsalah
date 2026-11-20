@@ -25,6 +25,12 @@ type PrayerRemindersPlugin = {
   }): Promise<ReminderChannelState>;
   /** Opens Android's settings page for one prayer's channel. */
   openChannelSettings(options: { prayer: PrayerKey }): Promise<void>;
+  /**
+   * Plays the phone's notification sound: Android's own, or iOS's standard
+   * tone. The only methods iOS has.
+   */
+  playDefaultSound(): Promise<void>;
+  stopDefaultSound(): Promise<void>;
 };
 
 /** One prayer's channel: its id, and Android's importance for it. */
@@ -121,6 +127,15 @@ export async function ensureReminderChannels(
   return PrayerReminders.ensureChannels({
     sounds: reminderChannels({ reminders }),
   });
+}
+
+/** Apps only: plays the sound "Default sound" reminders make. */
+export async function playDefaultSound(): Promise<void> {
+  await PrayerReminders.playDefaultSound();
+}
+
+export async function stopDefaultSound(): Promise<void> {
+  await PrayerReminders.stopDefaultSound();
 }
 
 /** Android only: opens the system settings for one prayer's notifications. */

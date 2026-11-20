@@ -357,8 +357,18 @@ and there is the test day (`/settings/notifications/test`).
   body is `reminderBody(offset)`: "In 10 minutes", "Prayer time now",
   "10 minutes ago".
 - **`PrayerReminderEditor`** is the one editor, used on a prayer's screen and
-  in the test day's sheet: switch, slider, and a sound list where a tap plays
-  the sound (`soundPreview.ts`) and chooses it.
+  in the test day's sheet: switch, slider, and a sound list where tapping a
+  row chooses it and only its speaker button plays it (`soundPreview.ts`).
+  The slider's bubble says "+5" or "−5", since words do not fit in it, and
+  the times line under it is a function of the offset so it follows a drag.
+  A prayer's screen also has "Apply to all prayers", which copies its
+  on/off, timing and sound to the other five after a confirmation.
+- **The default sound** has no file, so the page cannot play it. The apps
+  can: `PrayerReminders.playDefaultSound` plays Android's notification sound,
+  and on iOS (`PrayerRemindersPlugin.swift`, the plugin's only methods there)
+  the standard tone, since iOS will not play the user's chosen one. The web
+  shows no speaker for it (`canPreview`). The Swift file was added to the
+  target by `scripts/ios/add-reminders-plugin.rb`.
 - **The test day** (`TestRemindersPage`, maths in `testDay.ts`) plays today's
   prayers in about 30 seconds on a timeline that is not to scale: six equal
   slots, the half hour either side of each prayer spread across most of its

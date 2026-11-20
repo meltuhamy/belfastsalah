@@ -3,6 +3,8 @@ package com.meltuhamy.londonsalah.reminder
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.media.Ringtone
+import android.media.RingtoneManager
 import android.os.Build
 import android.provider.Settings
 import com.getcapacitor.JSObject
@@ -110,6 +112,35 @@ class PrayerRemindersPlugin : Plugin() {
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
         }
+        call.resolve()
+    }
+
+    private var defaultSound: Ringtone? = null
+
+    /**
+     * Plays the phone's notification sound, which is what "Default sound"
+     * reminders make, so it can be heard in the sound list like the adhans.
+     * The page has no file for it.
+     */
+    @PluginMethod
+    fun playDefaultSound(call: PluginCall) {
+        defaultSound?.stop()
+        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        val ringtone = RingtoneManager.getRingtone(context, uri)
+        if (ringtone == null) {
+            call.reject("this phone has no notification sound")
+            return
+        }
+        ringtone.audioAttributes = ReminderSounds.audioAttributes()
+        ringtone.play()
+        defaultSound = ringtone
+        call.resolve()
+    }
+
+    @PluginMethod
+    fun stopDefaultSound(call: PluginCall) {
+        defaultSound?.stop()
+        defaultSound = null
         call.resolve()
     }
 }

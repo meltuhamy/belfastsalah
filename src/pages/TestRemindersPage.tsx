@@ -542,13 +542,15 @@ const TestRemindersPage: React.FC = () => {
                 value={reminders[sheetKey]}
                 onChange={(next) => changeReminder(sheet!, next)}
                 appearance={{ prayer: sheetKey, reminders }}
-                timesLine={reminderTimesLine(
-                  names[sheet!],
-                  new Date(times[sheet!]),
-                  reminders[sheetKey].offset,
-                  zone,
-                  twentyFourHour
-                )}
+                timesLine={(offset) =>
+                  reminderTimesLine(
+                    names[sheet!],
+                    new Date(times[sheet!]),
+                    offset,
+                    zone,
+                    twentyFourHour
+                  )
+                }
               />
             </IonContent>
           ) : null}
