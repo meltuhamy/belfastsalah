@@ -14,6 +14,7 @@ import {
   describeOffset,
   OFFSET_LIMIT,
   offsetLabel,
+  MixedFields,
   PrayerKey,
   PrayerReminder,
   PrayerReminders,
@@ -37,7 +38,13 @@ type Props = {
   /** "Fajr", or "every prayer" when editing all six at once. */
   prayerName: string;
   value: PrayerReminder;
-  onChange: (next: PrayerReminder) => void;
+  /** The one field the user just changed. */
+  onChange: (change: Partial<PrayerReminder>) => void;
+  /**
+   * For "All prayers": the fields the prayers differ on. Those show nothing
+   * chosen, and any choice there is reported, even one equal to `value`.
+   */
+  mixed?: MixedFields;
   /**
    * "Fajr: 5:42. Reminder: 5:32" for an offset, or nothing when there is no
    * one prayer. A function so the line follows the slider while it is dragged.
@@ -63,6 +70,7 @@ const PrayerReminderEditor: React.FC<Props> = ({
   prayerName,
   value,
   onChange,
+  mixed,
   timesLine,
   switchLabel,
   appearance,
@@ -77,8 +85,8 @@ const PrayerReminderEditor: React.FC<Props> = ({
   const line = timesLine ? timesLine(offset) : null;
 
   function choose(sound: ReminderSound) {
-    if (sound !== value.sound) {
-      onChange({ ...value, sound });
+    if (sound !== value.sound || mixed?.sound) {
+      onChange({ sound });
     }
   }
 
@@ -100,12 +108,19 @@ const PrayerReminderEditor: React.FC<Props> = ({
           data-testid="reminder-on"
           onIonChange={(event) => {
             stopPreview();
-            onChange({ ...value, on: event.detail.checked });
+            onChange({ on: event.detail.checked });
           }}
         >
           {switchLabel}
         </IonToggle>
       </IonItem>
+      {mixed?.on ? (
+        <IonItem lines="none" data-testid="reminder-on-mixed">
+          <IonLabel className="ion-text-wrap">
+            <p>Off for some prayers. Turn this off and on again to turn all of them on.</p>
+          </IonLabel>
+        </IonItem>
+      ) : null}
 
       {value.on ? (
         <>
@@ -115,7 +130,9 @@ const PrayerReminderEditor: React.FC<Props> = ({
           <IonItem lines="full" className="reminder-editor__when">
             <div className="reminder-editor__when-body">
               <p className="reminder-editor__when-text" data-testid="reminder-when">
-                {describeOffset(offset, prayerName)}
+                {mixed?.offset && draggingOffset === null
+                  ? "Different for each prayer. Move the slider to set them all."
+                  : describeOffset(offset, prayerName)}
               </p>
               {line ? (
                 <p className="reminder-editor__times" data-testid="reminder-times">
@@ -135,7 +152,7 @@ const PrayerReminderEditor: React.FC<Props> = ({
                 onIonInput={(event) => setDraggingOffset(event.detail.value as number)}
                 onIonChange={(event) => {
                   setDraggingOffset(null);
-                  onChange({ ...value, offset: event.detail.value as number });
+                  onChange({ offset: event.detail.value as number });
                 }}
               ></IonRange>
               <div className="reminder-editor__scale" aria-hidden="true">
@@ -155,7 +172,7 @@ const PrayerReminderEditor: React.FC<Props> = ({
             </IonLabel>
           </IonItem>
           {REMINDER_SOUNDS.map((sound) => {
-            const selected = sound === value.sound;
+            const selected = !mixed?.sound && sound === value.sound;
             const isPlaying = playing === sound;
             const label = reminderSoundLabels[sound];
             return (

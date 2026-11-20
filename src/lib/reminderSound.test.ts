@@ -3,6 +3,8 @@ import { join } from "node:path";
 import {
   androidChannelId,
   iosSoundName,
+  androidSoundName,
+  notificationSoundName,
   isFajrSound,
   isReminderSound,
   previewUrl,
@@ -75,4 +77,23 @@ describe("bundled sound files", () => {
       );
     });
   }
+});
+
+describe("androidSoundName", () => {
+  it("names the raw resource, which has an underscore", () => {
+    expect(androidSoundName("adhan-2")).toBe("adhan_2");
+    expect(androidSoundName("default")).toBeUndefined();
+    expect(androidSoundName("silent")).toBeUndefined();
+  });
+
+  it("names a file that is in res/raw for every adhan", () => {
+    for (const sound of REMINDER_SOUNDS.filter((s) => s.startsWith("adhan-"))) {
+      expect(existsSync(join(__dirname, "../../android/app/src/main/res/raw", `${androidSoundName(sound)}.ogg`))).toBe(true);
+    }
+  });
+
+  it("is what notifications get on Android, and the .caf name elsewhere", () => {
+    expect(notificationSoundName("adhan-2", "android")).toBe("adhan_2");
+    expect(notificationSoundName("adhan-2", "ios")).toBe("adhan-2.caf");
+  });
 });

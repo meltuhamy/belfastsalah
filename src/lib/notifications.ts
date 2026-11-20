@@ -8,7 +8,7 @@ import { ensureReminderChannels } from "./nativeReminders";
 import { PRAYER_KEYS, PrayerReminders } from "./prayerReminders";
 import {
   androidChannelId,
-  iosSoundName,
+  notificationSoundName,
   ReminderSound,
 } from "./reminderSound";
 
@@ -168,7 +168,7 @@ export async function sendTestNotification(
         // The chosen sound, so the test checks it too. Android's channels
         // are created by the native reminder sync, which runs before the
         // reminder row (and so this long-press) is ever on screen.
-        sound: iosSoundName(sound),
+        sound: notificationSoundName(sound, Capacitor.getPlatform()),
         channelId: androidChannelId(sound),
         actionTypeId: "",
         extra: null,
@@ -224,7 +224,7 @@ export async function showPreviewNotification(
         id: previewId(index),
         title,
         body,
-        sound: iosSoundName(sound),
+        sound: notificationSoundName(sound, Capacitor.getPlatform()),
         channelId,
         actionTypeId: "",
         extra: null,

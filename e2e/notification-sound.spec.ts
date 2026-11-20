@@ -161,6 +161,36 @@ test("sets every prayer at once from All prayers", async ({ page }) => {
   }
 });
 
+test("gives every prayer Fajr's sound from All prayers when they differ", async ({ page }) => {
+  await notificationSettings(page);
+  await openPrayer(page, "fajr");
+  await page.getByTestId("sound-option-adhan-4").click();
+  await page.goBack();
+
+  await page.getByTestId("reminder-row-all").click();
+  // The prayers differ, so no sound is shown as chosen, not even Fajr's.
+  await expect(page.locator(".reminder-editor__sound--selected")).toHaveCount(0);
+  await page.getByTestId("sound-option-adhan-4").click();
+  await expect(page.getByTestId("sound-option-adhan-4")).toHaveClass(/reminder-editor__sound--selected/);
+  await page.goBack();
+  for (const key of ["fajr", "shuruq", "duhr", "asr", "maghrib", "isha"]) {
+    await expect(page.getByTestId(`reminder-row-${key}`)).toContainText("Adhan 4");
+  }
+});
+
+test("says the timing differs on All prayers rather than showing Fajr's", async ({ page }) => {
+  await notificationSettings(page);
+  await openPrayer(page, "fajr");
+  await page.getByTestId("reminder-offset").getByRole("slider").press("ArrowLeft");
+  await expect(page.getByTestId("reminder-when")).toHaveText("6 minutes before Fajr");
+  await page.goBack();
+
+  await page.getByTestId("reminder-row-all").click();
+  await expect(page.getByTestId("reminder-when")).toHaveText(
+    "Different for each prayer. Move the slider to set them all."
+  );
+});
+
 test("remembers each prayer's sound", async ({ page }) => {
   await notificationSettings(page);
   await openPrayer(page, "isha");
@@ -204,6 +234,18 @@ test.describe("test it out", () => {
     // While the sound plays, the play button shows the adhan icon.
     await expect(page.getByTestId("test-day-play").getByTestId("adhan-icon")).toBeVisible();
     await expect(page.getByTestId("test-day-dot-fajr")).toHaveAttribute("data-sent", "true");
+  });
+
+  test("plays to the first reminder when the page is loaded on its own", async ({ page }) => {
+    await notificationSettings(page);
+    // Settings are written through a 500ms debounce.
+    await page.waitForTimeout(700);
+    // Straight to the page, so its timer starts before today's times load.
+    await page.goto("/settings/notifications/test");
+    await page.getByTestId("test-day-play").click();
+    await expect(page.getByTestId("test-day-banner")).toContainText("Fajr is at 06:20", {
+      timeout: 15_000,
+    });
   });
 
   test("snaps the timeline to a prayer when it is tapped", async ({ page }) => {

@@ -18,13 +18,13 @@ import FullPageSpinner from "../components/FullPageSpinner";
 import CenteredMaxWidthContainer from "../components/CenteredMaxWidthContainer";
 import PrayerReminderEditor from "../components/PrayerReminderEditor";
 import {
-  commonReminder,
   describeOffsetShort,
   isPrayerKey,
   PRAYER_KEYS,
   prayerOfKey,
   PrayerReminder,
   PrayerReminders,
+  remindersForAll,
 } from "../lib/prayerReminders";
 import { prayerToString } from "../lib/PrayerTimes";
 import { usePrayerDay } from "../lib/usePrayerDay";
@@ -61,28 +61,15 @@ const PrayerReminderPage: React.FC = () => {
   const all = !isPrayerKey(prayer);
   const key = all ? null : prayer;
   const name = key === null ? "every prayer" : prayerToString(prayerOfKey(key));
-  // "All prayers" starts from the shared setting, or Fajr's while they differ;
-  // whatever is changed there is then written to all six.
-  const value: PrayerReminder =
-    key === null
-      ? commonReminder(settings.reminders) ?? settings.reminders.fajr
-      : settings.reminders[key];
+  // "All prayers" shows what they share, and nothing chosen where they
+  // differ; whatever is changed there is written to all six.
+  const forAll = key === null ? remindersForAll(settings.reminders) : null;
+  const value: PrayerReminder = forAll?.value ?? settings.reminders[key!];
 
-  function change(next: PrayerReminder) {
+  function change(patch: Partial<PrayerReminder>) {
     const reminders: PrayerReminders = { ...settings!.reminders };
-    if (key === null) {
-      const changed = (Object.keys(next) as Array<keyof PrayerReminder>).filter(
-        (field) => next[field] !== value[field]
-      );
-      for (const k of PRAYER_KEYS) {
-        const patch: Partial<PrayerReminder> = {};
-        for (const field of changed) {
-          (patch as Record<string, unknown>)[field] = next[field];
-        }
-        reminders[k] = { ...reminders[k], ...patch };
-      }
-    } else {
-      reminders[key] = next;
+    for (const k of key === null ? PRAYER_KEYS : [key]) {
+      reminders[k] = { ...reminders[k], ...patch };
     }
     setSettings({ ...settings!, reminders });
   }
@@ -131,6 +118,7 @@ const PrayerReminderPage: React.FC = () => {
             switchLabel={key === null ? "Notifications" : `${name} notification`}
             value={value}
             onChange={change}
+            mixed={forAll?.mixed}
             appearance={
               key === null ? undefined : { prayer: key, reminders: settings.reminders }
             }

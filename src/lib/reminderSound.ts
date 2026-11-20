@@ -62,6 +62,28 @@ export function iosSoundName(sound: ReminderSound): string | undefined {
 }
 
 /**
+ * The `sound` to give @capacitor/local-notifications on Android: the base
+ * name of the file in `res/raw`, or undefined for the phone's own sound.
+ *
+ * Only Android 7 reads it - from Android 8 the channel's sound wins - and
+ * the plugin looks the name up as a raw resource, where the files are
+ * `adhan_N` because resource names cannot hold a hyphen. iOS's
+ * `adhan-N.caf` finds nothing there and quietly gets the default sound.
+ * Silent has no name to give: Android 7 has no channel to silence it.
+ */
+export function androidSoundName(sound: ReminderSound): string | undefined {
+  return sound.startsWith("adhan-") ? sound.replace("-", "_") : undefined;
+}
+
+/** The `sound` for a notification on the platform the app is running on. */
+export function notificationSoundName(
+  sound: ReminderSound,
+  platform: string
+): string | undefined {
+  return platform === "android" ? androidSoundName(sound) : iosSoundName(sound);
+}
+
+/**
  * The Android channel a sound played on before each prayer had its own
  * (`ReminderChannels.kt`). Only "default" is still kept, for notifications
  * that are not a prayer's, such as the hidden test notification. Must match

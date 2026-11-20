@@ -84,6 +84,49 @@ final class PreviewCapture: XCTestCase {
         XCUIDevice.shared.press(.home)
     }
 
+    /**
+     * The reminder screens: every prayer's sound and timing, one prayer's
+     * editor, and the test day, tapped through from Settings with reminders
+     * already on. Without the permission, which a simulator has not granted,
+     * the app schedules nothing but still shows these screens.
+     */
+    func test6Reminders() throws {
+        let app = launch(settings: settingsJSON(theme: "light", reminders: true))
+        let web = app.webViews.firstMatch
+        XCTAssertTrue(web.staticTexts["Fajr"].waitForExistence(timeout: 30))
+        web.links["Settings"].tap()
+
+        try tapLink(in: web, startingWith: "Notification Settings")
+        try require(web.staticTexts["All prayers"], "the list of prayers' reminders")
+        settle()
+        capture("app-notifications")
+
+        try tapLink(in: web, startingWith: "Fajr")
+        try require(web.staticTexts["Sound"], "Fajr's reminder screen")
+        settle()
+        capture("app-prayer-reminder")
+
+        // Ionic's back button, in the page: there is no native bar.
+        let back = web.buttons.matching(NSPredicate(format: "label ==[c] 'back'")).firstMatch
+        try require(back, "the back button on Fajr's screen").tap()
+        try tapLink(in: web, startingWith: "Test it out")
+        try require(web.staticTexts["Test your reminders"], "the test day")
+        settle()
+        capture("app-test-day")
+    }
+
+    /** Taps the first link or button in the web view whose label starts with `label`. */
+    private func tapLink(in web: XCUIElement, startingWith label: String) throws {
+        let element = web.descendants(matching: .any)
+            .matching(NSPredicate(
+                format: "label BEGINSWITH %@ AND (elementType == %d OR elementType == %d)",
+                label,
+                XCUIElement.ElementType.link.rawValue,
+                XCUIElement.ElementType.button.rawValue
+            )).firstMatch
+        try require(element, "\(label) in the app", timeout: 10).tap()
+    }
+
     private let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
 
     private func addWidget(page: Int, size: String) throws {
@@ -212,12 +255,23 @@ final class PreviewCapture: XCTestCase {
      * simulator follows the runner's zone, which the workflow sets to London
      * anyway, so it would not appear.
      */
-    private func settingsJSON(theme: String) -> String {
+    private func settingsJSON(theme: String, reminders: Bool = false) -> String {
         """
-        {"notify":false,"notifyMinutes":5,"asrMethod":"shafi","theme":"\(theme)",\
+        {"notify":\(reminders),"notifyMinutes":5,"asrMethod":"shafi","theme":"\(theme)",\
+        \(reminders ? remindersJSON : "")\
         "location":"london","showTimesInDeviceZone":false,"timeZoneNoticeSeen":true}
         """
     }
+
+    /** A mix of sounds and timings, so the reminder screens show what they can do. */
+    private let remindersJSON = """
+        "reminders":{"fajr":{"on":true,"offset":-10,"sound":"adhan-5"},\
+        "shuruq":{"on":false,"offset":-5,"sound":"default"},\
+        "duhr":{"on":true,"offset":-5,"sound":"default"},\
+        "asr":{"on":true,"offset":0,"sound":"adhan-2"},\
+        "maghrib":{"on":true,"offset":-5,"sound":"adhan-1"},\
+        "isha":{"on":true,"offset":5,"sound":"silent"}},
+        """
 
     private func launch(settings: String) -> XCUIApplication {
         let app = XCUIApplication()

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { pinDate } from "./support/app";
 
 // The whole app re-renders once a second off the countdown ticker, and
 // @ionic/react re-assigns every prop to the underlying element on every one of
@@ -11,6 +12,11 @@ import { test, expect, type Page } from "@playwright/test";
 // "5, 3, 5, 7, 5, 10, 12, ..." on a single left-to-right drag.
 
 test.use({ permissions: ["notifications"] });
+
+// 15 January, GMT: the times line reads london-2026.json's own, Fajr 06:20.
+test.beforeEach(async ({ page }) => {
+  await pinDate(page, "2026-01-15T03:00:00Z");
+});
 
 /** Completes setup, then turns reminders on from the settings screen. */
 async function openReminderSlider(page: Page) {

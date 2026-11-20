@@ -131,6 +131,28 @@ export function migrateReminders(
   return result;
 }
 
+/** Which of a reminder's fields are not the same for every prayer. */
+export type MixedFields = Record<keyof PrayerReminder, boolean>;
+
+/**
+ * What "All prayers" shows: each field as every prayer has it, and where
+ * they differ, which fields those are. A mixed field shows nothing chosen,
+ * so whatever is touched is written to all six, even Fajr's own value. On
+ * reads as on while any prayer is, so the rest of the editor is there.
+ */
+export function remindersForAll(reminders: PrayerReminders): {
+  value: PrayerReminder;
+  mixed: MixedFields;
+} {
+  const all = PRAYER_KEYS.map((key) => reminders[key]);
+  const differs = (field: keyof PrayerReminder) =>
+    all.some((r) => r[field] !== all[0][field]);
+  return {
+    value: { ...all[0], on: all.some((r) => r.on) },
+    mixed: { on: differs("on"), offset: differs("offset"), sound: differs("sound") },
+  };
+}
+
 /** Every prayer set to the same thing, or null when they differ. */
 export function commonReminder(reminders: PrayerReminders): PrayerReminder | null {
   const first = reminders[PRAYER_KEYS[0]];

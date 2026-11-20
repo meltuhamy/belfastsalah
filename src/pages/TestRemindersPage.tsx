@@ -118,8 +118,10 @@ const TestRemindersPage: React.FC = () => {
   const dragging = useRef(false);
 
   // Latest values for the interval, which outlives any one render.
-  const latest = useRef({ settings, times, zone, twentyFourHour });
-  latest.current = { settings, times, zone, twentyFourHour };
+  // Everything tick() reads comes from here: it is the first render's
+  // closure, when today's times may not have loaded yet.
+  const latest = useRef({ settings, today, times, zone, twentyFourHour });
+  latest.current = { settings, today, times, zone, twentyFourHour };
 
   // A new day (or a first load) starts the simulation over.
   useEffect(() => {
@@ -143,10 +145,13 @@ const TestRemindersPage: React.FC = () => {
   // the first reminder rather than delaying it.
   const native = useRef<Promise<boolean> | null>(null);
   const soundCount = useRef(0);
+  const unmounted = useRef(false);
 
   useEffect(() => {
+    unmounted.current = false;
     const timer = setInterval(() => tick(), TICK_MS);
     return () => {
+      unmounted.current = true;
       clearInterval(timer);
       stopPreview();
       void clearPreviewNotifications().catch(() => undefined);
@@ -156,8 +161,8 @@ const TestRemindersPage: React.FC = () => {
 
   function tick() {
     const s = sim.current;
-    const { settings: st, times: ts, zone: z, twentyFourHour: h24 } = latest.current;
-    if (s === null || st == null || ts === null) return;
+    const { settings: st, today: day, times: ts, zone: z, twentyFourHour: h24 } = latest.current;
+    if (s === null || st == null || day === null || ts === null) return;
     const now = performance.now();
     let changed = false;
     if (now >= s.holdUntil) {
@@ -181,7 +186,7 @@ const TestRemindersPage: React.FC = () => {
       if (due !== undefined) {
         const { i, r, at } = due;
         const title = reminderTitle(
-          prayerToString(today![i].prayer),
+          prayerToString(day[i].prayer),
           formatClockTime(new Date(ts[i]), z, h24, { withPeriod: true })
         );
         const body = reminderBody(r.offset);
@@ -233,7 +238,12 @@ const TestRemindersPage: React.FC = () => {
     } catch {
       posted = false;
     }
-    if (s.sounding?.id !== id) return;
+    if (s.sounding?.id !== id || unmounted.current) {
+      // Superseded or left while it was being posted: whatever cleared the
+      // notification centre ran before it arrived, so take it down here.
+      if (posted) void clearPreviewNotifications(prayer).catch(() => undefined);
+      return;
+    }
     if (!posted) {
       // The web has no notifications: the page shows its own and plays the sound.
       s.banner = { title, body };
@@ -540,7 +550,7 @@ const TestRemindersPage: React.FC = () => {
                 prayerName={names[sheet!]}
                 switchLabel={`${names[sheet!]} notification`}
                 value={reminders[sheetKey]}
-                onChange={(next) => changeReminder(sheet!, next)}
+                onChange={(patch) => changeReminder(sheet!, { ...reminders[sheetKey], ...patch })}
                 appearance={{ prayer: sheetKey, reminders }}
                 timesLine={(offset) =>
                   reminderTimesLine(

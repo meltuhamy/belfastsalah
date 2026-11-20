@@ -363,6 +363,11 @@ and there is the test day (`/settings/notifications/test`).
   the times line under it is a function of the offset so it follows a drag.
   A prayer's screen also has "Apply to all prayers", which copies its
   on/off, timing and sound to the other five after a confirmation.
+  `onChange` gets only the field that was touched, never a whole reminder.
+  That matters on "All prayers" (`remindersForAll`): a field the prayers
+  differ on is passed in `mixed` and shows nothing chosen, so any choice
+  there is written to all six, Fajr's own value included. Diffing a whole
+  reminder against Fajr's used to drop exactly those choices.
 - **The default sound** has no file, so the page cannot play it. The apps
   can: `PrayerReminders.playDefaultSound` plays Android's notification sound,
   and on iOS (`PrayerRemindersPlugin.swift`, the plugin's only methods there)
@@ -385,8 +390,11 @@ and there is the test day (`/settings/notifications/test`).
   day had stopped), permission and channels are readied when play is
   pressed (`preparePreviewNotifications`), and the wait is timed from when
   the post completes. Each one is removed from the notification centre when
-  its wait ends, and all of them on leaving the screen. It times itself with
-  `performance.now()`, so e2e specs that pin `Date` still play.
+  its wait ends, and all of them on leaving the screen; one still being
+  posted then is taken down when it arrives. `tick` runs in the first
+  render's closure, so it reads everything, today's times included, from
+  `latest`. It times itself with `performance.now()`, so e2e specs that pin
+  `Date` still play.
 
 ### Reminder sounds
 
@@ -419,6 +427,10 @@ and there is the test day (`/settings/notifications/test`).
   - The payload carries `prayer` on each entry and `channels` (every
     prayer's sound, including ones that are off). `sound` is still there,
     only when not the default, for Android 7, which has no channels.
+  - **Android 7 reads `sound` as a raw resource name**, `adhan_N` with an
+    underscore (`androidSoundName`). iOS's `adhan-N.caf` finds nothing there,
+    and the plugin quietly falls back to the default sound, so anything
+    posted from JS picks the name by platform (`notificationSoundName`).
   - Every sync, and `PrayerReminders.ensureChannels({ sounds })` (the
     Appearance row, and the test day before each notification), brings the
     channels up to the current sounds.

@@ -11,6 +11,7 @@ import {
   prayerKey,
   prayerOfKey,
   reminderBody,
+  remindersForAll,
   soundForPrayer,
 } from "./prayerReminders";
 import { getDefaultSettings, migrateSettings } from "./settings";
@@ -84,6 +85,21 @@ describe("per-prayer reminders", () => {
     expect(
       commonReminder({ ...defaultReminders(), asr: { on: false, offset: -5, sound: "default" } })
     ).toBeNull();
+  });
+
+  it("Should show All prayers what is shared, and which fields differ", () => {
+    expect(remindersForAll(defaultReminders()).mixed).toEqual({
+      on: false,
+      offset: false,
+      sound: false,
+    });
+    const { value, mixed } = remindersForAll({
+      ...defaultReminders(),
+      fajr: { on: false, offset: -5, sound: "adhan-4" },
+    });
+    expect(mixed).toEqual({ on: true, offset: false, sound: true });
+    // On while any prayer is, so the rest of the editor stays reachable.
+    expect(value).toEqual({ on: true, offset: -5, sound: "adhan-4" });
   });
 });
 

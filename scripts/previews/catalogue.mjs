@@ -21,6 +21,15 @@ export const CATALOGUE = [
     ],
   },
   {
+    title: "iOS: reminders",
+    dir: "ios",
+    images: [
+      { file: "app-notifications", caption: "Notification Settings" },
+      { file: "app-prayer-reminder", caption: "One prayer" },
+      { file: "app-test-day", caption: "Test it out" },
+    ],
+  },
+  {
     title: "iOS: home screen widgets",
     dir: "ios",
     images: [
@@ -55,6 +64,15 @@ export const CATALOGUE = [
       { file: "app-settings-light", caption: "Settings" },
       { file: "app-today-dark", caption: "Today, dark" },
       { file: "app-settings-dark", caption: "Settings, dark" },
+    ],
+  },
+  {
+    title: "Android: reminders",
+    dir: "android",
+    images: [
+      { file: "app-notifications", caption: "Notification Settings" },
+      { file: "app-prayer-reminder", caption: "One prayer" },
+      { file: "app-test-day", caption: "Test it out" },
     ],
   },
   {

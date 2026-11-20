@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Rect
+import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -172,6 +173,48 @@ class PreviewCapture {
         device.pressBack()
     }
 
+    /**
+     * The reminder screens: every prayer's sound and timing, one prayer's
+     * editor, and the test day. Reached by tapping through the app, with
+     * reminders on and the permission granted beforehand so that no system
+     * dialog covers them.
+     */
+    @Test
+    fun test6Reminders() {
+        instrumentation.uiAutomation.executeShellCommand(
+            "pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS"
+        ).let { ParcelFileDescriptor.AutoCloseInputStream(it).use { s -> s.readBytes() } }
+        writeSettings(settingsJson("light", reminders = true))
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForJs(scenario, "!!document.querySelector('[data-testid=prayer-strip]')")
+            runJs(scenario, "document.querySelector(\"ion-button[aria-label='Settings']\").click()")
+            openByTestId(scenario, "notification-settings-row", "reminder-row-fajr")
+            capture("app-notifications")
+
+            openByTestId(scenario, "reminder-row-fajr", "reminder-when")
+            capture("app-prayer-reminder")
+
+            runJs(scenario, "history.back()")
+            openByTestId(scenario, "test-it-out", "test-day-play")
+            capture("app-test-day")
+        }
+    }
+
+    /**
+     * Taps the element with one test id, then waits for another to be on
+     * screen. Ionic keeps the pages behind in the DOM, hidden with
+     * display: none, so only an element with a layout box counts.
+     */
+    private fun openByTestId(scenario: ActivityScenario<MainActivity>, tap: String, shows: String) {
+        waitForJs(scenario, "!!${shown(tap)}")
+        runJs(scenario, "${shown(tap)}.click()")
+        waitForJs(scenario, "!!${shown(shows)}")
+        settle()
+    }
+
+    private fun shown(testId: String) =
+        "[...document.querySelectorAll('[data-testid=$testId]')].find((e) => e.offsetParent !== null)"
+
     private fun pin(widget: Widget) {
         val provider = ComponentName(context, widget.provider)
         val before = manager.getAppWidgetIds(provider).toSet()
@@ -228,8 +271,9 @@ class PreviewCapture {
             device.findObjects(By.res(context.packageName, id)).map { id to it.visibleBounds }
         }
 
-    private fun settingsJson(theme: String) =
-        """{"notify":false,"notifyMinutes":5,"asrMethod":"shafi","theme":"$theme",""" +
+    private fun settingsJson(theme: String, reminders: Boolean = false) =
+        """{"notify":$reminders,"notifyMinutes":5,"asrMethod":"shafi","theme":"$theme",""" +
+            (if (reminders) REMINDERS_JSON else "") +
             """"location":"london","showTimesInDeviceZone":false,"timeZoneNoticeSeen":true}"""
 
     private fun writeSettings(json: String?) {
@@ -292,6 +336,15 @@ class PreviewCapture {
     private data class Widget(val name: String, val provider: Class<*>, val root: String)
 
     private companion object {
+        /** A mix of sounds and timings, so the reminder screens show what they can do. */
+        const val REMINDERS_JSON = "\"reminders\":{" +
+            "\"fajr\":{\"on\":true,\"offset\":-10,\"sound\":\"adhan-5\"}," +
+            "\"shuruq\":{\"on\":false,\"offset\":-5,\"sound\":\"default\"}," +
+            "\"duhr\":{\"on\":true,\"offset\":-5,\"sound\":\"default\"}," +
+            "\"asr\":{\"on\":true,\"offset\":0,\"sound\":\"adhan-2\"}," +
+            "\"maghrib\":{\"on\":true,\"offset\":-5,\"sound\":\"adhan-1\"}," +
+            "\"isha\":{\"on\":true,\"offset\":5,\"sound\":\"silent\"}},"
+
         /** Roots of the five layouts; the wide and tall widgets share one. */
         val ROOTS = listOf("tile_root", "compact_root", "column_root", "widget_root")
 
