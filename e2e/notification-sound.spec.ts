@@ -151,6 +151,23 @@ test("turns one prayer off, and shows it off in the list", async ({ page }) => {
   await expect(page.getByTestId("reminder-row-all")).toContainText("Mixed");
 });
 
+test("shows All prayers as off once every prayer is, whatever they were set to", async ({ page }) => {
+  await notificationSettings(page);
+  await openPrayer(page, "fajr");
+  await page.getByTestId("sound-option-adhan-4").click();
+  await page.goBack();
+  await expect(page.getByTestId("reminder-row-all")).toContainText("Mixed");
+
+  await page.getByTestId("reminder-row-all").click();
+  await page.locator("ion-toggle[data-testid=reminder-on]:visible").click();
+  await expect(page.getByText("No notification for each prayer")).toBeVisible();
+  await page.goBack();
+  for (const key of ["fajr", "shuruq", "duhr", "asr", "maghrib", "isha"]) {
+    await expect(page.getByTestId(`reminder-row-${key}`)).toContainText("Off");
+  }
+  await expect(page.getByTestId("reminder-row-all")).toContainText("Off");
+});
+
 test("sets every prayer at once from All prayers", async ({ page }) => {
   await notificationSettings(page);
   await page.getByTestId("reminder-row-all").click();

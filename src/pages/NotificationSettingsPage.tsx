@@ -20,6 +20,7 @@ import { useSettings } from "../lib/useSettings";
 import FullPageSpinner from "../components/FullPageSpinner";
 import CenteredMaxWidthContainer from "../components/CenteredMaxWidthContainer";
 import {
+  anyReminderOn,
   commonReminder,
   describeOffsetShort,
   PRAYER_KEYS,
@@ -44,6 +45,12 @@ const NotificationSettingsPage: React.FC = () => {
     return <FullPageSpinner />;
   }
   const common = commonReminder(settings.reminders);
+  // Every prayer off is "Off", whatever timings and sounds they were left on.
+  const allValue = !anyReminderOn(settings.reminders)
+    ? "Off"
+    : common === null
+      ? "Mixed"
+      : soundText(common);
 
   return (
     <IonPage>
@@ -68,7 +75,7 @@ const NotificationSettingsPage: React.FC = () => {
                 <p>Set one timing and sound for every prayer</p>
               </IonLabel>
               <IonNote slot="end" className="notification-settings__value">
-                {common === null ? "Mixed" : soundText(common)}
+                {allValue}
               </IonNote>
             </IonItem>
 
