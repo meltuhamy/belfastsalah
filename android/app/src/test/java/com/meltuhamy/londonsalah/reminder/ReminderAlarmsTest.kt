@@ -197,26 +197,55 @@ class ReminderAlarmsTest {
     }
 
     @Test
-    fun `posts an adhan reminder on that adhan's channel, which plays its file`() {
+    fun `posts an adhan reminder on its prayer's channel, which plays the adhan's file`() {
         val payload = stored("london-adhan-2026-01-15.json")
         val fajr = payload.reminders.first { it.title.startsWith("Fajr") }
+        assertEquals("fajr", fajr.prayer)
 
         ReminderAlarms.handle(context, fireIntent(fajr), fajr.at)
 
         val notifications = context.getSystemService(NotificationManager::class.java)
         val posted = shadowOf(notifications).allNotifications.single()
-        assertEquals("adhan-5", posted.channelId)
-        val channel = notifications.getNotificationChannel("adhan-5")
+        val id = ReminderChannels.current(context, "fajr")!!.id
+        assertEquals(id, posted.channelId)
+        val channel = notifications.getNotificationChannel(id)
         assertEquals(
             "android.resource://${context.packageName}/raw/adhan_5",
             channel.sound.toString()
         )
-        assertEquals("Adhan 5", channel.name)
+        assertEquals("Fajr", channel.name)
         assertEquals(NotificationManager.IMPORTANCE_DEFAULT, channel.importance)
     }
 
     @Test
-    fun `creates a channel for every sound, quiet for silent, and keeps an existing default`() {
+    fun `posts the prompt, and a reminder from an older list, on the sound's own channel`() {
+        val payload = stored("london-adhan-2026-01-15.json")
+        val prompt = payload.reminders.last()
+        assertNull(prompt.prayer)
+        ReminderAlarms.handle(context, fireIntent(prompt), prompt.at)
+
+        val notifications = context.getSystemService(NotificationManager::class.java)
+        assertEquals("default", shadowOf(notifications).allNotifications.single().channelId)
+        // Written before prayers had channels: no prayer, and no channels.
+        val legacy = ReminderPayload.parse(
+            fixtureText("london-adhan-2026-01-15.json")
+                .replace(Regex(""",\s*"prayer": "\w+""""), "")
+                .replace(Regex(""""channels": \{[^}]*\},"""), "")
+        )!!
+        assertTrue(legacy.reminders.all { it.prayer == null })
+        assertTrue(legacy.channels.isEmpty())
+        val armedBefore = legacy.reminders.first { it.title.startsWith("Fajr") }
+        ReminderStore.write(context, fixtureText("london-adhan-2026-01-15.json")
+            .replace(Regex(""",\s*"prayer": "\w+""""), ""))
+        ReminderAlarms.handle(context, fireIntent(armedBefore), armedBefore.at)
+        val posted = shadowOf(notifications).allNotifications.first {
+            it.extras.getString(Notification.EXTRA_TITLE) == armedBefore.title
+        }
+        assertEquals("adhan-5", posted.channelId)
+    }
+
+    @Test
+    fun `keeps an existing default channel as the user left it`() {
         val notifications = context.getSystemService(NotificationManager::class.java)
         val existing = android.app.NotificationChannel(
             "default",
@@ -225,22 +254,12 @@ class ReminderAlarmsTest {
         )
         notifications.createNotificationChannel(existing)
 
-        ReminderSounds.ensureChannels(context)
+        ReminderSounds.ensureDefaultChannel(context)
 
-        assertEquals(
-            listOf("default", "silent", "adhan-1", "adhan-2", "adhan-3", "adhan-4", "adhan-5"),
-            ReminderSounds.all
-        )
-        for (sound in ReminderSounds.all) {
-            assertTrue(sound, notifications.getNotificationChannel(sound) != null)
-        }
         assertEquals(
             NotificationManager.IMPORTANCE_HIGH,
             notifications.getNotificationChannel("default").importance
         )
-        val silent = notifications.getNotificationChannel("silent")
-        assertNull(silent.sound)
-        assertEquals(NotificationManager.IMPORTANCE_LOW, silent.importance)
     }
 
     @Test

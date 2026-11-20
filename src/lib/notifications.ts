@@ -5,6 +5,7 @@ import {
 import { addSeconds } from "date-fns";
 import { Capacitor } from "@capacitor/core";
 import { ensureReminderChannels } from "./nativeReminders";
+import { PRAYER_KEYS, PrayerReminders } from "./prayerReminders";
 import {
   androidChannelId,
   iosSoundName,
@@ -179,22 +180,16 @@ export async function sendTestNotification(
 }
 
 /**
- * Gets the test day ready to post: permission, and on Android every sound's
- * channel. Done when play is pressed, so nothing is left to wait for when the
- * timeline reaches a reminder. False on the web, or without permission: the
- * test day then plays the sound in the page instead.
+ * Gets the test day ready to post: permission, asked for when play is
+ * pressed so nothing is left to wait for when the timeline reaches a
+ * reminder. False on the web, or without permission: the test day then
+ * shows its own preview and plays the sound in the page.
  */
 export async function preparePreviewNotifications(): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) {
     return false;
   }
-  if (!(await ensureNotificationPermission())) {
-    return false;
-  }
-  if (Capacitor.getPlatform() === "android") {
-    await ensureReminderChannels();
-  }
-  return true;
+  return ensureNotificationPermission();
 }
 
 function previewId(index: number): number {
@@ -205,15 +200,24 @@ function previewId(index: number): number {
  * Posts one reminder from the test day as a real notification, with that
  * prayer's sound. Posted now rather than scheduled: a schedule, even a
  * quarter of a second out, goes through the alarm manager on Android and can
- * arrive well after the timeline has stopped for it. Android posts it on the
- * sound's own channel (see preparePreviewNotifications).
+ * arrive well after the timeline has stopped for it.
+ *
+ * On Android it goes on the prayer's own channel, brought up to its sound
+ * first, so it appears exactly as that prayer's reminders do - pop-up or
+ * not is what the user has in Android's settings.
  */
 export async function showPreviewNotification(
   index: number,
   title: string,
   body: string,
-  sound: ReminderSound
+  sound: ReminderSound,
+  reminders: PrayerReminders
 ): Promise<void> {
+  let channelId = androidChannelId(sound);
+  if (Capacitor.getPlatform() === "android") {
+    const state = await ensureReminderChannels(reminders);
+    channelId = state?.channels[PRAYER_KEYS[index]]?.id ?? channelId;
+  }
   await LocalNotifications.schedule({
     notifications: [
       {
@@ -221,7 +225,7 @@ export async function showPreviewNotification(
         title,
         body,
         sound: iosSoundName(sound),
-        channelId: androidChannelId(sound),
+        channelId,
         actionTypeId: "",
         extra: null,
       },

@@ -62,10 +62,10 @@ export function iosSoundName(sound: ReminderSound): string | undefined {
 }
 
 /**
- * The Android notification channel a sound plays on. A channel's sound is
- * fixed once created, so each sound has its own. "default" is the channel the
- * app has always posted to, which keeps whatever the user set on it. Must
- * match `ReminderSounds.kt`.
+ * The Android channel a sound played on before each prayer had its own
+ * (`ReminderChannels.kt`). Only "default" is still kept, for notifications
+ * that are not a prayer's, such as the hidden test notification. Must match
+ * `ReminderSounds.kt`.
  */
 export function androidChannelId(sound: ReminderSound): string {
   return sound;

@@ -24,7 +24,7 @@ import { resolveDisplayTimeZone } from "./displayZone";
 import { getZonedDateParts, middayOn } from "./timeZone";
 import { formatClockTime, uses24Hour } from "./timeFormat";
 import { ReminderSound } from "./reminderSound";
-import { prayerKey, reminderBody } from "./prayerReminders";
+import { PRAYER_KEYS, PrayerKey, prayerKey, reminderBody } from "./prayerReminders";
 import {
   REMINDERS_ENDED_BODY,
   REMINDERS_ENDED_TITLE,
@@ -52,11 +52,21 @@ export type ReminderEntry = {
    * as "default", so a list written before sounds existed still plays one.
    */
   sound?: ReminderSound;
+  /**
+   * The prayer, whose notification channel it posts on. Left out of the
+   * "reminders stop here" prompt, which posts on the default channel.
+   */
+  prayer?: PrayerKey;
 };
 
 export type ReminderPayload = {
   version: number;
   generatedAt: number;
+  /**
+   * Every prayer's sound, including prayers that are off, so Android can
+   * keep one channel per prayer made for the sound it plays.
+   */
+  channels: Record<PrayerKey, ReminderSound>;
   reminders: Array<ReminderEntry>;
 };
 
@@ -110,7 +120,8 @@ export async function buildReminderPayload(
           pastHorizon = true;
           break;
         }
-        const reminder = settings.reminders[prayerKey(prayerTime.prayer)];
+        const key = prayerKey(prayerTime.prayer);
+        const reminder = settings.reminders[key];
         if (!reminder.on) {
           continue;
         }
@@ -132,6 +143,7 @@ export async function buildReminderPayload(
           ),
           body: reminderBody(reminder.offset),
           ...(sound === "default" ? {} : { sound }),
+          prayer: key,
         });
       }
       if (pastHorizon) {
@@ -163,8 +175,20 @@ export async function buildReminderPayload(
   return {
     version: REMINDER_PAYLOAD_VERSION,
     generatedAt: now.getTime(),
+    channels: reminderChannels(settings),
     reminders,
   };
+}
+
+/** Each prayer's sound, for its notification channel on Android. */
+export function reminderChannels(
+  settings: Pick<AppSettings, "reminders">
+): Record<PrayerKey, ReminderSound> {
+  const channels = {} as Record<PrayerKey, ReminderSound>;
+  for (const key of PRAYER_KEYS) {
+    channels[key] = settings.reminders[key].sound;
+  }
+  return channels;
 }
 
 /**

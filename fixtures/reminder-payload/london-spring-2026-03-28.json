@@ -1,126 +1,158 @@
 {
   "version": 1,
   "generatedAt": 1774656000000,
+  "channels": {
+    "fajr": "default",
+    "shuruq": "default",
+    "duhr": "default",
+    "asr": "default",
+    "maghrib": "default",
+    "isha": "default"
+  },
   "reminders": [
     {
       "at": 1774670640000,
       "title": "Fajr is at 04:09",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "fajr"
     },
     {
       "at": 1774676220000,
       "title": "Shuruq is at 05:42",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "shuruq"
     },
     {
       "at": 1774699560000,
       "title": "Duhr is at 12:11",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "duhr"
     },
     {
       "at": 1774711740000,
       "title": "Asr is at 15:34",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "asr"
     },
     {
       "at": 1774722300000,
       "title": "Maghrib is at 18:30",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "maghrib"
     },
     {
       "at": 1774726980000,
       "title": "Isha is at 19:48",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "isha"
     },
     {
       "at": 1774756920000,
       "title": "Fajr is at 05:07",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "fajr"
     },
     {
       "at": 1774762500000,
       "title": "Shuruq is at 06:40",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "shuruq"
     },
     {
       "at": 1774785900000,
       "title": "Duhr is at 13:10",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "duhr"
     },
     {
       "at": 1774798200000,
       "title": "Asr is at 16:35",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "asr"
     },
     {
       "at": 1774808820000,
       "title": "Maghrib is at 19:32",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "maghrib"
     },
     {
       "at": 1774813440000,
       "title": "Isha is at 20:49",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "isha"
     },
     {
       "at": 1774843200000,
       "title": "Fajr is at 05:05",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "fajr"
     },
     {
       "at": 1774848780000,
       "title": "Shuruq is at 06:38",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "shuruq"
     },
     {
       "at": 1774872300000,
       "title": "Duhr is at 13:10",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "duhr"
     },
     {
       "at": 1774884660000,
       "title": "Asr is at 16:36",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "asr"
     },
     {
       "at": 1774895340000,
       "title": "Maghrib is at 19:34",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "maghrib"
     },
     {
       "at": 1774899960000,
       "title": "Isha is at 20:51",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "isha"
     },
     {
       "at": 1774929480000,
       "title": "Fajr is at 05:03",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "fajr"
     },
     {
       "at": 1774935000000,
       "title": "Shuruq is at 06:35",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "shuruq"
     },
     {
       "at": 1774958700000,
       "title": "Duhr is at 13:10",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "duhr"
     },
     {
       "at": 1774971120000,
       "title": "Asr is at 16:37",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "asr"
     },
     {
       "at": 1774981800000,
       "title": "Maghrib is at 19:35",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "maghrib"
     },
     {
       "at": 1774986420000,
       "title": "Isha is at 20:52",
-      "body": "In 5 minutes"
+      "body": "In 5 minutes",
+      "prayer": "isha"
     },
     {
       "at": 1774986720000,

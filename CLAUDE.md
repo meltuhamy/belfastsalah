@@ -366,8 +366,11 @@ and there is the test day (`/settings/notifications/test`).
   minutes before it so all its reminders are still ahead. At a reminder it
   posts a real notification (`showPreviewNotification`; on the web it plays
   the sound in the page instead) and waits `SOUND_SECONDS` for the sound to
-  end, since the app cannot hear when it does. There is no in-app stand-in
-  for the notification. The notification is posted at once, not scheduled
+  end, since the app cannot hear when it does. Only the web, which has no
+  notifications, shows a drawn stand-in (`test-day-banner`); on a phone a
+  second banner would sit beside the real one. On Android it posts on the
+  prayer's own channel, so it pops up or not exactly as that prayer's
+  reminders will. The notification is posted at once, not scheduled
   (a schedule goes through Android's alarm manager and arrived after the
   day had stopped), permission and channels are readied when play is
   pressed (`preparePreviewNotifications`), and the wait is timed from when
@@ -377,8 +380,7 @@ and there is the test day (`/settings/notifications/test`).
 
 ### Reminder sounds
 
-- **The adhans are numbered, never named**, in the picker and in Android's
-  channel list. Each is the opening takbir of a longer recording, cut to 30
+- **The adhans are numbered, never named**, in the picker. Each is the opening takbir of a longer recording, cut to 30
   seconds or less, which is iOS's limit for a notification sound.
 - **Each one ships three times**: `public/sounds/adhan-N.mp3` (played in the
   app), `android/app/src/main/res/raw/adhan_N.ogg` and
@@ -386,12 +388,28 @@ and there is the test day (`/settings/notifications/test`).
   missing. Adding one means all three files, a line in `REMINDER_SOUNDS` and
   `SOUND_SECONDS`, `ReminderSounds.ADHAN_COUNT`, and
   `ruby scripts/ios/add-reminder-sounds.rb`.
-- **Android: one channel per sound** (`ReminderSounds.kt`), because a
-  channel's sound cannot change once it exists. The ids are the sound names;
-  `default` is the channel reminders always used, so whatever the user set on
-  it stays. The payload only carries `sound` when it is not the default.
-  Every sync, and `PrayerReminders.ensureChannels` before a test-day
-  notification, creates any missing channel.
+- **Android: one channel per prayer** (`ReminderChannels.kt`), named Fajr to
+  Isha, so how each prayer appears - pop-up, vibration, lock screen - is the
+  user's choice in Android's settings. The app does not model it: each
+  prayer's screen has an Appearance row (`ReminderAppearanceRow`) that reads
+  the channel's importance back and opens its settings page, and refreshes on
+  resume. A channel's sound cannot change once it exists, so a prayer whose
+  sound changes gets a new channel under a fresh id (`prayer-<key>-<n>`),
+  created with the old one's settings, and the old one is deleted; which id
+  is current, and its sound, is in the `reminder_channels` SharedPreferences.
+  - **Defaults stay as they were.** The first time, each prayer's channel is
+    copied from the per-sound channel it used before (`default`, `silent`,
+    `adhan-N`), so an upgrade changes nothing, and a new install gets sound
+    without a pop-up. Then the per-sound channels are deleted, except
+    `default`, which carries the "reminders stop here" prompt, the hidden
+    test notification, and any reminder armed by an older version.
+  - The payload carries `prayer` on each entry and `channels` (every
+    prayer's sound, including ones that are off). `sound` is still there,
+    only when not the default, for Android 7, which has no channels.
+  - Every sync, and `PrayerReminders.ensureChannels({ sounds })` (the
+    Appearance row, and the test day before each notification), brings the
+    channels up to the current sounds.
+  - `ReminderChannelsTest` pins the copying, the migration and the deletion.
 - **iOS: the sound is a file name** at the root of the app bundle. Leaving
   `sound` out is silence, which is how every iOS reminder used to arrive;
   `"default"`, a name with no file, is the system sound.

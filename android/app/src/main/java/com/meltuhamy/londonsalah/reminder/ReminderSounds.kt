@@ -9,12 +9,13 @@ import android.net.Uri
 import android.os.Build
 
 /**
- * The sounds a reminder can make, each on a notification channel of its own.
+ * The sounds a reminder can make. The names are the ones TypeScript writes
+ * (`src/lib/reminderSound.ts`).
  *
- * A channel's sound cannot be changed once the channel exists, so choosing a
- * sound picks a channel rather than editing one. The ids are the sound names
- * TypeScript writes (`src/lib/reminderSound.ts`). "default" is the channel
- * reminders have always used, and stays as the user left it.
+ * Reminders used to post on one channel per sound, with the sound names as
+ * ids. Prayers now have a channel each ([ReminderChannels]), copied from these
+ * the first time; of these only "default" is kept, for notifications that are
+ * not a prayer's.
  */
 object ReminderSounds {
     const val DEFAULT = "default"
@@ -46,19 +47,29 @@ object ReminderSounds {
     }
 
     /**
-     * Creates every channel that is missing. Run before a reminder is posted
-     * and on every sync, so the test notification - posted by the
-     * local-notifications plugin onto one of these ids - finds its channel.
-     * An existing channel is never touched: the user may have changed it.
+     * Creates the "default" channel if it is missing. It carries everything
+     * that is not one prayer's reminder - the "reminders stop here" prompt
+     * and the hidden test notification - and is the channel reminders always
+     * used, so the user's settings on it are left alone. Prayers have their
+     * own channels ([ReminderChannels]).
      */
-    fun ensureChannels(context: Context) {
+    fun ensureDefaultChannel(context: Context) {
+        ensureLegacyChannel(context, DEFAULT)
+    }
+
+    /**
+     * The channel for [sound] from before prayers had their own. Only a
+     * reminder stored without a prayer - armed by an older version, before
+     * the app has synced since - posts on one, and finds it still there
+     * unless the sync that would have replaced it has already run.
+     */
+    fun ensureLegacyChannel(context: Context, sound: String) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val notifications =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        for (sound in all) {
-            if (notifications.getNotificationChannel(sound) != null) continue
-            notifications.createNotificationChannel(newChannel(context, sound))
-        }
+        val id = channelId(sound)
+        if (notifications.getNotificationChannel(id) != null) return
+        notifications.createNotificationChannel(newChannel(context, id))
     }
 
     private fun newChannel(context: Context, sound: String): NotificationChannel {

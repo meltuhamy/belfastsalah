@@ -30,6 +30,7 @@ describe("buildReminderPayload", () => {
       at: Date.parse("2026-11-16T11:45:00Z"),
       title: "Duhr is at 11:50",
       body: "In 5 minutes",
+      prayer: "duhr",
     });
     const prompt = payload.reminders[payload.reminders.length - 1];
     const lastPrayer = payload.reminders[payload.reminders.length - 2];
@@ -38,6 +39,31 @@ describe("buildReminderPayload", () => {
     // The prompt fires at the last prayer's own time, after its reminder.
     expect(prompt.at).toBeGreaterThan(lastPrayer.at);
     expect(payload.reminders[0].title).not.toEqual(REMINDERS_ENDED_TITLE);
+    // The prompt is not a prayer's, so it posts on the default channel.
+    expect(prompt.prayer).toBeUndefined();
+  });
+
+  it("Should name every prayer's sound for its channel, even one that is off", async () => {
+    const payload = (await buildReminderPayload(
+      london({
+        reminders: {
+          ...defaultReminders(),
+          fajr: { on: true, offset: -5, sound: "adhan-3" },
+          isha: { on: false, offset: -5, sound: "silent" },
+        },
+      }),
+      MORNING,
+      1
+    ))!;
+    expect(payload.channels).toEqual({
+      fajr: "adhan-3",
+      shuruq: "default",
+      duhr: "default",
+      asr: "default",
+      maghrib: "default",
+      isha: "silent",
+    });
+    expect(payload.reminders.some((r) => r.prayer === "isha")).toBe(false);
   });
 
   it("Should move only the clock in the title when the display zone changes", async () => {
@@ -262,6 +288,7 @@ describe("each prayer's own timing in the payload", () => {
       at: Date.parse("2026-11-16T12:10:00Z"),
       title: "Duhr is at 11:50",
       body: "20 minutes ago",
+      prayer: "duhr",
     });
   });
 

@@ -91,6 +91,9 @@ const PrayerReminderPage: React.FC = () => {
             switchLabel={key === null ? "Notifications" : `${name} notification`}
             value={value}
             onChange={change}
+            appearance={
+              key === null ? undefined : { prayer: key, reminders: settings.reminders }
+            }
             timesLine={
               todayTime === null
                 ? null

@@ -12,8 +12,11 @@ import { radioButtonOff, radioButtonOn, stop } from "ionicons/icons";
 import {
   describeOffset,
   OFFSET_LIMIT,
+  PrayerKey,
   PrayerReminder,
+  PrayerReminders,
 } from "../lib/prayerReminders";
+import ReminderAppearanceRow from "./ReminderAppearanceRow";
 import {
   REMINDER_SOUNDS,
   ReminderSound,
@@ -32,6 +35,11 @@ type Props = {
   timesLine?: string | null;
   /** The switch's label: "Fajr notification", or "Notifications" for all. */
   switchLabel: string;
+  /**
+   * One prayer, with every prayer's reminders as they stand, for the row
+   * about how its notifications appear. Left out when editing all six.
+   */
+  appearance?: { prayer: PrayerKey; reminders: PrayerReminders };
 };
 
 /**
@@ -47,6 +55,7 @@ const PrayerReminderEditor: React.FC<Props> = ({
   onChange,
   timesLine,
   switchLabel,
+  appearance,
 }) => {
   // The slider's position mid-drag. The app re-renders every second and
   // @ionic/react re-assigns the range's value each time, so it is held here
@@ -159,6 +168,12 @@ const PrayerReminderEditor: React.FC<Props> = ({
               </IonItem>
             );
           })}
+          {appearance ? (
+            <ReminderAppearanceRow
+              prayer={appearance.prayer}
+              reminders={appearance.reminders}
+            />
+          ) : null}
         </>
       ) : (
         <IonItem lines="none" className="reminder-editor__off">

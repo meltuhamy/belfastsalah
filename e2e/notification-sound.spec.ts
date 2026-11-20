@@ -73,6 +73,13 @@ test("shows today's prayer and reminder time as the timing changes", async ({ pa
   await expect(page.getByTestId("reminder-times")).toHaveText("Fajr: 06:20. Reminder: 06:15");
 });
 
+test("leaves appearance to the phone, so the web has no row for it", async ({ page }) => {
+  await notificationSettings(page);
+  await openPrayer(page, "fajr");
+  await expect(page.getByTestId("sound-option-default")).toBeVisible();
+  await expect(page.getByTestId("reminder-appearance")).toHaveCount(0);
+});
+
 test("turns one prayer off, and shows it off in the list", async ({ page }) => {
   await notificationSettings(page);
   await openPrayer(page, "shuruq");
@@ -122,16 +129,20 @@ test.describe("test it out", () => {
     await expect(page.getByTestId("test-day-play")).toBeVisible();
   }
 
-  test("plays the day to the first reminder, and waits there for its sound", async ({ page }) => {
+  test("plays the day to the first reminder, and shows its notification", async ({ page }) => {
     await openTestDay(page);
     await expect(page.getByTestId("test-day-status")).toHaveText("Next: Fajr reminder at 06:15");
 
     await page.getByTestId("test-day-play").click();
-    await expect(page.getByTestId("test-day-status")).toHaveText(
-      "Fajr reminder · playing Default sound",
-      { timeout: 15_000 }
-    );
+    // The web has no notifications, so the page shows its own.
+    const banner = page.getByTestId("test-day-banner");
+    await expect(banner).toBeVisible({ timeout: 15_000 });
+    await expect(banner).toContainText("Fajr is at 06:20");
+    await expect(banner).toContainText("In 5 minutes");
     await expect(page.getByTestId("test-day-clock")).toHaveText("06:15");
+    await expect(page.getByTestId("test-day-status")).toHaveText(
+      "Fajr reminder · playing Default sound"
+    );
     // While the sound plays, the play button shows the adhan icon.
     await expect(page.getByTestId("test-day-play").getByTestId("adhan-icon")).toBeVisible();
     await expect(page.getByTestId("test-day-dot-fajr")).toHaveAttribute("data-sent", "true");

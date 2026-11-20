@@ -56,6 +56,9 @@ const PRAYER_HOLD_MS = 1800;
 /** The reminder whose sound is playing, while the day waits for it. */
 type Sounding = { prayer: number; sound: ReminderSound; id: number };
 
+/** The page's own stand-in for the notification, where there is no real one. */
+type Banner = { title: string; body: string };
+
 type Sim = {
   time: number;
   playing: boolean;
@@ -66,6 +69,7 @@ type Sim = {
   holdUntil: number;
   fired: boolean[];
   sounding: Sounding | null;
+  banner: Banner | null;
   prayerNow: number | null;
   snapped: number | null;
 };
@@ -126,6 +130,7 @@ const TestRemindersPage: React.FC = () => {
       holdUntil: 0,
       fired: firedBy(dayStart(times), times, settings.reminders),
       sounding: null,
+      banner: null,
       prayerNow: null,
       snapped: null,
     };
@@ -221,14 +226,20 @@ const TestRemindersPage: React.FC = () => {
     try {
       native.current ??= preparePreviewNotifications().catch(() => false);
       if (await native.current) {
-        await showPreviewNotification(prayer, title, body, sound);
+        const reminders = latest.current.settings!.reminders;
+        await showPreviewNotification(prayer, title, body, sound, reminders);
         posted = true;
       }
     } catch {
       posted = false;
     }
     if (s.sounding?.id !== id) return;
-    if (!posted) previewSound(sound);
+    if (!posted) {
+      // The web has no notifications: the page shows its own and plays the sound.
+      s.banner = { title, body };
+      previewSound(sound);
+      rerender();
+    }
     s.holdUntil = performance.now() + Math.max(SOUND_SECONDS[sound] * 1000, MIN_HOLD_MS);
   }
 
@@ -237,6 +248,7 @@ const TestRemindersPage: React.FC = () => {
     if (s.sounding === null) return;
     const { prayer } = s.sounding;
     s.sounding = null;
+    s.banner = null;
     stopPreview();
     void clearPreviewNotifications(prayer).catch(() => undefined);
   }
@@ -366,8 +378,8 @@ const TestRemindersPage: React.FC = () => {
         <CenteredMaxWidthContainer>
           <div className="test-day">
             <p className="test-day__intro">
-              Press play to simulate a day of prayer times. Each reminder
-              arrives as a real notification, with its sound.
+              Press play to simulate a day of prayer times. Each reminder is
+              sent as it will be on the day, with its sound.
             </p>
 
             <div className="test-day__player">
@@ -494,6 +506,20 @@ const TestRemindersPage: React.FC = () => {
           </div>
         </CenteredMaxWidthContainer>
 
+        {s.banner !== null ? (
+          <div slot="fixed" className="test-day__banner" role="status" data-testid="test-day-banner">
+            <img src="assets/icons/icon-72.webp" alt="" className="test-day__banner-icon" />
+            <div className="test-day__banner-text">
+              <div className="test-day__banner-app">
+                <span>PRAYER TIMES</span>
+                <span>now</span>
+              </div>
+              <strong>{s.banner.title}</strong>
+              <span>{s.banner.body}</span>
+            </div>
+          </div>
+        ) : null}
+
         <IonModal
           isOpen={sheet !== null}
           onDidDismiss={() => {
@@ -515,6 +541,7 @@ const TestRemindersPage: React.FC = () => {
                 switchLabel={`${names[sheet!]} notification`}
                 value={reminders[sheetKey]}
                 onChange={(next) => changeReminder(sheet!, next)}
+                appearance={{ prayer: sheetKey, reminders }}
                 timesLine={reminderTimesLine(
                   names[sheet!],
                   new Date(times[sheet!]),

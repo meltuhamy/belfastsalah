@@ -1,6 +1,12 @@
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { AppSettings, getDefaultSettings } from "./settings";
-import { buildReminderPayload, REMINDER_HORIZON_DAYS } from "./reminderPayload";
+import {
+  buildReminderPayload,
+  REMINDER_HORIZON_DAYS,
+  reminderChannels,
+} from "./reminderPayload";
+import type { PrayerKey, PrayerReminders } from "./prayerReminders";
+import { ReminderSound } from "./reminderSound";
 import { getDeviceUses24Hour } from "./deviceTimeFormat";
 import {
   announceReminderChange,
@@ -10,8 +16,25 @@ import {
 type PrayerRemindersPlugin = {
   /** Replaces the stored list. An empty payload clears it and the alarms. */
   sync(options: { payload: string }): Promise<void>;
-  /** Creates every sound's notification channel, and nothing else. */
-  ensureChannels(): Promise<void>;
+  /**
+   * Brings each prayer's notification channel up to its sound, and says how
+   * each one appears in Android's settings now.
+   */
+  ensureChannels(options: {
+    sounds: Record<PrayerKey, ReminderSound>;
+  }): Promise<ReminderChannelState>;
+  /** Opens Android's settings page for one prayer's channel. */
+  openChannelSettings(options: { prayer: PrayerKey }): Promise<void>;
+};
+
+/** One prayer's channel: its id, and Android's importance for it. */
+export type ReminderChannel = { id: string; importance?: number };
+
+export type ReminderChannelState = {
+  /** False when notifications are off for the whole app. */
+  enabled: boolean;
+  /** Empty before Android 8, which has no channels. */
+  channels: Partial<Record<PrayerKey, ReminderChannel>>;
 };
 
 const PrayerReminders = registerPlugin<PrayerRemindersPlugin>("PrayerReminders");
@@ -85,10 +108,22 @@ export async function syncAndroidReminders(
   await write(JSON.stringify(payload), JSON.stringify(payload.reminders), true);
 }
 
-/** Android only: makes sure every reminder sound's channel exists. */
-export async function ensureReminderChannels(): Promise<void> {
+/**
+ * Android only: makes each prayer's channel match its sound, and reads how
+ * each appears. Null elsewhere.
+ */
+export async function ensureReminderChannels(
+  reminders: PrayerReminders
+): Promise<ReminderChannelState | null> {
   if (Capacitor.getPlatform() !== "android") {
-    return;
+    return null;
   }
-  await PrayerReminders.ensureChannels();
+  return PrayerReminders.ensureChannels({
+    sounds: reminderChannels({ reminders }),
+  });
+}
+
+/** Android only: opens the system settings for one prayer's notifications. */
+export async function openReminderChannelSettings(prayer: PrayerKey): Promise<void> {
+  await PrayerReminders.openChannelSettings({ prayer });
 }
