@@ -73,6 +73,8 @@ describe("Prayer data year selection", () => {
       2022, 2023, 2024, 2025, 2026
     ]);
     expect(getAvailableYears(PrayerLocation.Belfast)).toEqual([2019]);
+    // Istanbul is calculated for every year (istanbulCalculation.ts).
+    expect(getAvailableYears(PrayerLocation.Istanbul)).toEqual([]);
   });
 
   it("Should use the data for the requested year, not an older one", async () => {

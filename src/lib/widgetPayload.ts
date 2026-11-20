@@ -14,10 +14,8 @@
  */
 
 import {
-  BelfastPrayerTimes,
-  LondonPrayerTimes,
+  createPrayerTimes,
   Prayer,
-  PrayerLocation,
   PrayerTimes,
   prayerToString,
 } from "./PrayerTimes";
@@ -80,9 +78,7 @@ function prayerTimesFor(settings: AppSettings): PrayerTimes | null {
   if (settings.location === null) {
     return null;
   }
-  return settings.location === PrayerLocation.London
-    ? new LondonPrayerTimes(settings.asrMethod)
-    : new BelfastPrayerTimes();
+  return createPrayerTimes(settings.location, settings.asrMethod);
 }
 
 /**

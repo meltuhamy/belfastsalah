@@ -29,4 +29,10 @@ describe("Choosing which year to serve", () => {
     expect(chooseYear(2030, [2019], false)).toEqual({ year: 2019, calculated: false });
     expect(chooseYear(2018, [2019], false)).toEqual({ year: 2019, calculated: false });
   });
+
+  it("Should calculate every year for a location with no files at all", () => {
+    // Istanbul: calculated from its first day, with nothing to clamp to.
+    expect(chooseYear(2026, [], true)).toEqual({ year: 2026, calculated: true });
+    expect(chooseYear(2099, [], true)).toEqual({ year: 2099, calculated: true });
+  });
 });

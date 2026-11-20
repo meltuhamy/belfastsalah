@@ -1,10 +1,12 @@
 import { Prayer, AsrMethod } from "./PrayerTimes";
 import { UK_TIME_ZONE, getZonedDateParts } from "./timeZone";
 import { calculateLondonYear } from "./londonCalculation";
+import { calculateIstanbulYear } from "./istanbulCalculation";
 
 export enum PrayerLocation {
   London = "london",
-  Belfast = "belfast"
+  Belfast = "belfast",
+  Istanbul = "istanbul"
 }
 
 export type PrayerDay = Array<PrayerData>;
@@ -110,18 +112,25 @@ for (const [file, loader] of Object.entries(prayerDataFiles)) {
   }
 }
 
-// The timetables are published as UK local times, so the timetable's own zone
-// - not the device's - decides which day's row applies.
+// Each timetable is published in its city's local time, so the timetable's own
+// zone - not the device's - decides which day's row applies.
 export const locationTimeZones: Record<PrayerLocation, string> = {
   [PrayerLocation.Belfast]: UK_TIME_ZONE,
-  [PrayerLocation.London]: UK_TIME_ZONE
+  [PrayerLocation.London]: UK_TIME_ZONE,
+  [PrayerLocation.Istanbul]: "Europe/Istanbul"
 };
+
+// The timetable zone for whatever is chosen, and the UK's before anything is.
+export function timetableZoneFor(location: PrayerLocation | null): string {
+  return location == null ? UK_TIME_ZONE : locationTimeZones[location];
+}
 
 // One place to name a location, so the picker and the timezone copy can never
 // disagree about what a location is called.
 export const locationNames: Record<PrayerLocation, string> = {
   [PrayerLocation.Belfast]: "Belfast",
-  [PrayerLocation.London]: "London"
+  [PrayerLocation.London]: "London",
+  [PrayerLocation.Istanbul]: "Istanbul"
 };
 
 export function getAvailableYears(location: PrayerLocation): Array<number> {
@@ -139,14 +148,17 @@ export function getAvailableYears(location: PrayerLocation): Array<number> {
 const calculators: Partial<
   Record<PrayerLocation, (year: number) => Array<PrayerDataRow>>
 > = {
-  [PrayerLocation.London]: calculateLondonYear
+  [PrayerLocation.London]: calculateLondonYear,
+  // Istanbul has no files at all: every year is calculated.
+  [PrayerLocation.Istanbul]: calculateIstanbulYear
 };
 
 // Pick the year to serve. A location that can be calculated uses a file only
 // for that file's own year, and calculates every year after its first file
 // that has none - so a file added for a later year never stands in for the
-// years before it. Before the first file, and for a location that cannot be
-// calculated, it is the nearest file above, otherwise the latest one.
+// years before it; one with no files at all calculates every year. Before the
+// first file, and for a location that cannot be calculated, it is the nearest
+// file above, otherwise the latest one.
 export function chooseYear(
   targetYear: number,
   availableYears: Array<number>,
@@ -154,7 +166,7 @@ export function chooseYear(
 ): { year: number; calculated: boolean } {
   if (
     canCalculate &&
-    targetYear > availableYears[0] &&
+    (availableYears.length === 0 || targetYear > availableYears[0]) &&
     !availableYears.includes(targetYear)
   ) {
     return { year: targetYear, calculated: true };

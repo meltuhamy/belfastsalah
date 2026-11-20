@@ -2,8 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import {
   PrayerTime,
   PrayerLocation,
-  LondonPrayerTimes,
-  BelfastPrayerTimes,
+  createPrayerTimes,
   PrayerDayTimes,
   AsrMethod,
 } from "../lib/PrayerTimes";
@@ -12,7 +11,7 @@ import { getZonedDateParts } from "../lib/timeZone";
 import { formatClockTime } from "../lib/timeFormat";
 import { useDisplayTimeZone } from "../lib/useDisplayTimeZone";
 import { useUses24Hour } from "../lib/useTimeFormat";
-import { locationTimeZones } from "../lib/PrayerTimeData";
+import { timetableZoneFor } from "../lib/PrayerTimeData";
 import { IonSkeletonText } from "@ionic/react";
 import "./MonthPrayerTable.css";
 
@@ -37,7 +36,10 @@ const MonthPrayerTable: React.FC<Props> = ({ month, year }) => {
   const now = state.tick;
   // Which row is "today" is a question about the timetable's calendar, not the
   // device's, so it stays in the timetable zone whatever times are shown in.
-  const today = getZonedDateParts(now, locationTimeZones[PrayerLocation.London]);
+  const today = getZonedDateParts(
+    now,
+    timetableZoneFor(state.settings.value?.location ?? null)
+  );
   const nowMonth = today.month - 1;
   const nowDate = today.day;
   const getClassNameForRow = (i: number) => {
@@ -61,10 +63,7 @@ const MonthPrayerTable: React.FC<Props> = ({ month, year }) => {
 
   useEffect(() => {
     if (location !== null && asrMethod !== null) {
-      const times =
-        location === PrayerLocation.London
-          ? new LondonPrayerTimes(asrMethod)
-          : new BelfastPrayerTimes();
+      const times = createPrayerTimes(location, asrMethod);
 
       times.getMonth(month, year).then((data) => {
         setMonthData(data);

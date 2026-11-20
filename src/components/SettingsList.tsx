@@ -23,7 +23,7 @@ import {
   warningOutline,
 } from "ionicons/icons";
 import { PrayerLocation, locationNames } from "../lib/PrayerTimeData";
-import supportsHanafiAsr, { AsrMethod } from "../lib/PrayerTimes";
+import supportsHanafiAsr, { AsrMethod, singleAsrNote } from "../lib/PrayerTimes";
 import { AppSettings } from "../lib/settings";
 import { THEMES, Theme, themeLabels } from "../lib/theme";
 import {
@@ -193,6 +193,14 @@ const SettingsList: React.FC<Props> = ({
           >
             Use Hanafi Asr
           </IonToggle>
+        </IonItem>
+      )}
+      {settings.location !== null && singleAsrNote(settings.location) && (
+        <IonItem data-testid="single-asr-note">
+          <IonIcon icon={sunny} slot="start" />
+          <IonLabel className="ion-text-wrap">
+            {singleAsrNote(settings.location)}
+          </IonLabel>
         </IonItem>
       )}
       {showZoneChoice && settings.location !== null && (

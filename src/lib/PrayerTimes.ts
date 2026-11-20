@@ -148,18 +148,41 @@ export class BelfastPrayerTimes extends PrayerTimes {
   }
 }
 
+// Diyanet publishes one Asr, by the Shafi'i shadow length, so Istanbul always
+// shows that one, whatever the Hanafi setting says.
+export class IstanbulPrayerTimes extends PrayerTimes {
+  constructor() {
+    super({
+      timeZone: locationTimeZones[PrayerLocation.Istanbul],
+      async getDay(date: Date) {
+        const { prayers, year } = await getDay(
+          date,
+          PrayerLocation.Istanbul,
+          AsrMethod.Shafi
+        );
+        return prayers.map(p => new PrayerTime(p, year)) as PrayerDayTimes;
+      }
+    });
+  }
+}
+
 /**
  * The timetable for a location. Which class to build is not a decision worth
- * repeating at every call site, and having it in one place is what stops the
- * two of them drifting apart.
+ * repeating at every call site, and having it in one place is what stops them
+ * drifting apart.
  */
 export function createPrayerTimes(
   location: PrayerLocation,
   asrMethod: AsrMethod
 ): PrayerTimes {
-  return location === PrayerLocation.London
-    ? new LondonPrayerTimes(asrMethod)
-    : new BelfastPrayerTimes();
+  switch (location) {
+    case PrayerLocation.London:
+      return new LondonPrayerTimes(asrMethod);
+    case PrayerLocation.Belfast:
+      return new BelfastPrayerTimes();
+    case PrayerLocation.Istanbul:
+      return new IstanbulPrayerTimes();
+  }
 }
 
 export function prayerToString(prayer: Prayer): string {
@@ -179,9 +202,24 @@ export function prayerToString(prayer: Prayer): string {
   }
 }
 
+/**
+ * What settings says about Asr where there is no Hanafi choice to offer, so
+ * nobody who asked for Hanafi is left wondering which Asr they are reading.
+ */
+export function singleAsrNote(location: PrayerLocation): string | null {
+  switch (location) {
+    case PrayerLocation.Istanbul:
+      return "Asr as Diyanet publishes it (Shafi'i). Diyanet has no Hanafi Asr.";
+    case PrayerLocation.Belfast:
+    case PrayerLocation.London:
+      return null;
+  }
+}
+
 export default function supportsHanafiAsr(location: PrayerLocation): boolean {
   switch (location) {
     case PrayerLocation.Belfast:
+    case PrayerLocation.Istanbul:
       return false;
     case PrayerLocation.London:
       return true;

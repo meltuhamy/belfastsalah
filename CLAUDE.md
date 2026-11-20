@@ -129,7 +129,7 @@ In this sandbox Playwright's bundled browser version does not match the
 preinstalled one, so run e2e with:
 
 ```bash
-CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e
+CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome npm run test:e2e
 ```
 
 CI installs its own browser and needs no override.
@@ -480,6 +480,31 @@ after 2076 work too.
   with the first few. Run it after any change to the calculation.
 - Do not re-import 2027 onwards with `lupt-to-utc-json.js`: a file for a year
   takes over from the calculation for that year.
+
+### Istanbul
+
+Istanbul has no files at all: `src/lib/istanbulCalculation.ts` calculates
+every year with adhanfork's `CalculationMethod.Diyanet()` at 41.014, 28.972,
+the reference point fitted to Diyanet's table (Turkey's Presidency of
+Religious Affairs, namazvakitleri.diyanet.gov.tr, district 9541), which is
+what Istanbul's mosques follow. `chooseYear` calculates every year for a
+location with no files.
+
+- **It is exact for 2026.** The method alone matches 2183 of the year's 2190
+  times; the other 7, each within a second of the half minute, are listed in
+  adhanfork's `src/Diyanet.ts`. Later years get the method alone (99.6% on
+  days it was not fitted on, never more than a minute off) until their table
+  is checked.
+- **When Diyanet publishes a year** (it shows only the current calendar
+  year), save its yearly table as
+  `scripts/timetables/data/diyanet-istanbul-<year>.json`, in the 2026 file's
+  shape, add it to adhanfork's fixture with any days it rounds the other way,
+  release adhanfork, and extend `istanbulCalculation.test.ts`.
+- **Times are Istanbul's**, `Europe/Istanbul`, UTC+3 with no clock changes;
+  every place that reads the timetable's calendar uses `timetableZoneFor`,
+  never `UK_TIME_ZONE`.
+- **One Asr.** Diyanet publishes only the Shafi'i Asr, so `supportsHanafiAsr`
+  is false and settings shows `singleAsrNote` in place of the Hanafi switch.
 
 ### The vendored adhan-js: `adhanfork`
 

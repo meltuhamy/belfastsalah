@@ -36,8 +36,8 @@ const LocationSelector: React.FC<Props> = ({
       const newLocation = event.detail.value as PrayerLocation;
       onChange(
         newLocation,
-        // Belfast's timetable has no second asr column, so hanafi asr has to
-        // fall back or the data parser throws.
+        // Belfast's and Istanbul's timetables have no second asr column, so
+        // hanafi asr has to fall back or the data parser throws.
         supportsHanafiAsr(newLocation) ? asrMethod : AsrMethod.Shafi
       );
     }}
@@ -47,6 +47,9 @@ const LocationSelector: React.FC<Props> = ({
     </IonSelectOption>
     <IonSelectOption value={PrayerLocation.Belfast}>
       {locationNames[PrayerLocation.Belfast]}
+    </IonSelectOption>
+    <IonSelectOption value={PrayerLocation.Istanbul}>
+      {locationNames[PrayerLocation.Istanbul]}
     </IonSelectOption>
   </IonSelect>
 );

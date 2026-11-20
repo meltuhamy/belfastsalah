@@ -33,6 +33,19 @@ final class WidgetPayloadTests: XCTestCase {
         XCTAssertEqual(Fixture.payload("belfast-2026-01-15").locationLabel, "Belfast")
     }
 
+    func testShowsIstanbulOnItsOwnClock() {
+        // Diyanet's table for 15 January 2026, in Istanbul's time (UTC+3).
+        let payload = Fixture.payload("istanbul-2026-01-15")
+        XCTAssertEqual(payload.locationLabel, "Istanbul")
+        XCTAssertEqual(
+            payload.days[0].prayers.map(\.time),
+            ["06:50", "08:20", "13:18", "15:45", "18:07", "19:31"]
+        )
+        // The countdown runs on the instant: 06:50 in Istanbul is 03:50 UTC.
+        let fajr = payload.upcoming.first { $0.name == "Fajr" && $0.day == 0 }!
+        XCTAssertEqual(fajr.date, Fixture.on15th("03:50"))
+    }
+
     func testFindsTheNextPrayer() {
         let payload = Fixture.payload()
         XCTAssertEqual(payload.nextAfter(Fixture.onePM)?.name, "Asr")

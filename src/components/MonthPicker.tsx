@@ -2,14 +2,16 @@ import React from "react";
 import { IonIcon, useIonPicker } from "@ionic/react";
 import { calendar, refresh } from "ionicons/icons";
 import { getMonthNames } from "../lib/dateUtils";
-import { getZonedDateParts, UK_TIME_ZONE } from "../lib/timeZone";
+import { getZonedDateParts } from "../lib/timeZone";
 
 type Props = {
   onChange: (value: number) => void;
   value: number;
   now: Date;
+  /** The timetable's zone, whose calendar says which month is now. */
+  timeZone: string;
 };
-const MonthPicker: React.FC<Props> = ({ value, onChange, now }) => {
+const MonthPicker: React.FC<Props> = ({ value, onChange, now, timeZone }) => {
   const [present] = useIonPicker();
 
   const options = getMonthNames().map((text, i) => ({
@@ -18,7 +20,7 @@ const MonthPicker: React.FC<Props> = ({ value, onChange, now }) => {
     selected: i === value,
   }));
 
-  const nowMonth = getZonedDateParts(now, UK_TIME_ZONE).month - 1;
+  const nowMonth = getZonedDateParts(now, timeZone).month - 1;
 
   return (
     <>

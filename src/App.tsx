@@ -49,12 +49,7 @@ import { AppContext } from "./State";
 import { usePrayerDay } from "./lib/usePrayerDay";
 import { LocalNotificationSchema } from "@capacitor/local-notifications";
 import { useInterval } from "./lib/useInterval";
-import {
-  BelfastPrayerTimes,
-  LondonPrayerTimes,
-  PrayerLocation,
-  prayerToString,
-} from "./lib/PrayerTimes";
+import { createPrayerTimes, prayerToString } from "./lib/PrayerTimes";
 import { useTheme } from "./lib/useTheme";
 import { Theme } from "./lib/theme";
 import {
@@ -156,10 +151,7 @@ const App: React.FC = () => {
       return;
     }
     const prayerReminders = inputs.reminders;
-    const prayerTimes =
-      inputs.location === PrayerLocation.London
-        ? new LondonPrayerTimes(inputs.asrMethod)
-        : new BelfastPrayerTimes();
+    const prayerTimes = createPrayerTimes(inputs.location, inputs.asrMethod);
 
     const notificationZone = inputs.showTimesInDeviceZone
       ? getDeviceTimeZone()

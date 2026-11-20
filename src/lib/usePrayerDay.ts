@@ -1,7 +1,8 @@
 import { AppContext } from "../State";
 import { useContext, useEffect } from "react";
 import { useSettings } from "./useSettings";
-import { getZonedDateParts, UK_TIME_ZONE } from "./timeZone";
+import { getZonedDateParts } from "./timeZone";
+import { timetableZoneFor } from "./PrayerTimeData";
 import {
   PrayerLocation,
   AsrMethod,
@@ -26,7 +27,8 @@ export function usePrayerDay() {
     times = createPrayerTimes(location, asrMethod);
   }
 
-  const tickDate = getZonedDateParts(state.tick, UK_TIME_ZONE).day;
+  // A new day starts at midnight in the timetable's zone.
+  const tickDate = getZonedDateParts(state.tick, timetableZoneFor(location)).day;
 
   useEffect(() => {
     if (times !== null) {
