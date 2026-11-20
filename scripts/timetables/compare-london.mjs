@@ -10,7 +10,7 @@
 // comparison works after the files are gone.
 //
 // WRITE_GAPS=<file> also writes the Fajr and Isha gaps read off the files, as
-// JSON: the source of the interval tables in adhan-london's
+// JSON: the source of the interval tables in adhanfork's
 // src/LondonUnified.ts, should they ever need checking.
 //
 // It loads the module through Vite, as the app does, so it runs the code the

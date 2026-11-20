@@ -1,7 +1,7 @@
 // London times, calculated on the device by adhan-js's London Unified Prayer
 // Timetable method (https://londonsalahtimes.com/technical/), which
 // reproduces the timetable's published times to the minute.
-import { CalculationMethod, Coordinates, Madhab, PrayerTimes } from "adhan";
+import { CalculationMethod, Coordinates, Madhab, PrayerTimes } from "adhanfork";
 import type { PrayerDataRow } from "./PrayerTimeData";
 
 // The timetable's reference point, Charing Cross. The method's adjustments

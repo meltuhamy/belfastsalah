@@ -481,49 +481,54 @@ after 2076 work too.
 - Do not re-import 2027 onwards with `lupt-to-utc-json.js`: a file for a year
   takes over from the calculation for that year.
 
-### The vendored adhan-js
+### The vendored adhan-js: `adhanfork`
 
-`adhan` is not the npm package. It is `vendor/adhan-<version>-london.<n>.tgz`,
-built by the private repo `meltuhamy/adhan-london`: upstream adhan-js
+The calculation library is `adhanfork`, not the npm `adhan` package. It is
+`vendor/adhanfork-<version>-fork.<n>.tgz`, built by the private repo
+`meltuhamy/adhanfork` (renamed from `adhan-london`): upstream adhan-js
 `develop` plus the London Unified method (`SolarModel.Noon`, per-day
 `fajrInterval`/`ishaInterval`, `methodDailyAdjustments`,
-`CalculationMethod.LondonUnified()`) and that repo's own build plumbing.
+`CalculationMethod.LondonUnified()`), Diyanet's method for Istanbul
+(`solarPositionHour`, `SolarEphemeris`, `CalculationMethod.Diyanet()`), and
+that repo's own build plumbing.
 
 - **Never edit or rebuild the tarball here.** Builds come only from that
-  repo's London sync workflow, which rebases onto upstream, runs adhan's
-  tests (including an exact published-times fixture) and releases the
-  tarball there. The lockfile's `integrity` is the release's sha512, so
-  `npm ci` refuses anything else.
+  repo's Sync workflow (`london-sync.yml`), which rebases onto upstream, runs
+  the tests (including exact published-times fixtures for London and
+  Istanbul) and releases the tarball there. The lockfile's `integrity` is the
+  release's sha512, so `npm ci` refuses anything else.
 - **Dependabot does not see it** - `file:` dependencies are skipped. Updates
   are done by hand, now and then, as below.
 - There is only ever one tarball in `vendor/`; history keeps the old ones.
-- If upstream adhan-js ever ships the London method, go back to the npm
-  package and archive `adhan-london`.
+- If upstream adhan-js ever ships both methods, go back to the npm package
+  and archive `adhanfork`.
 
 Updating it. The repo is private, so this needs a machine signed in to
 GitHub as meltuhamy - from a cloud session, attach the user's Mac, which has
 `gh` and a clone at `~/dev/adhan-london` (`LONDON.md` there explains it):
 
-1. `gh workflow run london-sync.yml -R meltuhamy/adhan-london`, then
+1. `gh workflow run london-sync.yml -R meltuhamy/adhanfork`, then
    `gh run watch` it. It does nothing if upstream `develop` has not moved
    (`-f force=true` rebuilds anyway). If it fails it opens an issue there
    and releases nothing; a rebase conflict is resolved by hand in the clone,
    `london-unified` pushed, and the workflow run again.
-2. `gh release download v<version> -R meltuhamy/adhan-london` for the new
-   `adhan-<version>.tgz`, and get it into this checkout. A cloud session
+2. `gh release download v<version> -R meltuhamy/adhanfork` for the new
+   `adhanfork-<version>.tgz`, and get it into this checkout. A cloud session
    cannot download it, but `npm pack` is reproducible: building the same
-   commit gives the same bytes, so a tarball made elsewhere is fine once its
-   sha512 matches the release's (`openssl dgst -sha512 -binary <file> |
-   base64`).
-3. Here: `git rm vendor/adhan-*.tgz`, put the new file in `vendor/`, then
-   `npm install --ignore-scripts ./vendor/adhan-<version>.tgz`, and check the
-   lockfile's `integrity` for `node_modules/adhan` is that sha512.
+   commit (`npm ci --ignore-scripts`, `npm run build`, `npm version
+   --no-git-tag-version <version>`, `npm pack`) gives the same bytes, so a
+   tarball made elsewhere is fine once its sha512 matches the release's
+   (`openssl dgst -sha512 -binary <file> | base64`).
+3. Here: `git rm vendor/adhanfork-*.tgz`, put the new file in `vendor/`, then
+   `npm install --ignore-scripts ./vendor/adhanfork-<version>.tgz`, and check
+   the lockfile's `integrity` for `node_modules/adhanfork` is that sha512.
 4. `node scripts/timetables/compare-london.mjs` must say 0 for every time,
    then `npm run test:zones` and the e2e suite. `londonCalculation.test.ts`
-   is the check that matters: it fails on any London day from 2027 to 2076
-   that moves.
+   and `istanbulCalculation.test.ts` are the checks that matter: they fail on
+   any London day from 2027 to 2076, or any Istanbul time of Diyanet's
+   tables, that moves.
 5. Commit, push, and hand back the APK as usual. It is an app change for
-   releases: `vendor/` and the lockfile's `adhan` entry both count.
+   releases: `vendor/` and the lockfile's `adhanfork` entry both count.
 
 The London files that remain are generated, so regenerate rather than
 editing them by hand:

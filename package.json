@@ -26,7 +26,7 @@
     "@capacitor/splash-screen": "^8.0.2",
     "@ionic/react": "^8.8.17",
     "@ionic/react-router": "^8.8.17",
-    "adhan": "file:vendor/adhan-4.4.6-london.1.tgz",
+    "adhanfork": "file:vendor/adhanfork-4.4.6-fork.1.tgz",
     "date-fns": "^4.4.0",
     "ionicons": "^8.1.0",
     "react": "^19.2.8",
