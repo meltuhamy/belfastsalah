@@ -183,7 +183,11 @@ const TestRemindersPage: React.FC = () => {
         .map(({ i, r }) => ({ i, r, at: reminderAt(ts[i], r) }))
         .filter(({ at }) => at > s.time && at <= next)
         .sort((a, b) => a.at - b.at)[0];
-      if (due !== undefined) {
+      // A tick covers a minute or more near a prayer, so a reminder set just
+      // after a prayer can fall in the same tick as the prayer itself. The
+      // earlier of the two goes first, or the prayer's moment is skipped.
+      const prayer = ts.findIndex((t) => t > s.time && t <= next);
+      if (due !== undefined && (prayer === -1 || due.at <= ts[prayer])) {
         const { i, r, at } = due;
         const title = reminderTitle(
           prayerToString(day[i].prayer),
@@ -197,7 +201,6 @@ const TestRemindersPage: React.FC = () => {
         rerender();
         return;
       }
-      const prayer = ts.findIndex((t) => t > s.time && t <= next);
       if (prayer !== -1) {
         s.time = ts[prayer];
         s.prayerNow = prayer;
