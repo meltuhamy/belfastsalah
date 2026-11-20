@@ -1,9 +1,12 @@
 // Imports the London Unified Prayer Timetable's own spreadsheets, from
 // https://londonsalahtimes.com/downloads/, into src/prayer_data as UTC.
 //
-//   node scripts/timetables/lupt-to-utc-json.js 2026 2076
+//   node scripts/timetables/lupt-to-utc-json.js 2026 2026
 //
-// imports every year from the first to the last, inclusive. Downloads are
+// imports every year from the first to the last, inclusive. Only 2026 and
+// earlier: from 2027 the app calculates London (src/lib/londonCalculation.ts),
+// and a file for one of those years would take over from the calculation, so
+// the script refuses them unless given --allow-calculated-years. Downloads are
 // kept in scripts/timetables/data/lupt (not committed), so a rerun works
 // offline; delete a file there to fetch it again.
 //
@@ -143,7 +146,18 @@ async function importYear(year) {
   console.log(`london-${year}.json`);
 }
 
-const [first, last = first] = process.argv.slice(2).map(Number);
+const allowCalculated = process.argv.includes("--allow-calculated-years");
+const [first, last = first] = process.argv
+  .slice(2)
+  .filter((arg) => !arg.startsWith("--"))
+  .map(Number);
+const FIRST_CALCULATED_YEAR = 2027;
+if (last >= FIRST_CALCULATED_YEAR && !allowCalculated) {
+  console.error(
+    `London from ${FIRST_CALCULATED_YEAR} is calculated, not imported; a file for one of those years would replace the calculation. Pass --allow-calculated-years to import it anyway.`
+  );
+  process.exit(1);
+}
 if (!first) {
   console.error("Usage: node scripts/timetables/lupt-to-utc-json.js <first year> [last year]");
   process.exit(1);

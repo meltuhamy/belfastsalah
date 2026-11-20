@@ -148,18 +148,41 @@ export class BelfastPrayerTimes extends PrayerTimes {
   }
 }
 
+// Diyanet publishes one Asr, the first (a shadow as long as the object), so
+// Istanbul always shows that one, whatever the asr setting says.
+export class IstanbulPrayerTimes extends PrayerTimes {
+  constructor() {
+    super({
+      timeZone: locationTimeZones[PrayerLocation.Istanbul],
+      async getDay(date: Date) {
+        const { prayers, year } = await getDay(
+          date,
+          PrayerLocation.Istanbul,
+          AsrMethod.Shafi
+        );
+        return prayers.map(p => new PrayerTime(p, year)) as PrayerDayTimes;
+      }
+    });
+  }
+}
+
 /**
  * The timetable for a location. Which class to build is not a decision worth
- * repeating at every call site, and having it in one place is what stops the
- * two of them drifting apart.
+ * repeating at every call site, and having it in one place is what stops them
+ * drifting apart.
  */
 export function createPrayerTimes(
   location: PrayerLocation,
   asrMethod: AsrMethod
 ): PrayerTimes {
-  return location === PrayerLocation.London
-    ? new LondonPrayerTimes(asrMethod)
-    : new BelfastPrayerTimes();
+  switch (location) {
+    case PrayerLocation.London:
+      return new LondonPrayerTimes(asrMethod);
+    case PrayerLocation.Belfast:
+      return new BelfastPrayerTimes();
+    case PrayerLocation.Istanbul:
+      return new IstanbulPrayerTimes();
+  }
 }
 
 export function prayerToString(prayer: Prayer): string {
@@ -182,6 +205,7 @@ export function prayerToString(prayer: Prayer): string {
 export default function supportsHanafiAsr(location: PrayerLocation): boolean {
   switch (location) {
     case PrayerLocation.Belfast:
+    case PrayerLocation.Istanbul:
       return false;
     case PrayerLocation.London:
       return true;

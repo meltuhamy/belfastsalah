@@ -129,7 +129,7 @@ In this sandbox Playwright's bundled browser version does not match the
 preinstalled one, so run e2e with:
 
 ```bash
-CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e
+CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome npm run test:e2e
 ```
 
 CI installs its own browser and needs no override.
@@ -464,16 +464,108 @@ nothing else. It used to be a hardcoded list that silently fell out of step
 with the files, which meant London users were served the 2024 timetable
 throughout 2025 and 2026.
 
-The London files are generated, so regenerate rather than editing them by
-hand:
+London after 2026 has no files: `src/lib/londonCalculation.ts` calculates
+it on the device with adhan-js's `CalculationMethod.LondonUnified()` at
+Charing Cross, which reproduces the London Unified Prayer Timetable
+([technical page](https://londonsalahtimes.com/technical/)) to the minute.
+`getPrayerData` calculates any London year past the last file, so years
+after 2076 work too.
 
-- **2026 to 2076** come from the official London Unified Prayer Timetable,
-  `node scripts/timetables/lupt-to-utc-json.js 2026 2076`, which downloads
-  each year's .xlsx from londonsalahtimes.com/downloads into
-  `scripts/timetables/data/lupt` (not committed). Those sheets change their
-  clocks on the real dates, and the script refuses one that does not. The
-  2026 file only has a 12-hour sheet, which the script turns back into
-  24-hour times.
+- `londonCalculation.test.ts` pins the calculation to a hash of the 2027 to
+  2076 files as they were at 03f7f53, the last commit that had them: all seven
+  times, every day. It is what proves an adhan-js upgrade still matches.
+- `node scripts/timetables/compare-london.mjs [from] [to]` is the loop for
+  working on it: in about a second it diffs the calculation against those
+  files (read back from git) and prints how many days each time differs on,
+  with the first few. Run it after any change to the calculation.
+- Do not re-import 2027 onwards with `lupt-to-utc-json.js`: a file for a year
+  takes over from the calculation for that year.
+
+### Istanbul
+
+Istanbul has no files at all: `src/lib/istanbulCalculation.ts` calculates
+every year with adhanfork's `CalculationMethod.Diyanet()` at 41.014, 28.972,
+the reference point fitted to Diyanet's table (Turkey's Presidency of
+Religious Affairs, namazvakitleri.diyanet.gov.tr, district 9541), which is
+what Istanbul's mosques follow. `chooseYear` calculates every year for a
+location with no files.
+
+- **It is exact for 2026.** The method alone matches 2183 of the year's 2190
+  times; the other 7, each within a second of the half minute, are listed in
+  adhanfork's `src/Diyanet.ts`. Later years get the method alone (99.6% on
+  days it was not fitted on, never more than a minute off) until their table
+  is checked.
+- **When Diyanet publishes a year** (it shows only the current calendar
+  year), save its yearly table as
+  `scripts/timetables/data/diyanet-istanbul-<year>.json`, in the 2026 file's
+  shape, add it to adhanfork's fixture with any days it rounds the other way,
+  release adhanfork, and extend `istanbulCalculation.test.ts`.
+- **Times are Istanbul's**, `Europe/Istanbul`, UTC+3 with no clock changes;
+  every place that reads the timetable's calendar uses `timetableZoneFor`,
+  never `UK_TIME_ZONE`.
+- **One Asr.** Diyanet publishes a single Asr, the first (shadow as long as
+  the object), so `supportsHanafiAsr` is false and settings has no asr switch,
+  as for Belfast. Turkey is Hanafi; settings deliberately says nothing about
+  madhab rather than label Diyanet's Asr "Shafi'i".
+
+### The vendored adhan-js: `adhanfork`
+
+The calculation library is `adhanfork`, not the npm `adhan` package. It is
+`vendor/adhanfork-<version>-fork.<n>.tgz`, built by the private repo
+`meltuhamy/adhanfork` (renamed from `adhan-london`): upstream adhan-js
+`develop` plus the London Unified method (`SolarModel.Noon`, per-day
+`fajrInterval`/`ishaInterval`, `methodDailyAdjustments`,
+`CalculationMethod.LondonUnified()`), Diyanet's method for Istanbul
+(`solarPositionHour`, `SolarEphemeris`, `CalculationMethod.Diyanet()`), and
+that repo's own build plumbing.
+
+- **Never edit or rebuild the tarball here.** Builds come only from that
+  repo's Sync workflow (`london-sync.yml`), which rebases onto upstream, runs
+  the tests (including exact published-times fixtures for London and
+  Istanbul) and releases the tarball there. The lockfile's `integrity` is the
+  release's sha512, so `npm ci` refuses anything else.
+- **Dependabot does not see it** - `file:` dependencies are skipped. Updates
+  are done by hand, now and then, as below.
+- There is only ever one tarball in `vendor/`; history keeps the old ones.
+- If upstream adhan-js ever ships both methods, go back to the npm package
+  and archive `adhanfork`.
+
+Updating it. The repo is private, so this needs a machine signed in to
+GitHub as meltuhamy - from a cloud session, attach the user's Mac, which has
+`gh` and a clone at `~/dev/adhan-london` (`LONDON.md` there explains it):
+
+1. `gh workflow run london-sync.yml -R meltuhamy/adhanfork`, then
+   `gh run watch` it. It does nothing if upstream `develop` has not moved
+   (`-f force=true` rebuilds anyway). If it fails it opens an issue there
+   and releases nothing; a rebase conflict is resolved by hand in the clone,
+   `london-unified` pushed, and the workflow run again.
+2. `gh release download v<version> -R meltuhamy/adhanfork` for the new
+   `adhanfork-<version>.tgz`, and get it into this checkout. A cloud session
+   cannot download it, but `npm pack` is reproducible: building the same
+   commit (`npm ci --ignore-scripts`, `npm run build`, `npm version
+   --no-git-tag-version <version>`, `npm pack`) gives the same bytes, so a
+   tarball made elsewhere is fine once its sha512 matches the release's
+   (`openssl dgst -sha512 -binary <file> | base64`).
+3. Here: `git rm vendor/adhanfork-*.tgz`, put the new file in `vendor/`, then
+   `npm install --ignore-scripts ./vendor/adhanfork-<version>.tgz`, and check
+   the lockfile's `integrity` for `node_modules/adhanfork` is that sha512.
+4. `node scripts/timetables/compare-london.mjs` must say 0 for every time,
+   then `npm run test:zones` and the e2e suite. `londonCalculation.test.ts`
+   and `istanbulCalculation.test.ts` are the checks that matter: they fail on
+   any London day from 2027 to 2076, or any Istanbul time of Diyanet's
+   tables, that moves.
+5. Commit, push, and hand back the APK as usual. It is an app change for
+   releases: `vendor/` and the lockfile's `adhanfork` entry both count.
+
+The London files that remain are generated, so regenerate rather than
+editing them by hand:
+
+- **2026** comes from the official timetable,
+  `node scripts/timetables/lupt-to-utc-json.js 2026 2026`, which downloads the
+  .xlsx from londonsalahtimes.com/downloads into
+  `scripts/timetables/data/lupt` (not committed). It only has a 12-hour
+  sheet, which the script turns back into 24-hour times, and the script
+  refuses a sheet that does not change its clocks on the real dates.
 - **2022 to 2025** come from the CSVs in `scripts/timetables/data`, through
   `scripts/timetables/spreadsheet-to-utc-json.js`. 2025's sheet moves its
   clocks on 1 April and 28 October, not on the real dates, so that script

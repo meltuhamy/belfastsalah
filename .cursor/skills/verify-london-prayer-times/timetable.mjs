@@ -8,11 +8,13 @@
  *
  * Belfast publishes one file (belfast-2019.json). The app serves that file for
  * any later year and applies its clock times to the calendar year being
- * shown. London has a file per year; a missing london-<year>.json is a
- * failure, not a cue to borrow another year.
+ * shown. London has a file for 2022 to 2026; every other year the app
+ * calculates (src/lib/londonCalculation.ts), and so does this, by loading
+ * that same module - Node strips its types - rather than borrowing a year.
  */
 
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 
 export const UK_TIME_ZONE = "Europe/London";
@@ -88,16 +90,33 @@ function formatLondon(year, month, day, hhmm) {
   }).format(instant);
 }
 
+const calculated = new Map();
+
+// A London year without a file, from the app's own calculation. `file` names
+// the module so a mismatch says where the expected times came from.
+function calculatedLondonRows(repoRoot, year) {
+  const module = join(repoRoot, "src", "lib", "londonCalculation.ts");
+  if (!calculated.has(year)) {
+    const { calculateLondonYear } = createRequire(module)(module);
+    calculated.set(year, calculateLondonYear(year));
+  }
+  return { file: `${module} (${year})`, rows: calculated.get(year) };
+}
+
 function loadRow(repoRoot, location, fileYear, month, day) {
   const file = join(repoRoot, "src", "prayer_data", `${location}-${fileYear}.json`);
-  const rows = JSON.parse(readFileSync(file, "utf8"));
+  const source =
+    location === "london" && !existsSync(file)
+      ? calculatedLondonRows(repoRoot, fileYear)
+      : { file, rows: JSON.parse(readFileSync(file, "utf8")) };
+  const rows = source.rows;
   const row = rows.find(
     (entry) => Number(entry[0]) === month && Number(entry[1]) === day
   );
   if (!row) {
-    throw new Error(`${location}-${fileYear}.json has no row for ${month}/${day}`);
+    throw new Error(`${source.file} has no row for ${month}/${day}`);
   }
-  return { file, row };
+  return { file: source.file, row };
 }
 
 function pack(row, instantYear, month, day, file) {

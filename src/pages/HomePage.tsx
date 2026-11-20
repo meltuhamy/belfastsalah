@@ -26,9 +26,9 @@ import PrayerDayCard from "../components/PrayerDayCard";
 import CenteredMaxWidthContainer from "../components/CenteredMaxWidthContainer";
 import { App } from "@capacitor/app";
 import { SplashScreen } from "@capacitor/splash-screen";
-import { getZonedDateParts, UK_TIME_ZONE } from "../lib/timeZone";
+import { getZonedDateParts } from "../lib/timeZone";
 import { shouldPromptForZone } from "../lib/displayZone";
-import { locationNames } from "../lib/PrayerTimeData";
+import { locationNames, timetableZoneFor } from "../lib/PrayerTimeData";
 import { useSettings } from "../lib/useSettings";
 import TimeZoneNotice from "../components/TimeZoneNotice";
 
@@ -50,8 +50,9 @@ const HomePage: React.FC = () => {
 
   // Month and year come from the timetable's calendar, so the table opens on
   // the right page for someone whose device is on a different date.
-  const ukToday = getZonedDateParts(now, UK_TIME_ZONE);
-  const [selectedMonth, setSelectedMonth] = useState(ukToday.month - 1);
+  const timetableZone = timetableZoneFor(appSettings?.location ?? null);
+  const timetableToday = getZonedDateParts(now, timetableZone);
+  const [selectedMonth, setSelectedMonth] = useState(timetableToday.month - 1);
   const monthName = getMonthNames()[selectedMonth];
 
   // The toolbar's shadow is there to separate it from content passing beneath
@@ -121,6 +122,7 @@ const HomePage: React.FC = () => {
                 <div>
                   <MonthPicker
                     now={now}
+                    timeZone={timetableZone}
                     value={selectedMonth}
                     onChange={(newMonth) => setSelectedMonth(newMonth)}
                   />
@@ -130,7 +132,7 @@ const HomePage: React.FC = () => {
             <IonCardContent className="HomePage__month-card__content">
               <MonthPrayerTable
                 month={selectedMonth}
-                year={ukToday.year}
+                year={timetableToday.year}
               />
             </IonCardContent>
           </IonCard>

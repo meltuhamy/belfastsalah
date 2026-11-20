@@ -12,8 +12,12 @@
  */
 
 import { AppSettings } from "./settings";
-import { PrayerLocation, locationTimeZones } from "./PrayerTimeData";
-import { getDeviceTimeZone, zonesAgree, UK_TIME_ZONE } from "./timeZone";
+import {
+  PrayerLocation,
+  locationTimeZones,
+  timetableZoneFor
+} from "./PrayerTimeData";
+import { getDeviceTimeZone, zonesAgree } from "./timeZone";
 
 /**
  * Whether the device's clock disagrees with the timetable's, and so whether
@@ -43,7 +47,7 @@ export function resolveDisplayTimeZone(
   deviceTimeZone: string = getDeviceTimeZone()
 ): string {
   if (settings == null || settings.location == null) {
-    return UK_TIME_ZONE;
+    return timetableZoneFor(null);
   }
   return settings.showTimesInDeviceZone
     ? deviceTimeZone

@@ -15,7 +15,7 @@
     "sync": "npm run build && cap sync",
     "assets": "capacitor-assets generate --iconBackgroundColor '#002541' --splashBackgroundColor '#002541'",
     "test:e2e": "playwright test",
-    "test:zones": "for tz in Europe/London UTC Pacific/Auckland America/Los_Angeles Asia/Dubai; do echo \"--- TZ=$tz ---\"; TZ=$tz vitest run || exit 1; done",
+    "test:zones": "for tz in Europe/London UTC Pacific/Auckland America/Los_Angeles Asia/Dubai Europe/Istanbul; do echo \"--- TZ=$tz ---\"; TZ=$tz vitest run || exit 1; done",
     "screenshots": "STORE_SCREENSHOTS=1 playwright test store-screenshots"
   },
   "dependencies": {
@@ -26,6 +26,7 @@
     "@capacitor/splash-screen": "^8.0.2",
     "@ionic/react": "^8.8.17",
     "@ionic/react-router": "^8.8.17",
+    "adhanfork": "file:vendor/adhanfork-4.4.6-fork.1.tgz",
     "date-fns": "^4.4.0",
     "ionicons": "^8.1.0",
     "react": "^19.2.8",

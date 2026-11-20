@@ -33,7 +33,7 @@ describe("SetupPage location picker", () => {
     expect(select.value).toEqual("london");
   });
 
-  it("Should offer both locations as options", async () => {
+  it("Should offer every location as an option", async () => {
     const { container } = renderSetup();
     const select = await getSelect(container);
     // Scoped to this select: the screen grows a second one when the device's
@@ -41,7 +41,7 @@ describe("SetupPage location picker", () => {
     const values = Array.from(select.querySelectorAll("ion-select-option")).map(
       (o) => o.getAttribute("value")
     );
-    expect(values).toEqual(["london", "belfast"]);
+    expect(values).toEqual(["london", "belfast", "istanbul"]);
   });
 
   it("Should keep Belfast selected once it is chosen", async () => {

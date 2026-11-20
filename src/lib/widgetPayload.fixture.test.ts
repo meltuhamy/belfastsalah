@@ -36,6 +36,9 @@ const FIXTURES: Record<string, Partial<AppSettings>> = {
     asrMethod: AsrMethod.Hanafi,
   },
   "belfast-2026-01-15.json": { location: PrayerLocation.Belfast },
+  // 03:00 in Istanbul, which is three hours ahead of the UTC instant the
+  // countdown runs on: the clock strings are Istanbul's, not London's.
+  "istanbul-2026-01-15.json": { location: PrayerLocation.Istanbul },
 };
 
 describe("widget payload fixtures", () => {
