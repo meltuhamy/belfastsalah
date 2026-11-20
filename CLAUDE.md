@@ -279,8 +279,8 @@ underlying custom element on *every* render, without comparing to the previous
 value. Anything with a value that lives on the element between renders will be
 clobbered about once a second.
 
-That is why the reminder slider holds its in-flight value in `SettingsList`
-state while a drag is in progress: `ionChange` only fires on release, so
+That is why the reminder slider holds its in-flight value in
+`PrayerReminderEditor` state while a drag is in progress: `ionChange` only fires on release, so
 without it the knob was being yanked back to the stored value mid-drag. It is
 also why `SetupPage` uses a functional state update. Bear it in mind before
 adding another control that has to hold state while being interacted with.
@@ -327,12 +327,117 @@ already on that day themselves, so the badge would be a lie.
 
 ## Hidden test notification
 
-Long-pressing the timer icon on the reminder row schedules a notification a
-few seconds out, so the reminder path can be checked without waiting for a
+Long-pressing the alarm icon on the Prayer Notifications row schedules a
+notification a few seconds out, so the reminder path can be checked without waiting for a
 prayer time. There is deliberately no visible affordance. `sendTestNotification`
 in `src/lib/notifications.ts` uses id 9999, clear of the prayer reminders,
 which use ids 0 up to `notificationLimit` in `src/lib/reminderSchedule.ts`
-(181 on Android, 64 elsewhere).
+(181 on Android, 64 elsewhere). The test day's notifications use 9900 up;
+a reschedule leaves every id from 9900 alone.
+
+## Prayer reminders
+
+Settings has one switch, Prayer Notifications (`notify`), and under it a
+Notification Settings row (the adhan icon, `AdhanIcon`) that opens
+`/settings/notifications`. From there each prayer has its own screen
+(`/settings/notifications/prayer/<key>`, or `all` for every prayer at once)
+and there is the test day (`/settings/notifications/test`).
+
+- **`settings.reminders`** holds, per prayer, `{ on, offset, sound }`:
+  `src/lib/prayerReminders.ts`. `offset` is minutes from the prayer, -30 to
+  +30, so a reminder can come after its prayer. New installs get 5 minutes
+  before on every prayer with the default sound. `migrateReminders` turns the
+  old single `notifyMinutes` (and the first version's `notifySound` /
+  `fajrSound`) into the same values on every prayer, so an upgrade changes
+  nothing.
+- **Both schedulers read it.** `buildReminderPayload` (Android) and
+  `planReminders` (iOS) skip a prayer that is off, and decide by the
+  reminder's time, not the prayer's - a reminder after a prayer that has just
+  passed is still ahead. Both sort by time, since offsets can cross. The
+  body is `reminderBody(offset)`: "In 10 minutes", "Prayer time now",
+  "10 minutes ago".
+- **`PrayerReminderEditor`** is the one editor, used on a prayer's screen and
+  in the test day's sheet: switch, slider, and a sound list where tapping a
+  row chooses it and only its speaker button plays it (`soundPreview.ts`).
+  The slider's bubble says "+5" or "−5", since words do not fit in it, and
+  the times line under it is a function of the offset so it follows a drag.
+  A prayer's screen also has "Apply to all prayers", which copies its
+  on/off, timing and sound to the other five after a confirmation.
+  `onChange` gets only the field that was touched, never a whole reminder.
+  That matters on "All prayers" (`remindersForAll`): a field the prayers
+  differ on is passed in `mixed` and shows nothing chosen, so any choice
+  there is written to all six, Fajr's own value included. Diffing a whole
+  reminder against Fajr's used to drop exactly those choices.
+- **The default sound** has no file, so the page cannot play it. The apps
+  can: `PrayerReminders.playDefaultSound` plays Android's notification sound,
+  and on iOS (`PrayerRemindersPlugin.swift`, the plugin's only methods there)
+  the standard tone, since iOS will not play the user's chosen one. The web
+  shows no speaker for it (`canPreview`). The Swift file was added to the
+  target by `scripts/ios/add-reminders-plugin.rb`.
+- **The test day** (`TestRemindersPage`, maths in `testDay.ts`) plays today's
+  prayers in about 30 seconds on a timeline that is not to scale: six equal
+  slots, the half hour either side of each prayer spread across most of its
+  slot. Dragging, tapping or the arrow keys snap to a prayer, stopping 31
+  minutes before it so all its reminders are still ahead. At a reminder it
+  posts a real notification (`showPreviewNotification`; on the web it plays
+  the sound in the page instead) and waits `SOUND_SECONDS` for the sound to
+  end, since the app cannot hear when it does. Only the web, which has no
+  notifications, shows a drawn stand-in (`test-day-banner`); on a phone a
+  second banner would sit beside the real one. On Android it posts on the
+  prayer's own channel, so it pops up or not exactly as that prayer's
+  reminders will. The notification is posted at once, not scheduled
+  (a schedule goes through Android's alarm manager and arrived after the
+  day had stopped), permission and channels are readied when play is
+  pressed (`preparePreviewNotifications`), and the wait is timed from when
+  the post completes. Each one is removed from the notification centre when
+  its wait ends, and all of them on leaving the screen; one still being
+  posted then is taken down when it arrives. `tick` runs in the first
+  render's closure, so it reads everything, today's times included, from
+  `latest`. It times itself with `performance.now()`, so e2e specs that pin
+  `Date` still play.
+
+### Reminder sounds
+
+- **The adhans are numbered, never named**, in the picker. Each is the opening takbir of a longer recording, cut to 30
+  seconds or less, which is iOS's limit for a notification sound.
+- **Each one ships three times**: `public/sounds/adhan-N.mp3` (played in the
+  app), `android/app/src/main/res/raw/adhan_N.ogg` and
+  `ios/App/App/Sounds/adhan-N.caf`. `reminderSound.test.ts` fails if one is
+  missing. Adding one means all three files, a line in `REMINDER_SOUNDS` and
+  `SOUND_SECONDS`, `ReminderSounds.ADHAN_COUNT`, and
+  `ruby scripts/ios/add-reminder-sounds.rb`.
+- **Android: one channel per prayer** (`ReminderChannels.kt`), named Fajr to
+  Isha, so how each prayer appears - pop-up, vibration, lock screen - is the
+  user's choice in Android's settings. The app does not model it: each
+  prayer's screen has an Appearance row (`ReminderAppearanceRow`) that reads
+  the channel's importance back and opens its settings page, and refreshes on
+  resume. A channel's sound cannot change once it exists, so a prayer whose
+  sound changes gets a new channel under a fresh id (`prayer-<key>-<n>`),
+  created with the old one's settings, and the old one is deleted; which id
+  is current, and its sound, is in the `reminder_channels` SharedPreferences.
+  - **Reminders are banners by default** (`DEFAULT_IMPORTANCE`, high). A new
+    install starts there. The first time on an upgrade, each prayer's channel
+    is copied from the per-sound channel it used before (`default`, `silent`,
+    `adhan-N`); one still at the level the app gave it (default, or low for
+    silent) is raised to a banner, and anything the user set themselves is
+    kept. Android cannot say which a level is, so the old default counts as
+    unchosen. Then the per-sound channels are deleted, except `default`,
+    which carries the "reminders stop here" prompt, the hidden test
+    notification, and any reminder armed by an older version.
+  - The payload carries `prayer` on each entry and `channels` (every
+    prayer's sound, including ones that are off). `sound` is still there,
+    only when not the default, for Android 7, which has no channels.
+  - **Android 7 reads `sound` as a raw resource name**, `adhan_N` with an
+    underscore (`androidSoundName`). iOS's `adhan-N.caf` finds nothing there,
+    and the plugin quietly falls back to the default sound, so anything
+    posted from JS picks the name by platform (`notificationSoundName`).
+  - Every sync, and `PrayerReminders.ensureChannels({ sounds })` (the
+    Appearance row, and the test day before each notification), brings the
+    channels up to the current sounds.
+  - `ReminderChannelsTest` pins the copying, the migration and the deletion.
+- **iOS: the sound is a file name** at the root of the app bundle. Leaving
+  `sound` out is silence, which is how every iOS reminder used to arrive;
+  `"default"`, a name with no file, is the system sound.
 
 ## Theming
 

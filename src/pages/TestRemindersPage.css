@@ -1,0 +1,332 @@
+.test-day {
+  padding: 0 16px 24px;
+  --test-day-accent: var(--ion-color-primary, #3880ff);
+  --test-day-ink: var(--ion-text-color, #1d2329);
+  --test-day-muted: var(--ion-color-medium, #92949c);
+  --test-day-line: var(--ion-color-step-200, #d9dee3);
+}
+
+/* Leaves room above the player for the web's preview banner, which drops in
+   over this text rather than over the clock. */
+.test-day__intro {
+  margin: 0;
+  padding-top: 18px;
+  min-height: 84px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--test-day-muted);
+}
+
+.test-day__player {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.test-day__play {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: var(--test-day-accent);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.test-day__play:focus-visible,
+.test-day__timeline:focus-visible,
+.test-day__cell:focus-visible {
+  outline: 2px solid var(--test-day-accent);
+  outline-offset: 2px;
+}
+
+.test-day__readout {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.test-day__clock {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--test-day-ink);
+  white-space: nowrap;
+}
+
+.test-day__status {
+  font-size: 0.75rem;
+  text-align: right;
+  color: var(--test-day-muted);
+}
+
+.test-day__timeline {
+  position: relative;
+  height: 62px;
+  margin-top: 4px;
+  touch-action: none;
+  cursor: grab;
+}
+
+.test-day__timeline > span {
+  position: absolute;
+  display: block;
+}
+
+.test-day__track,
+.test-day__progress {
+  top: 36px;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.test-day__track {
+  left: 0;
+  right: 0;
+  background: var(--test-day-line);
+}
+
+.test-day__progress {
+  left: 0;
+  background: rgba(var(--ion-color-primary-rgb, 56, 128, 255), 0.4);
+}
+
+.test-day__tick {
+  top: 31px;
+  width: 2px;
+  height: 16px;
+  transform: translateX(-50%);
+  border-radius: 1px;
+  background: var(--test-day-ink);
+  opacity: 0.7;
+}
+
+.test-day__tick--now {
+  width: 4px;
+  background: var(--test-day-accent);
+  opacity: 1;
+}
+
+.test-day__offset {
+  top: 16px;
+  transform: translateX(-50%);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 700;
+  color: var(--test-day-accent);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.test-day__off {
+  top: 14px;
+  transform: translateX(-50%);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  color: var(--test-day-muted);
+}
+
+.test-day__dot {
+  top: 35px;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  border: 2px solid var(--test-day-accent);
+  background: var(--ion-background-color, #ffffff);
+}
+
+.test-day__dot--sent {
+  background: var(--test-day-accent);
+}
+
+.test-day__playhead {
+  top: 28px;
+  width: 3px;
+  height: 22px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: var(--test-day-ink);
+}
+
+.test-day__grip {
+  top: 48px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: var(--test-day-ink);
+  box-shadow: 0 0 0 3px var(--ion-background-color, #ffffff);
+}
+
+.test-day__cells {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.test-day__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px 2px;
+  border-radius: 10px;
+  border: 1px solid var(--test-day-line);
+  background: transparent;
+  color: var(--test-day-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.test-day__cell--sent {
+  border-color: rgba(var(--ion-color-primary-rgb, 56, 128, 255), 0.45);
+  background: rgba(var(--ion-color-primary-rgb, 56, 128, 255), 0.06);
+}
+
+.test-day__cell--now {
+  border-color: var(--test-day-accent);
+  background: rgba(var(--ion-color-primary-rgb, 56, 128, 255), 0.15);
+}
+
+.test-day__cell-name {
+  font-size: 0.75rem;
+  color: var(--test-day-muted);
+}
+
+.test-day__cell-time {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.test-day__cell-sound {
+  margin-top: 2px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  line-height: 12px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  border: 1px solid var(--test-day-line);
+}
+
+.test-day__cell-when {
+  min-height: 12px;
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  color: var(--test-day-accent);
+  white-space: nowrap;
+}
+
+.test-day__hint {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--test-day-muted);
+}
+
+.test-day__legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 14px;
+  padding-top: 10px;
+  font-size: 0.7rem;
+  color: var(--test-day-muted);
+}
+
+.test-day__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.test-day__legend-tick {
+  width: 2px;
+  height: 8px;
+  background: var(--test-day-muted);
+}
+
+.test-day__legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  border: 2px solid var(--test-day-accent);
+}
+
+.test-day__legend-dot--sent {
+  background: var(--test-day-accent);
+}
+
+/* A stand-in for the system's own banner, on the web only, which has no
+   notifications. The apps post the real one. */
+.test-day__banner {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  right: 10px;
+  max-width: 520px;
+  margin: 0 auto;
+  z-index: 10;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--ion-color-step-50, #f5f6f8);
+  color: var(--test-day-ink, #1d2329);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+
+.test-day__banner-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  flex: none;
+}
+
+.test-day__banner-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.9rem;
+}
+
+.test-day__banner-app {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--ion-color-medium, #92949c);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .test-day__banner {
+    animation: test-day-drop 180ms ease-out;
+  }
+}
+
+@keyframes test-day-drop {
+  from {
+    transform: translateY(-12px);
+    opacity: 0;
+  }
+}

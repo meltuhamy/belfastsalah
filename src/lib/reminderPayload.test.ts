@@ -1,6 +1,7 @@
 import { gzipSync } from "node:zlib";
 import { AsrMethod, PrayerLocation } from "./PrayerTimes";
 import { AppSettings, getDefaultSettings } from "./settings";
+import { defaultReminders } from "./prayerReminders";
 import { REMINDERS_ENDED_TITLE } from "./reminderSchedule";
 import {
   REMINDER_HORIZON_DAYS,
@@ -12,7 +13,6 @@ function london(overrides: Partial<AppSettings> = {}): AppSettings {
     ...getDefaultSettings(),
     location: PrayerLocation.London,
     notify: true,
-    notifyMinutes: 5,
     ...overrides,
   };
 }
@@ -29,7 +29,8 @@ describe("buildReminderPayload", () => {
     expect(payload.reminders[0]).toEqual({
       at: Date.parse("2026-11-16T11:45:00Z"),
       title: "Duhr is at 11:50",
-      body: "5 minute reminder",
+      body: "In 5 minutes",
+      prayer: "duhr",
     });
     const prompt = payload.reminders[payload.reminders.length - 1];
     const lastPrayer = payload.reminders[payload.reminders.length - 2];
@@ -38,6 +39,31 @@ describe("buildReminderPayload", () => {
     // The prompt fires at the last prayer's own time, after its reminder.
     expect(prompt.at).toBeGreaterThan(lastPrayer.at);
     expect(payload.reminders[0].title).not.toEqual(REMINDERS_ENDED_TITLE);
+    // The prompt is not a prayer's, so it posts on the default channel.
+    expect(prompt.prayer).toBeUndefined();
+  });
+
+  it("Should name every prayer's sound for its channel, even one that is off", async () => {
+    const payload = (await buildReminderPayload(
+      london({
+        reminders: {
+          ...defaultReminders(),
+          fajr: { on: true, offset: -5, sound: "adhan-3" },
+          isha: { on: false, offset: -5, sound: "silent" },
+        },
+      }),
+      MORNING,
+      1
+    ))!;
+    expect(payload.channels).toEqual({
+      fajr: "adhan-3",
+      shuruq: "default",
+      duhr: "default",
+      asr: "default",
+      maghrib: "default",
+      isha: "silent",
+    });
+    expect(payload.reminders.some((r) => r.prayer === "isha")).toBe(false);
   });
 
   it("Should move only the clock in the title when the display zone changes", async () => {
@@ -84,14 +110,14 @@ describe("buildReminderPayload", () => {
 
   it("Should fire earlier for a longer lead and skip a reminder already due", async () => {
     const longer = (await buildReminderPayload(
-      london({ notifyMinutes: 20 }),
+      london({ reminders: defaultReminders(20) }),
       MORNING,
       2
     ))!;
     expect(longer.reminders[0]).toMatchObject({
       at: Date.parse("2026-11-16T11:30:00Z"),
       title: "Duhr is at 11:50",
-      body: "20 minute reminder",
+      body: "In 20 minutes",
     });
 
     // Three minutes before Duhr, so its five minute reminder has gone.
@@ -108,11 +134,11 @@ describe("buildReminderPayload", () => {
 
   it("Should say when the reminder is the prayer itself", async () => {
     const payload = (await buildReminderPayload(
-      london({ notifyMinutes: 0 }),
+      london({ reminders: defaultReminders(0) }),
       MORNING,
       1
     ))!;
-    expect(payload.reminders[0].body).toEqual("Prayer time reminder");
+    expect(payload.reminders[0].body).toEqual("Prayer time now");
     expect(payload.reminders[0].at).toEqual(Date.parse("2026-11-16T11:50:00Z"));
   });
 
@@ -186,5 +212,98 @@ describe("buildReminderPayload", () => {
 
   it("Should write nothing before a location is chosen", async () => {
     expect(await buildReminderPayload(getDefaultSettings(), MORNING)).toBeNull();
+  });
+});
+
+describe("reminder sounds in the payload", () => {
+  it("Should leave the sound out for the default, keeping the list its old size", async () => {
+    const payload = await buildReminderPayload(london(), MORNING, 2);
+    expect(payload!.reminders.length).toBeGreaterThan(0);
+    expect(payload!.reminders.every((entry) => !("sound" in entry))).toBe(true);
+  });
+
+  it("Should give each prayer its own sound", async () => {
+    const payload = await buildReminderPayload(
+      london({
+        reminders: {
+          ...defaultReminders(5, "adhan-3", "adhan-1"),
+          shuruq: { on: true, offset: -5, sound: "default" },
+        },
+      }),
+      MORNING,
+      3
+    );
+    const soundsFor = (prayer: string) =>
+      new Set(
+        payload!.reminders
+          .filter((entry) => entry.title.startsWith(`${prayer} is at`))
+          .map((entry) => entry.sound)
+      );
+    expect(soundsFor("Fajr")).toEqual(new Set(["adhan-1"]));
+    expect(soundsFor("Shuruq")).toEqual(new Set([undefined]));
+    for (const prayer of ["Duhr", "Asr", "Maghrib", "Isha"]) {
+      expect(soundsFor(prayer)).toEqual(new Set(["adhan-3"]));
+    }
+    const last = payload!.reminders[payload!.reminders.length - 1];
+    expect(last.title).toBe(REMINDERS_ENDED_TITLE);
+    expect(last.sound).toBeUndefined();
+  });
+
+  it("Should mark silent reminders as silent", async () => {
+    const payload = await buildReminderPayload(
+      london({ reminders: defaultReminders(5, "silent") }),
+      MORNING,
+      2
+    );
+    const prayers = payload!.reminders.filter(
+      (entry) => entry.title !== REMINDERS_ENDED_TITLE
+    );
+    expect(prayers.every((entry) => entry.sound === "silent")).toBe(true);
+  });
+});
+
+describe("each prayer's own timing in the payload", () => {
+  it("Should leave out a prayer whose reminder is off", async () => {
+    const payload = (await buildReminderPayload(
+      london({
+        reminders: { ...defaultReminders(), shuruq: { on: false, offset: -5, sound: "default" } },
+      }),
+      MORNING,
+      3
+    ))!;
+    expect(payload.reminders.some((entry) => entry.title.startsWith("Shuruq"))).toBe(false);
+    expect(payload.reminders.some((entry) => entry.title.startsWith("Fajr"))).toBe(true);
+  });
+
+  it("Should remind after a prayer that has already passed", async () => {
+    // 16 November: Duhr 11:50. At 12:00, with Duhr set to 20 minutes after.
+    const payload = (await buildReminderPayload(
+      london({
+        reminders: { ...defaultReminders(), duhr: { on: true, offset: 20, sound: "default" } },
+      }),
+      new Date("2026-11-16T12:00:00Z"),
+      1
+    ))!;
+    expect(payload.reminders[0]).toEqual({
+      at: Date.parse("2026-11-16T12:10:00Z"),
+      title: "Duhr is at 11:50",
+      body: "20 minutes ago",
+      prayer: "duhr",
+    });
+  });
+
+  it("Should keep the list in time order whatever the offsets", async () => {
+    const payload = (await buildReminderPayload(
+      london({
+        reminders: {
+          ...defaultReminders(30),
+          fajr: { on: true, offset: 30, sound: "default" },
+        },
+      }),
+      MORNING,
+      5
+    ))!;
+    const times = payload.reminders.map((entry) => entry.at);
+    expect([...times].sort((a, b) => a - b)).toEqual(times);
   });
 });

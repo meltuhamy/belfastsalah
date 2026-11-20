@@ -10,6 +10,9 @@ import {
 
 const start = new Date("2026-11-16T10:00:00Z");
 
+// Every prayer reminded the same number of minutes before it.
+const before = (minutes: number) => () => ({ offset: -minutes });
+
 // A prayer every four hours, so a count converts straight into a span.
 function everyFourHours(from: Date): Promise<NextPrayer> {
   const step = 4 * 60 * 60 * 1000;
@@ -41,9 +44,9 @@ describe("planReminders", () => {
   it("Should fill every slot but the last with a prayer, and end on the prompt", async () => {
     const slots = await planReminders(
       IOS_NOTIFICATION_LIMIT,
-      5,
       start,
-      everyFourHours
+      everyFourHours,
+      before(5)
     );
 
     expect(slots).toHaveLength(64);
@@ -58,9 +61,9 @@ describe("planReminders", () => {
   it("Should reach thirty days ahead on the Android limit", async () => {
     const slots = await planReminders(
       ANDROID_NOTIFICATION_LIMIT,
-      0,
       start,
-      everyFourHours
+      everyFourHours,
+      before(0)
     );
 
     expect(slots).toHaveLength(181);
@@ -72,9 +75,9 @@ describe("planReminders", () => {
   it("Should skip a reminder that would already be in the past and still fill the window", async () => {
     const slots = await planReminders(
       IOS_NOTIFICATION_LIMIT,
-      60,
       start,
-      everyFourHours
+      everyFourHours,
+      before(60)
     );
 
     // The first prayer is four hours out, so an hour's notice is still ahead.
@@ -82,9 +85,9 @@ describe("planReminders", () => {
     const almostThere = addMinutes(slots[0].prayerTime!, -30);
     const again = await planReminders(
       IOS_NOTIFICATION_LIMIT,
-      60,
       almostThere,
-      everyFourHours
+      everyFourHours,
+      before(60)
     );
 
     expect(again).toHaveLength(64);
@@ -104,9 +107,9 @@ describe("planReminders on the London timetable", () => {
   it("Should run from the day's next reminder to a month out on Android", async () => {
     const slots = await planReminders(
       ANDROID_NOTIFICATION_LIMIT,
-      5,
       new Date("2026-11-16T10:00:00Z"),
-      getNext
+      getNext,
+      before(5)
     );
 
     // 16 November: Duhr 11:50.
@@ -131,6 +134,7 @@ describe("planReminders on the London timetable", () => {
       prayer: null,
       prayerTime: null,
       at: new Date("2026-12-16T07:58:00Z"),
+      offset: 0,
     });
   });
 
@@ -138,15 +142,15 @@ describe("planReminders on the London timetable", () => {
     const now = new Date("2026-11-16T10:00:00Z");
     const standard = await planReminders(
       IOS_NOTIFICATION_LIMIT,
-      5,
       now,
-      getNext
+      getNext,
+      before(5)
     );
     const longest = await planReminders(
       IOS_NOTIFICATION_LIMIT,
-      20,
       now,
-      getNext
+      getNext,
+      before(20)
     );
 
     // One reminder per prayer. Twenty minutes is not a second notification,
@@ -183,6 +187,7 @@ describe("planReminders on the London timetable", () => {
       prayer: null,
       prayerTime: null,
       at: new Date("2026-11-26T16:02:00Z"),
+      offset: 0,
     });
     expect(longest[63].at).toEqual(standard[63].at);
   });
@@ -190,16 +195,16 @@ describe("planReminders on the London timetable", () => {
   it("Should start a new window once the old one has run out", async () => {
     const first = await planReminders(
       IOS_NOTIFICATION_LIMIT,
-      5,
       new Date("2026-11-16T10:00:00Z"),
-      getNext
+      getNext,
+      before(5)
     );
     // The moment the last slot fires. Nothing in the old batch is still ahead.
     const refreshed = await planReminders(
       IOS_NOTIFICATION_LIMIT,
-      5,
       first[63].at,
-      getNext
+      getNext,
+      before(5)
     );
 
     expect(refreshed).toHaveLength(64);
@@ -223,9 +228,9 @@ describe("planReminders on the London timetable", () => {
     // would deliver a past one at once rather than drop it.
     const slots = await planReminders(
       IOS_NOTIFICATION_LIMIT,
-      5,
       new Date("2026-11-16T11:47:00Z"),
-      getNext
+      getNext,
+      before(5)
     );
 
     // 16 November: Asr 13:48.
@@ -235,5 +240,60 @@ describe("planReminders on the London timetable", () => {
       at: new Date("2026-11-16T13:43:00Z"),
     });
     expect(slots).toHaveLength(64);
+  });
+});
+
+describe("planReminders with each prayer's own reminder", () => {
+  const london = new LondonPrayerTimes(AsrMethod.Shafi);
+  const getNext = (from: Date) => london.getNext(from);
+
+  it("Should remind after a prayer that has just passed", async () => {
+    // 16 November: Duhr 11:50. Ten minutes after it, with Duhr set to +20.
+    const slots = await planReminders(
+      IOS_NOTIFICATION_LIMIT,
+      new Date("2026-11-16T12:00:00Z"),
+      getNext,
+      (prayer) => ({ offset: prayer === Prayer.Duhr ? 20 : -5 })
+    );
+
+    expect(slots[0]).toMatchObject({
+      prayer: Prayer.Duhr,
+      offset: 20,
+      at: new Date("2026-11-16T12:10:00Z"),
+    });
+  });
+
+  it("Should leave out a prayer that is turned off", async () => {
+    const slots = await planReminders(
+      IOS_NOTIFICATION_LIMIT,
+      new Date("2026-11-16T10:00:00Z"),
+      getNext,
+      (prayer) => (prayer === Prayer.Shuruq ? null : { offset: -5 })
+    );
+
+    expect(slots.some((slot) => slot.prayer === Prayer.Shuruq)).toBe(false);
+    expect(slots).toHaveLength(64);
+  });
+
+  it("Should schedule nothing when every prayer is off", async () => {
+    const slots = await planReminders(
+      IOS_NOTIFICATION_LIMIT,
+      new Date("2026-11-16T10:00:00Z"),
+      getNext,
+      () => null
+    );
+
+    expect(slots).toEqual([]);
+  });
+
+  it("Should keep reminders in time order when offsets cross", async () => {
+    const slots = await planReminders(
+      IOS_NOTIFICATION_LIMIT,
+      new Date("2026-11-16T10:00:00Z"),
+      getNext,
+      (prayer) => ({ offset: prayer === Prayer.Fajr ? 30 : -30 })
+    );
+    const times = slots.slice(0, -1).map((slot) => slot.at.getTime());
+    expect([...times].sort((a, b) => a - b)).toEqual(times);
   });
 });

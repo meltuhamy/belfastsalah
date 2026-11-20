@@ -13,6 +13,9 @@ import { useDeviceUses24Hour } from "./lib/useTimeFormat";
 import { locationTimeZones } from "./lib/PrayerTimeData";
 import HomePage from "./pages/HomePage";
 import SettingsPage from "./pages/SettingsPage";
+import NotificationSettingsPage from "./pages/NotificationSettingsPage";
+import PrayerReminderPage from "./pages/PrayerReminderPage";
+import TestRemindersPage from "./pages/TestRemindersPage";
 
 /* Core CSS required for Ionic components to work properly */
 import "@ionic/react/css/core.css";
@@ -64,10 +67,11 @@ import {
   planReminders,
   REMINDERS_ENDED_BODY,
   REMINDERS_ENDED_TITLE,
-  reminderBody,
   reminderTitle,
 } from "./lib/reminderSchedule";
 import { syncAndroidReminders } from "./lib/nativeReminders";
+import { iosSoundName } from "./lib/reminderSound";
+import { prayerKey, reminderBody, soundForPrayer } from "./lib/prayerReminders";
 import { addSaveListener, removeSaveListener } from "./lib/settings";
 import { refreshWidgets } from "./lib/widgets";
 import FullPageSpinner from "./components/FullPageSpinner";
@@ -103,7 +107,9 @@ const App: React.FC = () => {
     settings == null ? null : settings.showTimesInDeviceZone;
   const asrMethod = settings == null ? null : settings.asrMethod;
   const notificationsEnabled = settings == null ? null : settings.notify;
-  const notificationMinutes = settings == null ? null : settings.notifyMinutes;
+  const reminders = settings == null ? null : settings.reminders;
+  // The effect below re-runs on a change of value, not of object identity.
+  const remindersKey = reminders === null ? null : JSON.stringify(reminders);
   // The System setting resolved against the phone's own switch, kept current
   // by the native plugin. Everything that prints a clock time reads this.
   const timeFormat = settings == null ? null : settings.timeFormat;
@@ -120,7 +126,7 @@ const App: React.FC = () => {
     showTimesInDeviceZone,
     asrMethod,
     notificationsEnabled,
-    notificationMinutes,
+    reminders,
     timeFormat,
     uses24Hour,
   });
@@ -129,7 +135,7 @@ const App: React.FC = () => {
     showTimesInDeviceZone,
     asrMethod,
     notificationsEnabled,
-    notificationMinutes,
+    reminders,
     timeFormat,
     uses24Hour,
   };
@@ -145,10 +151,11 @@ const App: React.FC = () => {
       inputs.location === null ||
       inputs.asrMethod === null ||
       inputs.notificationsEnabled === null ||
-      inputs.notificationMinutes === null
+      inputs.reminders === null
     ) {
       return;
     }
+    const prayerReminders = inputs.reminders;
     const prayerTimes =
       inputs.location === PrayerLocation.London
         ? new LondonPrayerTimes(inputs.asrMethod)
@@ -166,7 +173,7 @@ const App: React.FC = () => {
       await syncAndroidReminders(
         {
           notify: inputs.notificationsEnabled,
-          notifyMinutes: inputs.notificationMinutes,
+          reminders: prayerReminders,
           location: inputs.location,
           asrMethod: inputs.asrMethod,
           showTimesInDeviceZone: inputs.showTimesInDeviceZone === true,
@@ -187,12 +194,14 @@ const App: React.FC = () => {
       return;
     }
 
-    const minutesBefore = inputs.notificationMinutes;
     const slots = await planReminders(
       notificationLimit(Capacitor.getPlatform()),
-      minutesBefore,
       now,
-      (from) => prayerTimes.getNext(from)
+      (from) => prayerTimes.getNext(from),
+      (prayer) => {
+        const reminder = prayerReminders[prayerKey(prayer)];
+        return reminder.on ? { offset: reminder.offset } : null;
+      }
     );
     const notificationsToSchedule: Array<LocalNotificationSchema> = slots.map(
       (slot) => {
@@ -204,6 +213,7 @@ const App: React.FC = () => {
             body: REMINDERS_ENDED_BODY,
             id: slot.id,
             schedule: { at: slot.at },
+            sound: iosSoundName(soundForPrayer(null, prayerReminders)),
             actionTypeId: "",
             extra: null,
           };
@@ -222,9 +232,11 @@ const App: React.FC = () => {
               { withPeriod: true }
             )
           ),
-          body: reminderBody(minutesBefore),
+          body: reminderBody(slot.offset),
           id: slot.id,
           schedule: { at: slot.at },
+          // iOS only: Android posts its own reminders (nativeReminders.ts).
+          sound: iosSoundName(soundForPrayer(slot.prayer, prayerReminders)),
           actionTypeId: "",
           extra: null,
         };
@@ -265,7 +277,7 @@ const App: React.FC = () => {
       location === null ||
       asrMethod === null ||
       notificationsEnabled === null ||
-      notificationMinutes === null
+      remindersKey === null
     ) {
       return;
     }
@@ -293,7 +305,7 @@ const App: React.FC = () => {
     location,
     asrMethod,
     notificationsEnabled,
-    notificationMinutes,
+    remindersKey,
     showTimesInDeviceZone,
     timeFormat,
   ]);
@@ -353,7 +365,22 @@ const App: React.FC = () => {
       <IonReactRouter>
         <IonRouterOutlet>
           <Route path="/" component={HomePage} exact={true} />
-          <Route path="/settings" component={SettingsPage} />
+          <Route path="/settings" component={SettingsPage} exact={true} />
+          <Route
+            path="/settings/notifications"
+            component={NotificationSettingsPage}
+            exact={true}
+          />
+          <Route
+            path="/settings/notifications/test"
+            component={TestRemindersPage}
+            exact={true}
+          />
+          <Route
+            path="/settings/notifications/prayer/:prayer"
+            component={PrayerReminderPage}
+            exact={true}
+          />
         </IonRouterOutlet>
       </IonReactRouter>
     );

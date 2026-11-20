@@ -56,9 +56,6 @@ const SetupPage: React.FC<Props> = ({ onThemePreview }) => {
           <SettingsList
             settings={inputSettings}
             onNotifyChange={(notify) => setSetting({ notify })}
-            onNotifyMinutesChange={(notifyMinutes) =>
-              setSetting({ notifyMinutes })
-            }
             onLocationChange={(location, asrMethod) =>
               setSetting({ location, asrMethod })
             }

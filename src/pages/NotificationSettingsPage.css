@@ -1,0 +1,29 @@
+.notification-settings__summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  margin-inline-start: 12px;
+}
+
+.notification-settings__sound {
+  font-size: 0.95rem;
+  color: var(--ion-color-medium, #92949c);
+}
+
+.notification-settings__sound--adhan {
+  color: var(--ion-color-primary, #3880ff);
+}
+
+.notification-settings__when {
+  font-size: 0.8rem;
+  color: var(--ion-color-medium, #92949c);
+}
+
+.notification-settings__value {
+  font-size: 0.95rem;
+}
+
+.notification-settings__test {
+  padding: 20px 16px 32px;
+}

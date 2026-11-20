@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { pinDate } from "./support/app";
 
 // The whole app re-renders once a second off the countdown ticker, and
 // @ionic/react re-assigns every prop to the underlying element on every one of
@@ -12,6 +13,11 @@ import { test, expect, type Page } from "@playwright/test";
 
 test.use({ permissions: ["notifications"] });
 
+// 15 January, GMT: the times line reads london-2026.json's own, Fajr 06:20.
+test.beforeEach(async ({ page }) => {
+  await pinDate(page, "2026-01-15T03:00:00Z");
+});
+
 /** Completes setup, then turns reminders on from the settings screen. */
 async function openReminderSlider(page: Page) {
   await page.goto("/");
@@ -22,9 +28,16 @@ async function openReminderSlider(page: Page) {
   await page.locator("ion-button[router-link='/settings']").click();
   await page
     .locator("ion-toggle")
-    .filter({ hasText: "Notify before prayer" })
+    .filter({ hasText: "Prayer Notifications" })
     .click();
-  await expect(page.locator(".settings-list__range-label")).toBeVisible();
+  await page.getByTestId("notification-settings-row").click();
+  await page.getByTestId("reminder-row-fajr").click();
+  await expect(page.getByTestId("reminder-when")).toBeVisible();
+  // The screen slides in. A drag started mid-transition aims at a knob that
+  // is still moving, so wait for it to come to rest.
+  // A position compared twice can match before the slide has started, so
+  // the wait is a plain one, comfortably longer than Ionic's 500ms transition.
+  await page.waitForTimeout(800);
 }
 
 const rangeValue = (page: Page) =>
@@ -104,8 +117,8 @@ test("keeps the knob under the finger while dragging", async ({ page }) => {
 
 test("tracks the drag in the label, not just on release", async ({ page }) => {
   await openReminderSlider(page);
-  const label = page.locator(".settings-list__range-label");
-  await expect(label).toHaveText("Notify 5 minutes before prayer");
+  const label = page.getByTestId("reminder-when");
+  await expect(label).toHaveText("5 minutes before Fajr");
 
   const readings: Array<string> = [];
   await dragRightAndSample(page, 6, async () => {
@@ -123,11 +136,53 @@ test("commits the value it finished on", async ({ page }) => {
   await dragRightAndSample(page, 6);
 
   const settled = await rangeValue(page);
-  expect(settled).toBeGreaterThan(5);
+  expect(settled).toBeGreaterThan(-5);
 
   // Survives a reload, so it reached storage rather than only the knob.
   await page.waitForTimeout(700);
   await page.reload();
-  await expect(page.locator(".settings-list__range-label")).toBeVisible();
+  await expect(page.getByTestId("reminder-when")).toBeVisible();
   await expect.poll(() => rangeValue(page)).toBe(settled);
+});
+
+/** "06:20" to minutes since midnight. */
+const minutesOf = (clock: string) => {
+  const [h, m] = clock.split(":").map(Number);
+  return h * 60 + m;
+};
+
+/** "5 minutes before Fajr" to -5, "At Fajr time" to 0, "3 minutes after Fajr" to 3. */
+const offsetOf = (when: string) => {
+  const match = /(\d+) minutes? (before|after)/.exec(when);
+  if (!match) return 0;
+  return Number(match[1]) * (match[2] === "before" ? -1 : 1);
+};
+
+test("keeps the reminder time in step with the label while dragging", async ({ page }) => {
+  await openReminderSlider(page);
+  const label = page.getByTestId("reminder-when");
+  const times = page.getByTestId("reminder-times");
+
+  const mismatches: Array<string> = [];
+  await dragRightAndSample(page, 6, async () => {
+    const when = await label.innerText();
+    const line = await times.innerText();
+    // "Fajr: 06:20. Reminder: 06:15"
+    const [prayer, reminder] = [...line.matchAll(/(\d{1,2}:\d{2})/g)].map((m) => m[1]);
+    if (minutesOf(reminder) - minutesOf(prayer) !== offsetOf(when)) {
+      mismatches.push(`${when} / ${line}`);
+    }
+  });
+  expect(mismatches).toEqual([]);
+});
+
+test("labels the knob with a signed number of minutes, which fits its bubble", async ({ page }) => {
+  await openReminderSlider(page);
+  const pins: Array<string> = [];
+  await dragRightAndSample(page, 4, async () => {
+    pins.push((await page.locator("ion-range .range-pin").innerText()).trim());
+  });
+  for (const pin of pins) {
+    expect(pin).toMatch(/^(0|[+−]\d+)$/);
+  }
 });

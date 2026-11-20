@@ -2,6 +2,7 @@ import { Preferences } from "@capacitor/preferences";
 import { AsrMethod, PrayerLocation } from "./PrayerTimes";
 import { Theme } from "./theme";
 import { TimeFormat } from "./timeFormat";
+import { migrateReminders, PrayerReminders, defaultReminders } from "./prayerReminders";
 
 import debounce from "./debounce";
 
@@ -10,8 +11,12 @@ const STORAGE_KEY = "settings";
 const saveCallbacks: Array<() => void> = [];
 
 export type AppSettings = {
+  // Prayer Notifications: the switch for all reminders.
   notify: boolean;
-  notifyMinutes: number;
+  // Each prayer's reminder: on or off, minutes before or after, and sound.
+  // Settings saved before this existed had one lead time (notifyMinutes) for
+  // every prayer, which migrateSettings carries over.
+  reminders: PrayerReminders;
   asrMethod: AsrMethod;
   // Light, dark, follow the device, or dark between Maghrib and sunrise.
   theme: Theme;
@@ -30,7 +35,9 @@ export type AppSettings = {
 export function getDefaultSettings(): AppSettings {
   return {
     notify: false,
-    notifyMinutes: 5,
+    // Five minutes before every prayer with the phone's own sound, as
+    // reminders always were. An adhan is opt-in.
+    reminders: defaultReminders(),
     asrMethod: AsrMethod.Shafi,
     // Following the device is the default. It used to be a boolean seeded
     // from the device once at first launch and then never updated again.
@@ -43,10 +50,14 @@ export function getDefaultSettings(): AppSettings {
 }
 
 // What settings looked like before the theme rewrite: a pair of booleans, the
-// second only meaningful when the first was on.
+// second only meaningful when the first was on. And before per-prayer
+// reminders: one lead time, and briefly one sound plus Fajr's own.
 type LegacySettings = {
   nightMode?: boolean;
   nightModeMaghrib?: boolean;
+  notifyMinutes?: unknown;
+  notifySound?: unknown;
+  fajrSound?: unknown;
 };
 
 function themeFromLegacy(legacy: LegacySettings): Theme | null {
@@ -69,13 +80,22 @@ function themeFromLegacy(legacy: LegacySettings): Theme | null {
  * explicit setting, even if its initial value came from the device.
  */
 export function migrateSettings(stored: unknown): AppSettings {
-  const { nightMode, nightModeMaghrib, ...rest } = (stored ?? {}) as
-    LegacySettings & Partial<AppSettings>;
+  const {
+    nightMode,
+    nightModeMaghrib,
+    notifyMinutes,
+    notifySound,
+    fajrSound,
+    reminders,
+    ...rest
+  } = (stored ?? {}) as LegacySettings & Partial<AppSettings>;
   const legacyTheme = themeFromLegacy({ nightMode, nightModeMaghrib });
+  const defaults = getDefaultSettings();
   return {
-    ...getDefaultSettings(),
+    ...defaults,
     ...rest,
     ...(legacyTheme === null ? {} : { theme: legacyTheme }),
+    reminders: migrateReminders(reminders, { notifyMinutes, notifySound, fajrSound }),
   };
 }
 

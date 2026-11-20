@@ -1,5 +1,5 @@
-import { subMinutes } from "date-fns";
 import { Prayer } from "./PrayerTimes";
+import { OFFSET_LIMIT, REMINDER_PRAYERS } from "./prayerReminders";
 
 // iOS will not keep more than 64 pending local notifications; the system
 // drops the rest. That is about ten days of the six daily prayers, whatever
@@ -23,12 +23,6 @@ export function reminderTitle(prayerName: string, clock: string): string {
   return `${prayerName} is at ${clock}`;
 }
 
-export function reminderBody(minutesBefore: number): string {
-  return minutesBefore > 0
-    ? `${minutesBefore} minute reminder`
-    : "Prayer time reminder";
-}
-
 export function notificationLimit(platform: string): number {
   return platform === "android"
     ? ANDROID_NOTIFICATION_LIMIT
@@ -44,45 +38,64 @@ export type ReminderSlot = {
   id: number;
   at: Date;
   // Null on the final slot, which asks the user to open the app so the
-  // window can be filled again. Its `at` is the last prayer's own time.
+  // window can be filled again. Its `at` is the last prayer's own time, or
+  // that prayer's reminder when it comes after.
   prayer: Prayer | null;
   prayerTime: Date | null;
+  // Minutes from the prayer: negative before, positive after. 0 on the final slot.
+  offset: number;
 };
+
+/** A prayer's reminder timing, or null when that prayer has none. */
+export type ReminderTiming = { offset: number } | null;
 
 /**
  * The notifications to schedule from `now`.
  *
- * One slot is kept for the prompt at the end. A reminder whose time has
- * already passed (the next prayer is closer than `minutesBefore`) is left
- * out, so it does not take a slot that could hold a later prayer.
+ * Each prayer is reminded at its own offset, before or after it, or not at
+ * all. The walk starts half an hour back, so a prayer that has just passed
+ * still gets a reminder set to follow it. A reminder whose time has already
+ * gone is left out, so it does not take a slot that could hold a later one.
+ * One slot is kept for the prompt at the end.
  */
 export async function planReminders(
   limit: number,
-  minutesBefore: number,
   now: Date,
-  getNext: (from: Date) => Promise<NextPrayer>
+  getNext: (from: Date) => Promise<NextPrayer>,
+  timingFor: (prayer: Prayer) => ReminderTiming
 ): Promise<ReminderSlot[]> {
-  const slots: ReminderSlot[] = [];
-  let cursor = now;
-  let id = 0;
-  while (slots.length < limit - 1) {
+  const found: Array<Omit<ReminderSlot, "id">> = [];
+  let cursor = new Date(now.getTime() - (OFFSET_LIMIT + 1) * 60_000);
+  // Every prayer turned off would otherwise walk forever.
+  const maxPrayers = limit * REMINDER_PRAYERS.length + REMINDER_PRAYERS.length;
+  for (let seen = 0; found.length < limit - 1 && seen < maxPrayers; seen++) {
     const next = await getNext(cursor);
     if (next.time.getTime() <= cursor.getTime()) {
       break;
     }
-    const at = subMinutes(next.time, minutesBefore);
     cursor = next.time;
+    const timing = timingFor(next.prayer);
+    if (timing === null) {
+      continue;
+    }
+    const at = new Date(next.time.getTime() + timing.offset * 60_000);
     if (at.getTime() <= now.getTime()) {
       continue;
     }
-    slots.push({ id, at, prayer: next.prayer, prayerTime: next.time });
-    id += 1;
+    found.push({ at, prayer: next.prayer, prayerTime: next.time, offset: timing.offset });
   }
+  if (found.length === 0) {
+    return [];
+  }
+  found.sort((a, b) => a.at.getTime() - b.at.getTime());
+  const slots: ReminderSlot[] = found.map((slot, id) => ({ ...slot, id }));
   slots.push({
     id: limit,
-    at: cursor,
+    // The later of the last prayer and the last reminder, which can follow it.
+    at: new Date(Math.max(cursor.getTime(), found[found.length - 1].at.getTime())),
     prayer: null,
     prayerTime: null,
+    offset: 0,
   });
   return slots;
 }

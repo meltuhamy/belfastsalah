@@ -1,0 +1,183 @@
+{
+  "version": 1,
+  "generatedAt": 1768435200000,
+  "channels": {
+    "fajr": "adhan-5",
+    "shuruq": "default",
+    "duhr": "adhan-2",
+    "asr": "adhan-2",
+    "maghrib": "adhan-2",
+    "isha": "adhan-2"
+  },
+  "reminders": [
+    {
+      "at": 1768457700000,
+      "title": "Fajr is at 06:20",
+      "body": "In 5 minutes",
+      "sound": "adhan-5",
+      "prayer": "fajr"
+    },
+    {
+      "at": 1768463520000,
+      "title": "Shuruq is at 07:57",
+      "body": "In 5 minutes",
+      "prayer": "shuruq"
+    },
+    {
+      "at": 1768479000000,
+      "title": "Duhr is at 12:15",
+      "body": "In 5 minutes",
+      "sound": "adhan-2",
+      "prayer": "duhr"
+    },
+    {
+      "at": 1768485420000,
+      "title": "Asr is at 14:02",
+      "body": "In 5 minutes",
+      "sound": "adhan-2",
+      "prayer": "asr"
+    },
+    {
+      "at": 1768493940000,
+      "title": "Maghrib is at 16:24",
+      "body": "In 5 minutes",
+      "sound": "adhan-2",
+      "prayer": "maghrib"
+    },
+    {
+      "at": 1768499760000,
+      "title": "Isha is at 18:01",
+      "body": "In 5 minutes",
+      "sound": "adhan-2",
+      "prayer": "isha"
+    },
+    {
+      "at": 1768544040000,
+      "title": "Fajr is at 06:19",
+      "body": "In 5 minutes",
+      "sound": "adhan-5",
+      "prayer": "fajr"
+    },
+    {
+      "at": 1768549860000,
+      "title": "Shuruq is at 07:56",
+      "body": "In 5 minutes",
+      "prayer": "shuruq"
+    },
+    {
+      "at": 1768565400000,
+      "title": "Duhr is at 12:15",
+      "body": "In 5 minutes",
+      "sound": "adhan-2",
+      "prayer": "duhr"
+    },
+    {
+      "at": 1768571880000,
+      "title": "Asr is at 14:03",
+      "body": "In 5 minutes",
+      "sound": "adhan-2",
+      "prayer": "asr"
+    },
+    {
+      "at": 1768580460000,
+      "title": "Maghrib is at 16:26",
+      "body": "In 5 minutes",
+      "sound": "adhan-2",
+      "prayer": "maghrib"
+    },
+    {
+      "at": 1768586280000,
+      "title": "Isha is at 18:03",
+      "body": "In 5 minutes",
+      "sound": "adhan-2",
+      "prayer": "isha"
+    },
+    {
+      "at": 1768630380000,
+      "title": "Fajr is at 06:18",
+      "body": "In 5 minutes",
+      "sound": "adhan-5",
+      "prayer": "fajr"
+    },
+    {
+      "at": 1768636200000,
+      "title": "Shuruq is at 07:55",
+      "body": "In 5 minutes",
+      "prayer": "shuruq"
+    },
+    {
+      "at": 1768651860000,
+      "title": "Duhr is at 12:16",
+      "body": "In 5 minutes",
+      "sound": "adhan-2",
+      "prayer": "duhr"
+    },
+    {
+      "at": 1768658400000,
+      "title": "Asr is at 14:05",
+      "body": "In 5 minutes",
+      "sound": "adhan-2",
+      "prayer": "asr"
+    },
+    {
+      "at": 1768666920000,
+      "title": "Maghrib is at 16:27",
+      "body": "In 5 minutes",
+      "sound": "adhan-2",
+      "prayer": "maghrib"
+    },
+    {
+      "at": 1768672740000,
+      "title": "Isha is at 18:04",
+      "body": "In 5 minutes",
+      "sound": "adhan-2",
+      "prayer": "isha"
+    },
+    {
+      "at": 1768716720000,
+      "title": "Fajr is at 06:17",
+      "body": "In 5 minutes",
+      "sound": "adhan-5",
+      "prayer": "fajr"
+    },
+    {
+      "at": 1768722540000,
+      "title": "Shuruq is at 07:54",
+      "body": "In 5 minutes",
+      "prayer": "shuruq"
+    },
+    {
+      "at": 1768738260000,
+      "title": "Duhr is at 12:16",
+      "body": "In 5 minutes",
+      "sound": "adhan-2",
+      "prayer": "duhr"
+    },
+    {
+      "at": 1768744860000,
+      "title": "Asr is at 14:06",
+      "body": "In 5 minutes",
+      "sound": "adhan-2",
+      "prayer": "asr"
+    },
+    {
+      "at": 1768753440000,
+      "title": "Maghrib is at 16:29",
+      "body": "In 5 minutes",
+      "sound": "adhan-2",
+      "prayer": "maghrib"
+    },
+    {
+      "at": 1768759260000,
+      "title": "Isha is at 18:06",
+      "body": "In 5 minutes",
+      "sound": "adhan-2",
+      "prayer": "isha"
+    },
+    {
+      "at": 1768759560000,
+      "title": "Prayer reminders stop here",
+      "body": "Open the app to keep them coming."
+    }
+  ]
+}

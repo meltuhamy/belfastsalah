@@ -57,7 +57,7 @@ class ReminderAlarmsTest {
         // this side calculates.
         assertEquals(1_774_670_640_000L, payload.reminders.first().at)
         assertEquals("Fajr is at 04:09", payload.reminders.first().title)
-        assertEquals("5 minute reminder", payload.reminders.first().body)
+        assertEquals("In 5 minutes", payload.reminders.first().body)
         // A field short of the shape is not a list to arm.
         assertNull(ReminderPayload.parse(fixtureText("london-spring-2026-03-28.json").replace("\"title\"", "\"name\"")))
     }
@@ -178,6 +178,99 @@ class ReminderAlarmsTest {
     }
 
     @Test
+    fun `reads each reminder's sound, and a missing one as the default`() {
+        val adhan = fixture("london-adhan-2026-01-15.json")
+        fun soundsFor(prayer: String) =
+            adhan.reminders.filter { it.title.startsWith("$prayer is at") }.map { it.sound }.toSet()
+
+        assertEquals(setOf("adhan-5"), soundsFor("Fajr"))
+        assertEquals(setOf("default"), soundsFor("Shuruq"))
+        for (prayer in listOf("Duhr", "Asr", "Maghrib", "Isha")) {
+            assertEquals(setOf("adhan-2"), soundsFor(prayer))
+        }
+        assertEquals("default", adhan.reminders.last().sound)
+        // Written before sounds existed: no field at all.
+        assertTrue(fixture("london-spring-2026-03-28.json").reminders.all { it.sound == "default" })
+        // A sound this version does not ship plays the default.
+        val unknown = fixtureText("london-adhan-2026-01-15.json").replace("\"adhan-5\"", "\"adhan-9\"")
+        assertEquals("default", ReminderPayload.parse(unknown)!!.reminders.first().sound)
+    }
+
+    @Test
+    fun `posts an adhan reminder on its prayer's channel, which plays the adhan's file`() {
+        val payload = stored("london-adhan-2026-01-15.json")
+        val fajr = payload.reminders.first { it.title.startsWith("Fajr") }
+        assertEquals("fajr", fajr.prayer)
+
+        ReminderAlarms.handle(context, fireIntent(fajr), fajr.at)
+
+        val notifications = context.getSystemService(NotificationManager::class.java)
+        val posted = shadowOf(notifications).allNotifications.single()
+        val id = ReminderChannels.current(context, "fajr")!!.id
+        assertEquals(id, posted.channelId)
+        val channel = notifications.getNotificationChannel(id)
+        assertEquals(
+            "android.resource://${context.packageName}/raw/adhan_5",
+            channel.sound.toString()
+        )
+        assertEquals("Fajr", channel.name)
+        assertEquals(NotificationManager.IMPORTANCE_HIGH, channel.importance)
+    }
+
+    @Test
+    fun `posts the prompt, and a reminder from an older list, on the sound's own channel`() {
+        val payload = stored("london-adhan-2026-01-15.json")
+        val prompt = payload.reminders.last()
+        assertNull(prompt.prayer)
+        ReminderAlarms.handle(context, fireIntent(prompt), prompt.at)
+
+        val notifications = context.getSystemService(NotificationManager::class.java)
+        assertEquals("default", shadowOf(notifications).allNotifications.single().channelId)
+        // Written before prayers had channels: no prayer, and no channels.
+        val legacy = ReminderPayload.parse(
+            fixtureText("london-adhan-2026-01-15.json")
+                .replace(Regex(""",\s*"prayer": "\w+""""), "")
+                .replace(Regex(""""channels": \{[^}]*\},"""), "")
+        )!!
+        assertTrue(legacy.reminders.all { it.prayer == null })
+        assertTrue(legacy.channels.isEmpty())
+        val armedBefore = legacy.reminders.first { it.title.startsWith("Fajr") }
+        ReminderStore.write(context, fixtureText("london-adhan-2026-01-15.json")
+            .replace(Regex(""",\s*"prayer": "\w+""""), ""))
+        ReminderAlarms.handle(context, fireIntent(armedBefore), armedBefore.at)
+        val posted = shadowOf(notifications).allNotifications.first {
+            it.extras.getString(Notification.EXTRA_TITLE) == armedBefore.title
+        }
+        assertEquals("adhan-5", posted.channelId)
+    }
+
+    @Test
+    fun `keeps an existing default channel as the user left it`() {
+        val notifications = context.getSystemService(NotificationManager::class.java)
+        val existing = android.app.NotificationChannel(
+            "default",
+            "Default",
+            NotificationManager.IMPORTANCE_HIGH
+        )
+        notifications.createNotificationChannel(existing)
+
+        ReminderSounds.ensureDefaultChannel(context)
+
+        assertEquals(
+            NotificationManager.IMPORTANCE_HIGH,
+            notifications.getNotificationChannel("default").importance
+        )
+    }
+
+    @Test
+    fun `ships a sound file for every adhan`() {
+        for (n in 1..ReminderSounds.ADHAN_COUNT) {
+            val id = context.resources.getIdentifier("adhan_$n", "raw", context.packageName)
+            assertTrue("adhan_$n", id != 0)
+        }
+    }
+
+    @Test
     fun `still arms the window when exact alarms are not allowed`() {
         ShadowAlarmManager.setCanScheduleExactAlarms(false)
         val payload = stored("london-spring-2026-03-28.json")
@@ -217,6 +310,12 @@ class ReminderAlarmsTest {
         )
         alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending)
     }
+
+    private fun fireIntent(entry: ReminderEntry): Intent =
+        Intent(ReminderAlarms.ACTION_FIRE)
+            .putExtra(ReminderAlarms.EXTRA_AT, entry.at)
+            .putExtra(ReminderAlarms.EXTRA_TITLE, entry.title)
+            .putExtra(ReminderAlarms.EXTRA_BODY, entry.body)
 
     private fun stored(name: String): ReminderPayload {
         val text = fixtureText(name)

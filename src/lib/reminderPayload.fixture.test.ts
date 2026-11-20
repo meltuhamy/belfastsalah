@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { buildReminderPayload } from "./reminderPayload";
 import { PrayerLocation } from "./PrayerTimes";
 import { AppSettings, getDefaultSettings } from "./settings";
+import { defaultReminders } from "./prayerReminders";
 
 /**
  * The lists the native re-plan is tested against, written by the real
@@ -34,6 +35,18 @@ const FIXTURES: Record<string, { now: string; settings: Partial<AppSettings> }> 
     "london-autumn-2026-10-24.json": {
       now: "2026-10-24T00:00:00Z",
       settings: { location: PrayerLocation.London },
+    },
+    // Sounds: an adhan for most prayers, another for Fajr, and the default
+    // for sunrise and the prompt, so the Kotlin side reads every case.
+    "london-adhan-2026-01-15.json": {
+      now: "2026-01-15T00:00:00Z",
+      settings: {
+        location: PrayerLocation.London,
+        reminders: {
+          ...defaultReminders(5, "adhan-2", "adhan-5"),
+          shuruq: { on: true, offset: -5, sound: "default" },
+        },
+      },
     },
   };
 

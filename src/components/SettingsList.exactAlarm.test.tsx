@@ -82,7 +82,6 @@ function renderList() {
         timeZoneNoticeSeen: true,
       }}
       onNotifyChange={() => {}}
-      onNotifyMinutesChange={() => {}}
       onLocationChange={() => {}}
       onAsrMethodChange={() => {}}
       onThemeChange={() => {}}

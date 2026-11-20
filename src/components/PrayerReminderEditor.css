@@ -1,0 +1,54 @@
+.reminder-editor__when-body {
+  width: 100%;
+  padding: 8px 0 12px;
+}
+
+.reminder-editor__when-text {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ion-text-color, #000);
+}
+
+.reminder-editor__times {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium, #92949c);
+}
+
+.reminder-editor__when-body ion-range {
+  padding-top: 4px;
+  padding-bottom: 0;
+}
+
+.reminder-editor__scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--ion-color-medium, #92949c);
+}
+
+.reminder-editor__hint-item {
+  --min-height: 0;
+  --padding-bottom: 4px;
+}
+
+.reminder-editor__sound--selected {
+  --background: rgba(var(--ion-color-primary-rgb, 56, 128, 255), 0.08);
+  font-weight: 600;
+}
+
+.reminder-editor__length {
+  font-size: 0.85rem;
+  color: var(--ion-color-medium, #92949c);
+}
+
+/* Square and the height of the row, so it is an easy tap of its own. */
+.reminder-editor__listen {
+  --padding-start: 10px;
+  --padding-end: 10px;
+  margin: 0;
+  margin-inline-start: 4px;
+  min-height: 44px;
+  font-size: 1rem;
+}
