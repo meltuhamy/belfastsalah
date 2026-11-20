@@ -32,7 +32,11 @@ import { reminderTimesLine } from "../lib/reminderTimes";
 import { formatClockTime } from "../lib/timeFormat";
 import { SOUND_SECONDS, ReminderSound, reminderSoundLabels } from "../lib/reminderSound";
 import { previewSound, stopPreview } from "../lib/soundPreview";
-import { showPreviewNotification } from "../lib/notifications";
+import {
+  clearPreviewNotifications,
+  preparePreviewNotifications,
+  showPreviewNotification,
+} from "../lib/notifications";
 import {
   advance,
   anchors,
@@ -49,17 +53,19 @@ const TICK_MS = 100;
 const MIN_HOLD_MS = 2500;
 const PRAYER_HOLD_MS = 1800;
 
-type Banner = { prayer: number; title: string; body: string; sound: ReminderSound };
+/** The reminder whose sound is playing, while the day waits for it. */
+type Sounding = { prayer: number; sound: ReminderSound; id: number };
 
 type Sim = {
   time: number;
   playing: boolean;
   // performance.now() until which the day waits: for a reminder's sound to
   // finish, or for a moment at a prayer time. The page clock is not used for
-  // this, so a test that pins Date still plays.
+  // this, so a test that pins Date still plays. Infinity while a notification
+  // is being posted: the wait for its sound starts once it is up.
   holdUntil: number;
   fired: boolean[];
-  banner: Banner | null;
+  sounding: Sounding | null;
   prayerNow: number | null;
   snapped: number | null;
 };
@@ -119,7 +125,7 @@ const TestRemindersPage: React.FC = () => {
       playing: false,
       holdUntil: 0,
       fired: firedBy(dayStart(times), times, settings.reminders),
-      banner: null,
+      sounding: null,
       prayerNow: null,
       snapped: null,
     };
@@ -127,11 +133,18 @@ const TestRemindersPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timesKey, settings == null]);
 
+  // Whether reminders go out as real notifications: asked for when play is
+  // first pressed, so the permission and Android's channels are ready before
+  // the first reminder rather than delaying it.
+  const native = useRef<Promise<boolean> | null>(null);
+  const soundCount = useRef(0);
+
   useEffect(() => {
     const timer = setInterval(() => tick(), TICK_MS);
     return () => {
       clearInterval(timer);
       stopPreview();
+      void clearPreviewNotifications().catch(() => undefined);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -143,8 +156,8 @@ const TestRemindersPage: React.FC = () => {
     const now = performance.now();
     let changed = false;
     if (now >= s.holdUntil) {
-      if (s.banner !== null) {
-        s.banner = null;
+      if (s.sounding !== null) {
+        endSound(s);
         changed = true;
       }
       if (s.prayerNow !== null) {
@@ -169,12 +182,8 @@ const TestRemindersPage: React.FC = () => {
         const body = reminderBody(r.offset);
         s.time = at;
         s.fired = s.fired.map((f, j) => (j === i ? true : f));
-        s.banner = { prayer: i, title, body, sound: r.sound };
-        s.holdUntil = now + Math.max(SOUND_SECONDS[r.sound] * 1000, MIN_HOLD_MS);
         s.prayerNow = r.offset === 0 ? i : s.prayerNow;
-        void showPreviewNotification(i, title, body, r.sound).then((shown) => {
-          if (!shown) previewSound(r.sound);
-        });
+        void startSound(s, i, title, body, r.sound);
         rerender();
         return;
       }
@@ -193,6 +202,45 @@ const TestRemindersPage: React.FC = () => {
     if (changed) rerender();
   }
 
+  /**
+   * Posts the reminder and holds the day until its sound has played. The
+   * hold is timed from when the notification is up, not from when it was
+   * asked for, so the day does not move on while it is still arriving.
+   */
+  async function startSound(
+    s: Sim,
+    prayer: number,
+    title: string,
+    body: string,
+    sound: ReminderSound
+  ) {
+    const id = ++soundCount.current;
+    s.sounding = { prayer, sound, id };
+    s.holdUntil = Infinity;
+    let posted = false;
+    try {
+      native.current ??= preparePreviewNotifications().catch(() => false);
+      if (await native.current) {
+        await showPreviewNotification(prayer, title, body, sound);
+        posted = true;
+      }
+    } catch {
+      posted = false;
+    }
+    if (s.sounding?.id !== id) return;
+    if (!posted) previewSound(sound);
+    s.holdUntil = performance.now() + Math.max(SOUND_SECONDS[sound] * 1000, MIN_HOLD_MS);
+  }
+
+  /** The sound has played: take its notification out of the notification centre. */
+  function endSound(s: Sim) {
+    if (s.sounding === null) return;
+    const { prayer } = s.sounding;
+    s.sounding = null;
+    stopPreview();
+    void clearPreviewNotifications(prayer).catch(() => undefined);
+  }
+
   if (settings == null || today === null || times === null || sim.current === null) {
     return <FullPageSpinner />;
   }
@@ -208,17 +256,19 @@ const TestRemindersPage: React.FC = () => {
     const st = sim.current!;
     if (st.playing) {
       st.playing = false;
-    } else if (st.time >= dayEnd(times!)) {
+      rerender();
+      return;
+    }
+    native.current ??= preparePreviewNotifications().catch(() => false);
+    if (st.time >= dayEnd(times!)) {
+      endSound(st);
       st.time = dayStart(times!);
       st.fired = firedBy(st.time, times!, reminders);
-      st.playing = true;
       st.holdUntil = 0;
-      st.banner = null;
       st.prayerNow = null;
-    } else {
-      st.playing = true;
-      st.snapped = null;
     }
+    st.playing = true;
+    st.snapped = null;
     rerender();
   }
 
@@ -230,9 +280,8 @@ const TestRemindersPage: React.FC = () => {
     st.snapped = i;
     st.fired = firedBy(time, times!, reminders);
     st.holdUntil = 0;
-    st.banner = null;
     st.prayerNow = null;
-    stopPreview();
+    endSound(st);
     rerender();
   }
 
@@ -282,9 +331,9 @@ const TestRemindersPage: React.FC = () => {
   let status: string;
   if (s.time >= dayEnd(times)) {
     status = "Day finished · press play to restart";
-  } else if (s.banner !== null) {
-    const sound = reminders[PRAYER_KEYS[s.banner.prayer]].sound;
-    status = `${names[s.banner.prayer]} reminder · ${
+  } else if (s.sounding !== null) {
+    const sound = s.sounding.sound;
+    status = `${names[s.sounding.prayer]} reminder · ${
       sound === "silent" ? "silent" : `playing ${reminderSoundLabels[sound]}`
     }`;
   } else if (s.prayerNow !== null) {
@@ -300,7 +349,7 @@ const TestRemindersPage: React.FC = () => {
     status = "No more reminders today";
   }
 
-  const sounding = s.banner !== null;
+  const sounding = s.sounding !== null;
   const sheetKey = sheet === null ? null : PRAYER_KEYS[sheet];
 
   return (
@@ -317,8 +366,8 @@ const TestRemindersPage: React.FC = () => {
         <CenteredMaxWidthContainer>
           <div className="test-day">
             <p className="test-day__intro">
-              Press play to simulate a day of prayer times. Preview
-              notifications will be shown.
+              Press play to simulate a day of prayer times. Each reminder
+              arrives as a real notification, with its sound.
             </p>
 
             <div className="test-day__player">
@@ -444,20 +493,6 @@ const TestRemindersPage: React.FC = () => {
             </div>
           </div>
         </CenteredMaxWidthContainer>
-
-        {s.banner !== null ? (
-          <div slot="fixed" className="test-day__banner" role="status" data-testid="test-day-banner">
-            <img src="assets/icons/icon-72.webp" alt="" className="test-day__banner-icon" />
-            <div className="test-day__banner-text">
-              <div className="test-day__banner-app">
-                <span>PRAYER TIMES</span>
-                <span>now</span>
-              </div>
-              <strong>{s.banner.title}</strong>
-              <span>{s.banner.body}</span>
-            </div>
-          </div>
-        ) : null}
 
         <IonModal
           isOpen={sheet !== null}

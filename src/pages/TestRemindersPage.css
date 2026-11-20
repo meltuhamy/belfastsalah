@@ -6,12 +6,9 @@
   --test-day-line: var(--ion-color-step-200, #d9dee3);
 }
 
-/* Leaves room above the player for the notification banner, which drops in
-   over this text rather than over the clock. */
 .test-day__intro {
   margin: 0;
   padding-top: 18px;
-  min-height: 84px;
   font-size: 0.9rem;
   line-height: 1.45;
   color: var(--test-day-muted);
@@ -273,60 +270,4 @@
 
 .test-day__legend-dot--sent {
   background: var(--test-day-accent);
-}
-
-/* A stand-in for the system's own banner, shown on every platform: Android
-   does not pop reminders up over the app, and the web has none at all. */
-.test-day__banner {
-  position: absolute;
-  top: 8px;
-  left: 10px;
-  right: 10px;
-  max-width: 520px;
-  margin: 0 auto;
-  z-index: 10;
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: var(--ion-color-step-50, #f5f6f8);
-  color: var(--test-day-ink, #1d2329);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
-}
-
-.test-day__banner-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  flex: none;
-}
-
-.test-day__banner-text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 0.9rem;
-}
-
-.test-day__banner-app {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.7rem;
-  color: var(--ion-color-medium, #92949c);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .test-day__banner {
-    animation: test-day-drop 180ms ease-out;
-  }
-}
-
-@keyframes test-day-drop {
-  from {
-    transform: translateY(-12px);
-    opacity: 0;
-  }
 }

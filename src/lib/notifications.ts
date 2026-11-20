@@ -179,19 +179,12 @@ export async function sendTestNotification(
 }
 
 /**
- * Shows one reminder from the test day as a real notification, with that
- * prayer's sound, straight away. Only on a phone: the web has no system
- * notifications, so the test day plays the sound in the page instead.
- *
- * Android posts it on the sound's own channel, which the native side creates
- * here first, since the test day can run before any reminder has been synced.
+ * Gets the test day ready to post: permission, and on Android every sound's
+ * channel. Done when play is pressed, so nothing is left to wait for when the
+ * timeline reaches a reminder. False on the web, or without permission: the
+ * test day then plays the sound in the page instead.
  */
-export async function showPreviewNotification(
-  index: number,
-  title: string,
-  body: string,
-  sound: ReminderSound
-): Promise<boolean> {
+export async function preparePreviewNotifications(): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) {
     return false;
   }
@@ -201,13 +194,32 @@ export async function showPreviewNotification(
   if (Capacitor.getPlatform() === "android") {
     await ensureReminderChannels();
   }
+  return true;
+}
+
+function previewId(index: number): number {
+  return PREVIEW_NOTIFICATION_BASE + index;
+}
+
+/**
+ * Posts one reminder from the test day as a real notification, with that
+ * prayer's sound. Posted now rather than scheduled: a schedule, even a
+ * quarter of a second out, goes through the alarm manager on Android and can
+ * arrive well after the timeline has stopped for it. Android posts it on the
+ * sound's own channel (see preparePreviewNotifications).
+ */
+export async function showPreviewNotification(
+  index: number,
+  title: string,
+  body: string,
+  sound: ReminderSound
+): Promise<void> {
   await LocalNotifications.schedule({
     notifications: [
       {
-        id: PREVIEW_NOTIFICATION_BASE + index,
+        id: previewId(index),
         title,
         body,
-        schedule: { at: new Date(Date.now() + 250), allowWhileIdle: true },
         sound: iosSoundName(sound),
         channelId: androidChannelId(sound),
         actionTypeId: "",
@@ -215,5 +227,25 @@ export async function showPreviewNotification(
       },
     ],
   });
-  return true;
+}
+
+/**
+ * Takes test-day notifications out of the notification centre once their
+ * sound has played, so a test leaves nothing behind. All six when no index
+ * is given.
+ */
+export async function clearPreviewNotifications(index?: number): Promise<void> {
+  if (!Capacitor.isNativePlatform()) {
+    return;
+  }
+  const indexes = index === undefined ? [0, 1, 2, 3, 4, 5] : [index];
+  await LocalNotifications.removeDeliveredNotifications({
+    notifications: indexes.map((i) => ({
+      id: previewId(i),
+      title: "",
+      body: "",
+      actionTypeId: "",
+      extra: null,
+    })),
+  });
 }

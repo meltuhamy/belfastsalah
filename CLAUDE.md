@@ -366,7 +366,13 @@ and there is the test day (`/settings/notifications/test`).
   minutes before it so all its reminders are still ahead. At a reminder it
   posts a real notification (`showPreviewNotification`; on the web it plays
   the sound in the page instead) and waits `SOUND_SECONDS` for the sound to
-  end, since the app cannot hear when it does. It times itself with
+  end, since the app cannot hear when it does. There is no in-app stand-in
+  for the notification. The notification is posted at once, not scheduled
+  (a schedule goes through Android's alarm manager and arrived after the
+  day had stopped), permission and channels are readied when play is
+  pressed (`preparePreviewNotifications`), and the wait is timed from when
+  the post completes. Each one is removed from the notification centre when
+  its wait ends, and all of them on leaving the screen. It times itself with
   `performance.now()`, so e2e specs that pin `Date` still play.
 
 ### Reminder sounds
