@@ -214,7 +214,7 @@ class ReminderAlarmsTest {
             channel.sound.toString()
         )
         assertEquals("Fajr", channel.name)
-        assertEquals(NotificationManager.IMPORTANCE_DEFAULT, channel.importance)
+        assertEquals(NotificationManager.IMPORTANCE_HIGH, channel.importance)
     }
 
     @Test

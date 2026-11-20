@@ -39,17 +39,19 @@ class ReminderChannelsTest {
     }
 
     @Test
-    fun `a new install gets sound and no pop-up, named after each prayer`() {
+    fun `a new install gets a banner with sound, named after each prayer`() {
         val ids = ReminderChannels.ensure(context, everyDefault + ("isha" to "silent"))
 
         assertEquals(ReminderChannels.PRAYERS.toSet(), ids.keys)
         assertEquals(6, ids.values.toSet().size)
         val fajr = channelOf("fajr")
         assertEquals("Fajr", fajr.name)
-        assertEquals(NotificationManager.IMPORTANCE_DEFAULT, fajr.importance)
+        assertEquals(NotificationManager.IMPORTANCE_HIGH, fajr.importance)
+        // Silent still pops up; it only makes no sound.
         val isha = channelOf("isha")
-        assertEquals(NotificationManager.IMPORTANCE_LOW, isha.importance)
+        assertEquals(NotificationManager.IMPORTANCE_HIGH, isha.importance)
         assertNull(isha.sound)
+        assertFalse(isha.shouldVibrate())
     }
 
     @Test
@@ -72,6 +74,32 @@ class ReminderChannelsTest {
             "android.resource://${context.packageName}/raw/adhan_2",
             maghrib.sound.toString()
         )
+    }
+
+    @Test
+    fun `an upgrade raises a channel still at the app's old level to a banner`() {
+        legacy("default", NotificationManager.IMPORTANCE_DEFAULT)
+        legacy("silent", NotificationManager.IMPORTANCE_LOW)
+        // Turned down by the user: below what the app ever gave it.
+        legacy("adhan-1", NotificationManager.IMPORTANCE_MIN)
+
+        ReminderChannels.ensure(
+            context,
+            everyDefault + ("isha" to "silent") + ("asr" to "adhan-1")
+        )
+
+        assertEquals(NotificationManager.IMPORTANCE_HIGH, channelOf("fajr").importance)
+        assertEquals(NotificationManager.IMPORTANCE_HIGH, channelOf("isha").importance)
+        assertEquals(NotificationManager.IMPORTANCE_MIN, channelOf("asr").importance)
+    }
+
+    @Test
+    fun `an upgrade keeps a channel the user turned off`() {
+        legacy("default", NotificationManager.IMPORTANCE_NONE)
+
+        ReminderChannels.ensure(context, everyDefault)
+
+        assertEquals(NotificationManager.IMPORTANCE_NONE, channelOf("fajr").importance)
     }
 
     @Test
@@ -120,14 +148,32 @@ class ReminderChannelsTest {
 
     @Test
     fun `a sound after silent is heard, and silent does not vibrate`() {
+        // The old silent channel, turned down to low by hand after the upgrade.
+        legacy("silent", NotificationManager.IMPORTANCE_MIN)
         ReminderChannels.ensure(context, everyDefault + ("asr" to "silent"))
         assertFalse(channelOf("asr").shouldVibrate())
 
         ReminderChannels.ensure(context, everyDefault + ("asr" to "adhan-1"))
 
         val asr = channelOf("asr")
-        assertEquals(NotificationManager.IMPORTANCE_DEFAULT, asr.importance)
         assertTrue(asr.shouldVibrate())
+        assertNotNull(asr.sound)
+    }
+
+    @Test
+    fun `a low silent prayer that gets a sound becomes a banner, so it is heard`() {
+        legacy("silent", NotificationManager.IMPORTANCE_DEFAULT)
+        ReminderChannels.ensure(context, everyDefault + ("asr" to "silent"))
+        // The user lowers it in Android's settings: low plays nothing.
+        val id = ReminderChannels.current(context, "asr")!!.id
+        notifications.deleteNotificationChannel(id)
+        notifications.createNotificationChannel(
+            NotificationChannel(id, "Asr", NotificationManager.IMPORTANCE_LOW)
+        )
+
+        ReminderChannels.ensure(context, everyDefault + ("asr" to "adhan-1"))
+
+        assertEquals(NotificationManager.IMPORTANCE_HIGH, channelOf("asr").importance)
     }
 
     @Test
@@ -144,7 +190,7 @@ class ReminderChannelsTest {
     fun `reads back the importance the user has`() {
         ReminderChannels.ensure(context, everyDefault)
         assertEquals(
-            NotificationManager.IMPORTANCE_DEFAULT,
+            NotificationManager.IMPORTANCE_HIGH,
             ReminderChannels.importance(context, "shuruq")
         )
     }

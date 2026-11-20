@@ -407,12 +407,15 @@ and there is the test day (`/settings/notifications/test`).
   sound changes gets a new channel under a fresh id (`prayer-<key>-<n>`),
   created with the old one's settings, and the old one is deleted; which id
   is current, and its sound, is in the `reminder_channels` SharedPreferences.
-  - **Defaults stay as they were.** The first time, each prayer's channel is
-    copied from the per-sound channel it used before (`default`, `silent`,
-    `adhan-N`), so an upgrade changes nothing, and a new install gets sound
-    without a pop-up. Then the per-sound channels are deleted, except
-    `default`, which carries the "reminders stop here" prompt, the hidden
-    test notification, and any reminder armed by an older version.
+  - **Reminders are banners by default** (`DEFAULT_IMPORTANCE`, high). A new
+    install starts there. The first time on an upgrade, each prayer's channel
+    is copied from the per-sound channel it used before (`default`, `silent`,
+    `adhan-N`); one still at the level the app gave it (default, or low for
+    silent) is raised to a banner, and anything the user set themselves is
+    kept. Android cannot say which a level is, so the old default counts as
+    unchosen. Then the per-sound channels are deleted, except `default`,
+    which carries the "reminders stop here" prompt, the hidden test
+    notification, and any reminder armed by an older version.
   - The payload carries `prayer` on each entry and `channels` (every
     prayer's sound, including ones that are off). `sound` is still there,
     only when not the default, for Android 7, which has no channels.

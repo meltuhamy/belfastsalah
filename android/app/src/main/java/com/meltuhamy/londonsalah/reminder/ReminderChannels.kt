@@ -14,12 +14,15 @@ import android.os.Build
  * old one's importance, vibration, lights, badge and lock screen settings,
  * and the old one is deleted. The user only ever sees one channel per prayer.
  *
- * The first time, each prayer's channel is copied from the channel it used
- * before: the one for its sound ([ReminderSounds]). So an upgrade changes
- * nothing about how reminders appear, and a new install gets what reminders
- * have always had - sound, no pop-up. The old per-sound channels are then
- * deleted, all but "default", which still carries every notification that is
- * not a prayer's.
+ * Reminders pop up as banners unless the user says otherwise. A new install
+ * starts every prayer at high importance. The first time on an upgrade, each
+ * prayer's channel is copied from the channel it used before - the one for
+ * its sound ([ReminderSounds]) - and if that channel was still at the level
+ * the app used to give it (sound with no pop-up, or low for silent), it is
+ * raised to a banner too; a level the user chose themselves is kept. Android
+ * does not say which a level is, so the old default counts as unchosen. The
+ * old per-sound channels are then deleted, all but "default", which still
+ * carries every notification that is not a prayer's.
  *
  * Which channel is current, and the sound it was made with, is kept in
  * SharedPreferences: the channel itself cannot say which in-app sound it was.
@@ -31,6 +34,9 @@ object ReminderChannels {
     private const val GENERATION = "generation"
 
     data class Current(val id: String, val sound: String)
+
+    /** Where a prayer's reminders start: a banner, with its sound. */
+    const val DEFAULT_IMPORTANCE = NotificationManager.IMPORTANCE_HIGH
 
     fun isPrayer(key: String?): Boolean = key != null && key in PRAYERS
 
@@ -81,7 +87,10 @@ object ReminderChannels {
 
         val id = "prayer-$prayer-${nextGeneration(context)}"
         notifications.createNotificationChannel(
-            buildChannel(context, id, prayer, wanted, template, templateSound)
+            buildChannel(
+                context, id, prayer, wanted, template, templateSound,
+                fromLegacy = existing == null
+            )
         )
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString("$prayer.id", id)
@@ -106,21 +115,20 @@ object ReminderChannels {
         prayer: String,
         sound: String,
         template: NotificationChannel?,
-        templateSound: String
+        templateSound: String,
+        fromLegacy: Boolean
     ): NotificationChannel {
         val importance = when {
-            template == null ->
-                if (sound == ReminderSounds.SILENT) {
-                    NotificationManager.IMPORTANCE_LOW
-                } else {
-                    NotificationManager.IMPORTANCE_DEFAULT
-                }
-            // The silent channel was made low, which plays no sound at all.
-            // Choosing a sound again has to be heard.
+            template == null -> DEFAULT_IMPORTANCE
+            // Still where the app itself put the old per-sound channel.
+            fromLegacy && template.importance == legacyDefaultImportance(templateSound) ->
+                DEFAULT_IMPORTANCE
+            // A low channel plays no sound at all. Choosing a sound after
+            // silence has to be heard.
             templateSound == ReminderSounds.SILENT &&
                 sound != ReminderSounds.SILENT &&
                 template.importance == NotificationManager.IMPORTANCE_LOW ->
-                NotificationManager.IMPORTANCE_DEFAULT
+                DEFAULT_IMPORTANCE
             else -> template.importance
         }
         val channel = NotificationChannel(id, displayName(prayer), importance)
@@ -153,6 +161,14 @@ object ReminderChannels {
         )
         return channel
     }
+
+    /** The level the app gave each per-sound channel before prayers had their own. */
+    private fun legacyDefaultImportance(sound: String): Int =
+        if (sound == ReminderSounds.SILENT) {
+            NotificationManager.IMPORTANCE_LOW
+        } else {
+            NotificationManager.IMPORTANCE_DEFAULT
+        }
 
     /** The per-sound channels, once every prayer has its own. "default" stays. */
     private fun deleteLegacyChannels(context: Context) {
