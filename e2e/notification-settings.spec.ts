@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { completeSetup, openSettings } from "./support/app";
 
 // The reminder row carries a hidden diagnostic: long-pressing the timer icon
 // schedules a notification a few seconds out, so the whole path can be checked
@@ -8,13 +9,13 @@ import { test, expect, type Page } from "@playwright/test";
 test.use({ permissions: ["notifications"] });
 
 async function enableReminders(page: Page) {
-  await page.goto("/");
-  await page.waitForSelector("[data-testid=location-select]");
+  await completeSetup(page);
+  await openSettings(page);
   await page
     .locator("ion-toggle")
-    .filter({ hasText: "Notify before prayer" })
+    .filter({ hasText: "Prayer Notifications" })
     .click();
-  await expect(page.locator(".settings-list__range-label")).toBeVisible();
+  await expect(page.getByTestId("notification-settings-row")).toBeVisible();
 }
 
 // Matched by test id rather than message: whether the browser actually grants
@@ -25,11 +26,14 @@ async function enableReminders(page: Page) {
 const testToast = (page: Page) =>
   page.getByTestId("test-notification-toast");
 
-test("reads the reminder offset in full-size text", async ({ page }) => {
+test("offers Notification Settings, with the adhan icon, once reminders are on", async ({
+  page,
+}) => {
   await enableReminders(page);
-  await expect(page.locator(".settings-list__range-label")).toHaveText(
-    "Notify 5 minutes before prayer"
-  );
+  const row = page.getByTestId("notification-settings-row");
+  await expect(row).toContainText("Notification Settings");
+  await expect(row).toContainText("When and how each prayer reminds you");
+  await expect(row.getByTestId("adhan-icon")).toBeVisible();
 });
 
 test("lines the reminder row up with the rest of the list", async ({
@@ -46,13 +50,24 @@ test("lines the reminder row up with the rest of the list", async ({
   const rowIcons = boxes.filter((b) => b !== null && b.x < 100);
   for (const box of rowIcons) {
     expect(box!.width).toBe(24);
-    expect(box!.x).toBe(32);
+    expect(box!.x).toBe(rowIcons[0]!.x);
   }
 
-  const label = await page.locator(".settings-list__range-label").boundingBox();
+  // The adhan icon is an SVG of our own, so it gets the same check.
+  const adhan = await page
+    .getByTestId("notification-settings-row")
+    .getByTestId("adhan-icon")
+    .boundingBox();
+  expect(adhan!.width).toBe(24);
+  expect(adhan!.x).toBe(rowIcons[0]!.x);
+
+  const label = await page
+    .getByTestId("notification-settings-row")
+    .locator("h2")
+    .boundingBox();
   const toggle = await page
     .locator("ion-toggle")
-    .filter({ hasText: "Notify before prayer" })
+    .filter({ hasText: "Prayer Notifications" })
     .boundingBox();
   expect(label!.x).toBe(toggle!.x);
 });

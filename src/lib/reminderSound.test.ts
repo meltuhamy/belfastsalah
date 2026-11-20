@@ -1,6 +1,5 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { Prayer } from "./PrayerTimes";
 import {
   androidChannelId,
   iosSoundName,
@@ -9,9 +8,8 @@ import {
   previewUrl,
   REMINDER_SOUNDS,
   reminderSoundLabels,
-  soundForPrayer,
+  SOUND_SECONDS,
 } from "./reminderSound";
-import { getDefaultSettings, migrateSettings } from "./settings";
 
 describe("reminder sounds", () => {
   it("Should show the adhans by number only", () => {
@@ -26,54 +24,11 @@ describe("reminder sounds", () => {
     ]);
   });
 
-  it("Should give a new install the default sound, with Fajr following it", () => {
-    const settings = getDefaultSettings();
-    expect(settings.notifySound).toBe("default");
-    expect(settings.fajrSound).toBe("same");
-  });
-
-  it("Should read settings saved before sounds existed as the default sound", () => {
-    const settings = migrateSettings({ notify: true, notifyMinutes: 10 });
-    expect(settings.notifySound).toBe("default");
-    expect(settings.fajrSound).toBe("same");
-  });
-
-  it("Should drop a sound this version does not ship", () => {
-    const settings = migrateSettings({ notifySound: "adhan-9", fajrSound: 3 });
-    expect(settings.notifySound).toBe("default");
-    expect(settings.fajrSound).toBe("same");
-  });
-
-  it("Should keep a sound that was chosen", () => {
-    const settings = migrateSettings({
-      notifySound: "adhan-2",
-      fajrSound: "silent",
-    });
-    expect(settings.notifySound).toBe("adhan-2");
-    expect(settings.fajrSound).toBe("silent");
-  });
-
-  it("Should give Fajr its own sound only when one is set", () => {
-    const same = { notifySound: "adhan-1", fajrSound: "same" } as const;
-    const own = { notifySound: "adhan-1", fajrSound: "adhan-5" } as const;
-    expect(soundForPrayer(Prayer.Fajr, same)).toBe("adhan-1");
-    expect(soundForPrayer(Prayer.Fajr, own)).toBe("adhan-5");
-    expect(soundForPrayer(Prayer.Isha, own)).toBe("adhan-1");
-  });
-
-  it("Should not play an adhan at sunrise", () => {
-    expect(
-      soundForPrayer(Prayer.Shuruq, { notifySound: "adhan-3", fajrSound: "same" })
-    ).toBe("default");
-    expect(
-      soundForPrayer(Prayer.Shuruq, { notifySound: "silent", fajrSound: "same" })
-    ).toBe("silent");
-  });
-
-  it("Should use the default sound for the prompt at the end of the list", () => {
-    expect(
-      soundForPrayer(null, { notifySound: "silent", fajrSound: "adhan-1" })
-    ).toBe("default");
+  it("Should know how long each sound plays, within iOS's 30 second limit", () => {
+    for (const sound of REMINDER_SOUNDS) {
+      expect(SOUND_SECONDS[sound]).toBeGreaterThan(0);
+      expect(SOUND_SECONDS[sound]).toBeLessThanOrEqual(30);
+    }
   });
 
   it("Should name a bundled file on iOS, and none for silence", () => {

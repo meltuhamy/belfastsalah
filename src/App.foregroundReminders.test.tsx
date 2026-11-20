@@ -6,6 +6,7 @@ import App from "./App";
 import { AppContextProvider } from "./State";
 import { AsrMethod, PrayerLocation } from "./lib/PrayerTimes";
 import type { AppSettings } from "./lib/settings";
+import { defaultReminders } from "./lib/prayerReminders";
 
 // The home and setup screens are not what this is about, and Ionic's shadow
 // DOM makes them a poor thing to render just to reach App's effect.
@@ -19,9 +20,12 @@ const harness = vi.hoisted(() => {
   const settings: { current: AppSettings } = {
     current: {
       notify: true,
-      notifyMinutes: 5,
-      notifySound: "default",
-      fajrSound: "same",
+      reminders: Object.fromEntries(
+        ["fajr", "shuruq", "duhr", "asr", "maghrib", "isha"].map((key) => [
+          key,
+          { on: true, offset: -5, sound: "default" },
+        ])
+      ) as AppSettings["reminders"],
       asrMethod: "shafi" as AppSettings["asrMethod"],
       theme: "system",
       timeFormat: "24",
@@ -91,9 +95,7 @@ const fixedNow = new Date("2026-11-16T10:00:00Z");
 function enabledSettings(): AppSettings {
   return {
     notify: true,
-    notifyMinutes: 5,
-    notifySound: "default",
-    fajrSound: "same",
+    reminders: defaultReminders(),
     asrMethod: AsrMethod.Shafi,
     theme: "system",
     timeFormat: "24",
@@ -188,8 +190,10 @@ describe("reminder scheduling when the app returns to the foreground", () => {
   it("Should give each prayer its sound, with Fajr's own and none at sunrise", async () => {
     harness.settings.current = {
       ...enabledSettings(),
-      notifySound: "adhan-2",
-      fajrSound: "adhan-4",
+      reminders: {
+        ...defaultReminders(5, "adhan-2", "adhan-4"),
+        shuruq: { on: true, offset: -5, sound: "default" },
+      },
     };
     renderApp();
 
@@ -215,7 +219,7 @@ describe("reminder scheduling when the app returns to the foreground", () => {
   });
 
   it("Should schedule silent reminders without a sound", async () => {
-    harness.settings.current = { ...enabledSettings(), notifySound: "silent" };
+    harness.settings.current = { ...enabledSettings(), reminders: defaultReminders(5, "silent") };
     renderApp();
 
     await waitFor(() => {
@@ -231,7 +235,7 @@ describe("reminder scheduling when the app returns to the foreground", () => {
   });
 
   it("Should still schedule one reminder per prayer at the longest lead", async () => {
-    harness.settings.current = { ...enabledSettings(), notifyMinutes: 20 };
+    harness.settings.current = { ...enabledSettings(), reminders: defaultReminders(20) };
     renderApp();
 
     await waitFor(() => {
@@ -244,7 +248,7 @@ describe("reminder scheduling when the app returns to the foreground", () => {
     }>;
     expect(scheduled).toHaveLength(64);
     expect(scheduled.slice(0, 63).map((item) => item.body)).toEqual(
-      Array(63).fill("20 minute reminder")
+      Array(63).fill("In 20 minutes")
     );
     expect(scheduled[0].schedule.at).toEqual(new Date("2026-11-16T11:30:00Z"));
     expect(scheduled[63].body).toEqual("Open the app to keep them coming.");
@@ -413,7 +417,7 @@ describe("reminder scheduling when the app returns to the foreground", () => {
 
     // The user moves the reminder to ten minutes, then the app is
     // foregrounded, both while the mount run is still going.
-    harness.settings.current = { ...enabledSettings(), notifyMinutes: 10 };
+    harness.settings.current = { ...enabledSettings(), reminders: defaultReminders(10) };
     view.rerender(
       <AppContextProvider>
         <App />
@@ -434,7 +438,7 @@ describe("reminder scheduling when the app returns to the foreground", () => {
       harness.clearAndSetNotifications.mock.calls[1];
     expect(silent).toBe(false);
     expect((notifications as Array<{ body: string }>)[0].body).toEqual(
-      "10 minute reminder"
+      "In 10 minutes"
     );
 
     await act(async () => {

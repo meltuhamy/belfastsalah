@@ -57,7 +57,7 @@ class ReminderAlarmsTest {
         // this side calculates.
         assertEquals(1_774_670_640_000L, payload.reminders.first().at)
         assertEquals("Fajr is at 04:09", payload.reminders.first().title)
-        assertEquals("5 minute reminder", payload.reminders.first().body)
+        assertEquals("In 5 minutes", payload.reminders.first().body)
         // A field short of the shape is not a list to arm.
         assertNull(ReminderPayload.parse(fixtureText("london-spring-2026-03-28.json").replace("\"title\"", "\"name\"")))
     }

@@ -3,6 +3,8 @@ import {
   LocalNotificationSchema,
 } from "@capacitor/local-notifications";
 import { addSeconds } from "date-fns";
+import { Capacitor } from "@capacitor/core";
+import { ensureReminderChannels } from "./nativeReminders";
 import {
   androidChannelId,
   iosSoundName,
@@ -13,6 +15,10 @@ import {
 // platform limit in reminderSchedule), so firing a test never disturbs one,
 // and clearAndSetNotifications leaves this id out of what it cancels.
 const TEST_NOTIFICATION_ID = 9999;
+// The test day's notifications, one id per prayer. Like the test notification,
+// they sit above the reminders' ids and are left alone by a reschedule.
+const PREVIEW_NOTIFICATION_BASE = 9900;
+const isDiagnostic = (id: number) => id >= PREVIEW_NOTIFICATION_BASE;
 export const TEST_NOTIFICATION_DELAY_SECONDS = 5;
 
 const updateCallbacks: Array<
@@ -56,7 +62,7 @@ export async function clearAndSetNotifications(
   // or Android resuming it as the permission dialog closes - runs this.
   const pendingReminders = (
     await LocalNotifications.getPending()
-  ).notifications.filter(({ id }) => id !== TEST_NOTIFICATION_ID);
+  ).notifications.filter(({ id }) => !isDiagnostic(id));
 
   if (pendingReminders.length > 0) {
     await LocalNotifications.cancel({ notifications: pendingReminders });
@@ -170,4 +176,44 @@ export async function sendTestNotification(
   });
 
   return "scheduled";
+}
+
+/**
+ * Shows one reminder from the test day as a real notification, with that
+ * prayer's sound, straight away. Only on a phone: the web has no system
+ * notifications, so the test day plays the sound in the page instead.
+ *
+ * Android posts it on the sound's own channel, which the native side creates
+ * here first, since the test day can run before any reminder has been synced.
+ */
+export async function showPreviewNotification(
+  index: number,
+  title: string,
+  body: string,
+  sound: ReminderSound
+): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) {
+    return false;
+  }
+  if (!(await ensureNotificationPermission())) {
+    return false;
+  }
+  if (Capacitor.getPlatform() === "android") {
+    await ensureReminderChannels();
+  }
+  await LocalNotifications.schedule({
+    notifications: [
+      {
+        id: PREVIEW_NOTIFICATION_BASE + index,
+        title,
+        body,
+        schedule: { at: new Date(Date.now() + 250), allowWhileIdle: true },
+        sound: iosSoundName(sound),
+        channelId: androidChannelId(sound),
+        actionTypeId: "",
+        extra: null,
+      },
+    ],
+  });
+  return true;
 }

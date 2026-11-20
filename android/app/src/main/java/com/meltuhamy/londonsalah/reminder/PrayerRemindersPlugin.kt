@@ -33,4 +33,15 @@ class PrayerRemindersPlugin : Plugin() {
         ReminderAlarms.replan(appContext, System.currentTimeMillis())
         call.resolve()
     }
+
+    /**
+     * Creates every sound's channel without touching the reminder list. The
+     * test day posts its notifications through the local-notifications plugin
+     * onto these channels, and may run before any sync has created them.
+     */
+    @PluginMethod
+    fun ensureChannels(call: PluginCall) {
+        ReminderSounds.ensureChannels(context.applicationContext)
+        call.resolve()
+    }
 }

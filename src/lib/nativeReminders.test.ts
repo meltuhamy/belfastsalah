@@ -1,5 +1,6 @@
 import { AsrMethod, PrayerLocation } from "./PrayerTimes";
 import { AppSettings, getDefaultSettings } from "./settings";
+import { defaultReminders } from "./prayerReminders";
 
 const harness = vi.hoisted(() => ({
   sync: vi.fn(async (_options: { payload: string }) => {}),
@@ -30,7 +31,6 @@ function settings(overrides: Partial<AppSettings> = {}): AppSettings {
     ...getDefaultSettings(),
     location: PrayerLocation.London,
     notify: true,
-    notifyMinutes: 5,
     asrMethod: AsrMethod.Shafi,
     ...overrides,
   };
@@ -60,7 +60,7 @@ describe("syncAndroidReminders", () => {
           {
             at: Date.parse("2026-11-16T11:45:00Z"),
             title: `Duhr is at 11:50`,
-            body: `${current.notifyMinutes} minute reminder`,
+            body: `In ${-current.reminders.duhr.offset} minutes`,
           },
         ],
       })
@@ -86,11 +86,11 @@ describe("syncAndroidReminders", () => {
     const now = new Date("2026-11-16T10:00:00Z");
 
     await syncAndroidReminders(settings(), now, true);
-    await syncAndroidReminders(settings({ notifyMinutes: 10 }), now, true);
+    await syncAndroidReminders(settings({ reminders: defaultReminders(10) }), now, true);
 
     expect(harness.sync).toHaveBeenCalledTimes(2);
     expect(JSON.parse(harness.sync.mock.calls[1][0].payload).reminders[0].body).toEqual(
-      "10 minute reminder"
+      "In 10 minutes"
     );
   });
 

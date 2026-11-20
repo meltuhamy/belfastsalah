@@ -22,9 +22,16 @@ async function openReminderSlider(page: Page) {
   await page.locator("ion-button[router-link='/settings']").click();
   await page
     .locator("ion-toggle")
-    .filter({ hasText: "Notify before prayer" })
+    .filter({ hasText: "Prayer Notifications" })
     .click();
-  await expect(page.locator(".settings-list__range-label")).toBeVisible();
+  await page.getByTestId("notification-settings-row").click();
+  await page.getByTestId("reminder-row-fajr").click();
+  await expect(page.getByTestId("reminder-when")).toBeVisible();
+  // The screen slides in. A drag started mid-transition aims at a knob that
+  // is still moving, so wait for it to come to rest.
+  // A position compared twice can match before the slide has started, so
+  // the wait is a plain one, comfortably longer than Ionic's 500ms transition.
+  await page.waitForTimeout(800);
 }
 
 const rangeValue = (page: Page) =>
@@ -104,8 +111,8 @@ test("keeps the knob under the finger while dragging", async ({ page }) => {
 
 test("tracks the drag in the label, not just on release", async ({ page }) => {
   await openReminderSlider(page);
-  const label = page.locator(".settings-list__range-label");
-  await expect(label).toHaveText("Notify 5 minutes before prayer");
+  const label = page.getByTestId("reminder-when");
+  await expect(label).toHaveText("5 minutes before Fajr");
 
   const readings: Array<string> = [];
   await dragRightAndSample(page, 6, async () => {
@@ -123,11 +130,11 @@ test("commits the value it finished on", async ({ page }) => {
   await dragRightAndSample(page, 6);
 
   const settled = await rangeValue(page);
-  expect(settled).toBeGreaterThan(5);
+  expect(settled).toBeGreaterThan(-5);
 
   // Survives a reload, so it reached storage rather than only the knob.
   await page.waitForTimeout(700);
   await page.reload();
-  await expect(page.locator(".settings-list__range-label")).toBeVisible();
+  await expect(page.getByTestId("reminder-when")).toBeVisible();
   await expect.poll(() => rangeValue(page)).toBe(settled);
 });

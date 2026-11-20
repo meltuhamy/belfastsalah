@@ -46,7 +46,7 @@ test("shows location above notifications", async ({ page }) => {
     .filter({ has: page.locator("[data-testid=location-select]") });
   const notifyRow = page
     .locator("ion-item")
-    .filter({ hasText: "Notify before prayer" });
+    .filter({ hasText: "Prayer Notifications" });
 
   const locationBox = await locationRow.boundingBox();
   const notifyBox = await notifyRow.boundingBox();

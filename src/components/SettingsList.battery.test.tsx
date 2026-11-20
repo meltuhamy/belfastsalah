@@ -79,9 +79,6 @@ function renderList() {
         timeZoneNoticeSeen: true,
       }}
       onNotifyChange={() => {}}
-      onNotifyMinutesChange={() => {}}
-      onNotifySoundChange={() => {}}
-      onFajrSoundChange={() => {}}
       onLocationChange={() => {}}
       onAsrMethodChange={() => {}}
       onThemeChange={() => {}}

@@ -93,8 +93,8 @@ test("reminders", async ({ page }) => {
   await pinDate(page, WHEN);
   await completeSetup(page);
   await openSettings(page);
-  await toggle(page, "Notify before prayer");
-  await expect(page.locator(".settings-list__range-label")).toBeVisible();
+  await toggle(page, "Prayer Notifications");
+  await expect(page.getByTestId("notification-settings-row")).toBeVisible();
   await settle(page);
   await page.screenshot({ path: `${OUT}/4-reminders.png` });
 });

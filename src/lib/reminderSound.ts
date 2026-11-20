@@ -1,5 +1,3 @@
-import { Prayer } from "./PrayerTimes";
-
 /**
  * The sound a prayer reminder makes.
  *
@@ -23,7 +21,7 @@ export const REMINDER_SOUNDS = [
 
 export type ReminderSound = (typeof REMINDER_SOUNDS)[number];
 
-/** Fajr either follows the other prayers or has a sound of its own. */
+/** Fajr's own sound in the first version of this setting, kept to read old settings. */
 export type FajrSound = ReminderSound | "same";
 
 export const reminderSoundLabels: Record<ReminderSound, string> = {
@@ -42,28 +40,6 @@ export function isReminderSound(value: unknown): value is ReminderSound {
 
 export function isFajrSound(value: unknown): value is FajrSound {
   return value === "same" || isReminderSound(value);
-}
-
-/**
- * The sound for one reminder. `null` is the "reminders stop here" prompt,
- * which is not a prayer and always uses the default sound. Sunrise never
- * plays an adhan.
- */
-export function soundForPrayer(
-  prayer: Prayer | null,
-  settings: { notifySound: ReminderSound; fajrSound: FajrSound }
-): ReminderSound {
-  if (prayer === null) {
-    return "default";
-  }
-  if (prayer === Prayer.Fajr && settings.fajrSound !== "same") {
-    return settings.fajrSound;
-  }
-  // No adhan is called at sunrise, so its reminder keeps the plain sound.
-  if (prayer === Prayer.Shuruq && settings.notifySound.startsWith("adhan-")) {
-    return "default";
-  }
-  return settings.notifySound;
 }
 
 /**
@@ -99,3 +75,19 @@ export function androidChannelId(sound: ReminderSound): string {
 export function previewUrl(sound: ReminderSound): string | null {
   return sound.startsWith("adhan-") ? `sounds/${sound}.mp3` : null;
 }
+
+/**
+ * How long each sound plays, in seconds: the adhans are the bundled clips'
+ * lengths. The test day waits this long at a reminder, since the app cannot
+ * hear when a notification's sound ends. The system sound and silence get a
+ * short pause, long enough to see the notification.
+ */
+export const SOUND_SECONDS: Record<ReminderSound, number> = {
+  default: 2.5,
+  silent: 2.5,
+  "adhan-1": 11.1,
+  "adhan-2": 7.2,
+  "adhan-3": 12.8,
+  "adhan-4": 19.5,
+  "adhan-5": 4.9,
+};

@@ -10,6 +10,8 @@ import {
 type PrayerRemindersPlugin = {
   /** Replaces the stored list. An empty payload clears it and the alarms. */
   sync(options: { payload: string }): Promise<void>;
+  /** Creates every sound's notification channel, and nothing else. */
+  ensureChannels(): Promise<void>;
 };
 
 const PrayerReminders = registerPlugin<PrayerRemindersPlugin>("PrayerReminders");
@@ -17,9 +19,7 @@ const PrayerReminders = registerPlugin<PrayerRemindersPlugin>("PrayerReminders")
 type ReminderSettings = Pick<
   AppSettings,
   | "notify"
-  | "notifyMinutes"
-  | "notifySound"
-  | "fajrSound"
+  | "reminders"
   | "location"
   | "asrMethod"
   | "showTimesInDeviceZone"
@@ -83,4 +83,12 @@ export async function syncAndroidReminders(
   }
 
   await write(JSON.stringify(payload), JSON.stringify(payload.reminders), true);
+}
+
+/** Android only: makes sure every reminder sound's channel exists. */
+export async function ensureReminderChannels(): Promise<void> {
+  if (Capacitor.getPlatform() !== "android") {
+    return;
+  }
+  await PrayerReminders.ensureChannels();
 }

@@ -18,7 +18,7 @@ describe("migrateSettings", () => {
   it("Should keep what an upgrading user already chose", () => {
     const migrated = migrateSettings(legacyStored());
     expect(migrated.notify).toBe(true);
-    expect(migrated.notifyMinutes).toEqual(10);
+    expect(migrated.reminders.fajr.offset).toEqual(-10);
     expect(migrated.asrMethod).toEqual(AsrMethod.Hanafi);
     expect(migrated.location).toEqual(PrayerLocation.Belfast);
   });

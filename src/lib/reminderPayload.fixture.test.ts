@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { buildReminderPayload } from "./reminderPayload";
 import { PrayerLocation } from "./PrayerTimes";
 import { AppSettings, getDefaultSettings } from "./settings";
+import { defaultReminders } from "./prayerReminders";
 
 /**
  * The lists the native re-plan is tested against, written by the real
@@ -41,8 +42,10 @@ const FIXTURES: Record<string, { now: string; settings: Partial<AppSettings> }> 
       now: "2026-01-15T00:00:00Z",
       settings: {
         location: PrayerLocation.London,
-        notifySound: "adhan-2",
-        fajrSound: "adhan-5",
+        reminders: {
+          ...defaultReminders(5, "adhan-2", "adhan-5"),
+          shuruq: { on: true, offset: -5, sound: "default" },
+        },
       },
     },
   };

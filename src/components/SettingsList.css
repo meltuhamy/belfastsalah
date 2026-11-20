@@ -73,3 +73,15 @@
 .settings-list__warning-title {
   font-weight: 600;
 }
+
+/* The adhan icon is our own SVG rather than an ion-icon, so it does not get
+   Ionic's start-slot icon rules; the size, the 54% dimming and the 32px gap
+   are matched here, the same way as the wrapped timer icon above. */
+.settings-list__adhan-icon {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  margin-inline-end: 32px;
+  opacity: 0.54;
+}

@@ -6,6 +6,7 @@ import App from "./App";
 import { AppContextProvider } from "./State";
 import { AsrMethod, PrayerLocation } from "./lib/PrayerTimes";
 import type { AppSettings } from "./lib/settings";
+import { defaultReminders } from "./lib/prayerReminders";
 import { REMINDERS_ENDED_TITLE } from "./lib/reminderSchedule";
 
 vi.mock("./pages/HomePage", () => ({ default: () => null }));
@@ -16,9 +17,12 @@ const harness = vi.hoisted(() => {
   const settings: { current: AppSettings } = {
     current: {
       notify: true,
-      notifyMinutes: 5,
-      notifySound: "default",
-      fajrSound: "same",
+      reminders: Object.fromEntries(
+        ["fajr", "shuruq", "duhr", "asr", "maghrib", "isha"].map((key) => [
+          key,
+          { on: true, offset: -5, sound: "default" },
+        ])
+      ) as AppSettings["reminders"],
       asrMethod: "shafi" as AppSettings["asrMethod"],
       theme: "system",
       timeFormat: "24",
@@ -80,9 +84,7 @@ const fixedNow = new Date("2026-11-16T10:00:00Z");
 function enabledSettings(): AppSettings {
   return {
     notify: true,
-    notifyMinutes: 5,
-    notifySound: "default",
-    fajrSound: "same",
+    reminders: defaultReminders(),
     asrMethod: AsrMethod.Shafi,
     theme: "system",
     timeFormat: "24",
@@ -163,7 +165,7 @@ describe("Android reminder sync", () => {
       expect(harness.sync).toHaveBeenCalledTimes(1);
     });
 
-    harness.settings.current = { ...enabledSettings(), notifyMinutes: 20 };
+    harness.settings.current = { ...enabledSettings(), reminders: defaultReminders(20) };
     view.rerender(
       <AppContextProvider>
         <App />
@@ -176,7 +178,7 @@ describe("Android reminder sync", () => {
     expect(writtenPayload().reminders[0]).toMatchObject({
       at: Date.parse("2026-11-16T11:30:00Z"),
       title: "Duhr is at 11:50",
-      body: "20 minute reminder",
+      body: "In 20 minutes",
     });
   });
 });

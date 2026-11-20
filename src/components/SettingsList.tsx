@@ -6,14 +6,12 @@ import {
   IonItem,
   IonIcon,
   IonToggle,
-  IonRange,
   IonSelect,
   IonSelectOption,
   IonToast,
 } from "@ionic/react";
 import {
   alarm,
-  timer,
   map,
   sunny,
   contrast,
@@ -23,8 +21,6 @@ import {
   lockClosed,
   openOutline,
   warningOutline,
-  musicalNotesOutline,
-  moonOutline,
 } from "ionicons/icons";
 import { PrayerLocation, locationNames } from "../lib/PrayerTimeData";
 import supportsHanafiAsr, { AsrMethod } from "../lib/PrayerTimes";
@@ -45,14 +41,7 @@ import {
   sendTestNotification,
   TEST_NOTIFICATION_DELAY_SECONDS,
 } from "../lib/notifications";
-import { describeNotifyMinutes } from "../lib/notifyText";
-import {
-  FajrSound,
-  REMINDER_SOUNDS,
-  ReminderSound,
-  reminderSoundLabels,
-} from "../lib/reminderSound";
-import { previewSound, stopPreview } from "../lib/soundPreview";
+import AdhanIcon from "./AdhanIcon";
 import {
   isBatteryRestricted,
   openBatteryOptimizationSettings,
@@ -65,9 +54,12 @@ import "./SettingsList.css";
 type Props = {
   settings: AppSettings;
   onNotifyChange: (newNotify: boolean) => void;
-  onNotifyMinutesChange: (newNotifyMinutes: number) => void;
-  onNotifySoundChange: (newNotifySound: ReminderSound) => void;
-  onFajrSoundChange: (newFajrSound: FajrSound) => void;
+  /**
+   * Where the Notification Settings row goes. Left out on the setup screen,
+   * which keeps its answers local until Done: reminders start on the
+   * defaults there and are changed from settings.
+   */
+  notificationSettingsHref?: string;
   onLocationChange: (newLocation: PrayerLocation, asrMethod: AsrMethod) => void;
   onAsrMethodChange: (newAsrMethod: AsrMethod) => void;
   onThemeChange: (newTheme: Theme) => void;
@@ -77,9 +69,7 @@ type Props = {
 const SettingsList: React.FC<Props> = ({
   settings,
   onNotifyChange,
-  onNotifyMinutesChange,
-  onNotifySoundChange,
-  onFajrSoundChange,
+  notificationSettingsHref,
   onLocationChange,
   onAsrMethodChange,
   onThemeChange,
@@ -90,20 +80,6 @@ const SettingsList: React.FC<Props> = ({
   const [exactAlarmsOff, setExactAlarmsOff] = useState(false);
   const [batteryRestricted, setBatteryRestricted] = useState(false);
 
-  /*
-   * Where the reminder slider is while it is being dragged, or null when it is
-   * not. It has to be held here rather than read back from settings, because
-   * ionChange only fires on release: until then `settings.notifyMinutes` is
-   * still the old value, and @ionic/react re-assigns every prop to the element
-   * on every render. The app re-renders once a second off the countdown
-   * ticker, so a drag lasting longer than a second had the knob yanked back to
-   * where it started, roughly once a second, until the next touch move caught
-   * it up. Committing on each ionInput instead would fix the display but
-   * reschedule every notification (a month of them on Android) for every
-   * intermediate value.
-   */
-  const [draggingMinutes, setDraggingMinutes] = useState<number | null>(null);
-  const notifyMinutes = draggingMinutes ?? settings.notifyMinutes;
 
   // Only worth offering when the two clocks actually differ.
   const now = new Date();
@@ -161,9 +137,6 @@ const SettingsList: React.FC<Props> = ({
     };
   }, []);
 
-  // A preview still playing when the screen goes would carry on over the next.
-  useEffect(() => stopPreview, []);
-
   async function openExactAlarmSettings() {
     try {
       const status = await LocalNotifications.changeExactNotificationSetting();
@@ -185,7 +158,7 @@ const SettingsList: React.FC<Props> = ({
   // seconds out, so the whole reminder path can be checked without waiting for
   // a prayer time.
   const testNotificationPress = useLongPress(async () => {
-    const result = await sendTestNotification(settings.notifySound);
+    const result = await sendTestNotification();
     setTestResult(
       result === "scheduled"
         ? `Test notification in ${TEST_NOTIFICATION_DELAY_SECONDS} seconds`
@@ -265,7 +238,18 @@ const SettingsList: React.FC<Props> = ({
         <IonLabel>Notifications</IonLabel>
       </IonListHeader>
       <IonItem>
-        <IonIcon icon={alarm} slot="start" />
+        {/*
+          The long-press diagnostic lives on this icon: hold it to fire a test
+          notification a few seconds out. No affordance by design.
+        */}
+        <span
+          slot="start"
+          className="settings-list__test-target"
+          data-testid="notify-test-target"
+          {...testNotificationPress}
+        >
+          <IonIcon icon={alarm} />
+        </span>
         <IonToggle
           checked={settings.notify}
           onIonChange={() => {
@@ -281,98 +265,23 @@ const SettingsList: React.FC<Props> = ({
             }
           }}
         >
-          Notify before prayer
+          Prayer Notifications
         </IonToggle>
       </IonItem>
-      {settings.notify && (
-        <IonItem>
-          <span
-            slot="start"
-            className="settings-list__test-target"
-            data-testid="notify-test-target"
-            {...testNotificationPress}
-          >
-            <IonIcon icon={timer} />
+      {settings.notify && notificationSettingsHref !== undefined && (
+        <IonItem
+          routerLink={notificationSettingsHref}
+          detail={true}
+          data-testid="notification-settings-row"
+        >
+          <span slot="start" className="settings-list__adhan-icon">
+            <AdhanIcon />
           </span>
-          <div className="settings-list__range">
-            {/*
-              The label is rendered here rather than passed to IonRange so it
-              can be styled: Ionic's stacked label renders small and low
-              contrast inside shadow DOM, which is hard to read at a glance.
-            */}
-            <p className="settings-list__range-label">
-              {describeNotifyMinutes(notifyMinutes)}
-            </p>
-            <IonRange
-              aria-label="Minutes before prayer"
-              min={0}
-              max={20}
-              step={1}
-              snaps={true}
-              pin={true}
-              pinFormatter={(value: number) => `${value}m`}
-              value={notifyMinutes}
-              onIonInput={(event) =>
-                setDraggingMinutes(event.detail.value as number)
-              }
-              onIonChange={(event) => {
-                // Released. Hand the value over and stop shadowing the stored
-                // one in the same update, so the two never disagree on screen.
-                setDraggingMinutes(null);
-                onNotifyMinutesChange(event.detail.value as number);
-              }}
-            ></IonRange>
-          </div>
+          <IonLabel>
+            <h2>Notification Settings</h2>
+            <p>When and how each prayer reminds you</p>
+          </IonLabel>
         </IonItem>
-      )}
-      {settings.notify && (
-        <>
-          <IonItem>
-            <IonIcon icon={musicalNotesOutline} slot="start" />
-            <IonSelect
-              label="Sound"
-              value={settings.notifySound}
-              interface="alert"
-              okText="Choose"
-              cancelText="Cancel"
-              data-testid="notify-sound-select"
-              onIonChange={(event) => {
-                const sound = event.detail.value as ReminderSound;
-                previewSound(sound);
-                onNotifySoundChange(sound);
-              }}
-            >
-              {REMINDER_SOUNDS.map((sound) => (
-                <IonSelectOption key={sound} value={sound}>
-                  {reminderSoundLabels[sound]}
-                </IonSelectOption>
-              ))}
-            </IonSelect>
-          </IonItem>
-          <IonItem>
-            <IonIcon icon={moonOutline} slot="start" />
-            <IonSelect
-              label="Fajr sound"
-              value={settings.fajrSound}
-              interface="alert"
-              okText="Choose"
-              cancelText="Cancel"
-              data-testid="fajr-sound-select"
-              onIonChange={(event) => {
-                const sound = event.detail.value as FajrSound;
-                previewSound(sound === "same" ? settings.notifySound : sound);
-                onFajrSoundChange(sound);
-              }}
-            >
-              <IonSelectOption value="same">Same as other prayers</IonSelectOption>
-              {REMINDER_SOUNDS.map((sound) => (
-                <IonSelectOption key={sound} value={sound}>
-                  {reminderSoundLabels[sound]}
-                </IonSelectOption>
-              ))}
-            </IonSelect>
-          </IonItem>
-        </>
       )}
       {settings.notify && exactAlarmsOff && (
         <IonItem

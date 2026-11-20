@@ -92,16 +92,14 @@ test("remembers the theme", async ({ page }) => {
     .toBe(true);
 });
 
-test("remembers that reminders are on, and how early", async ({ page }) => {
+test("remembers that reminders are on", async ({ page }) => {
   await completeSetup(page);
   await openSettings(page);
-  await toggle(page, "Notify before prayer");
-  await expect(page.locator(".settings-list__range-label")).toBeVisible();
+  await toggle(page, "Prayer Notifications");
+  await expect(page.getByTestId("notification-settings-row")).toBeVisible();
 
   await reload(page);
-  await expect(page.locator(".settings-list__range-label")).toHaveText(
-    "Notify 5 minutes before prayer"
-  );
+  await expect(page.getByTestId("notification-settings-row")).toBeVisible();
 });
 
 test("says so when it saves", async ({ page }) => {

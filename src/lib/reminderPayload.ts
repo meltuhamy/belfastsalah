@@ -23,11 +23,11 @@ import {
 import { resolveDisplayTimeZone } from "./displayZone";
 import { getZonedDateParts, middayOn } from "./timeZone";
 import { formatClockTime, uses24Hour } from "./timeFormat";
-import { ReminderSound, soundForPrayer } from "./reminderSound";
+import { ReminderSound } from "./reminderSound";
+import { prayerKey, reminderBody } from "./prayerReminders";
 import {
   REMINDERS_ENDED_BODY,
   REMINDERS_ENDED_TITLE,
-  reminderBody,
   reminderTitle,
 } from "./reminderSchedule";
 
@@ -63,9 +63,10 @@ export type ReminderPayload = {
 /**
  * Builds the list, or null before a location has been chosen.
  *
- * One entry per prayer still inside the horizon, then a single prompt at the
- * last prayer's own time. Passed reminders are left out, as they are on iOS:
- * a prayer closer than the lead time does not take an entry.
+ * One entry per prayer still inside the horizon, at that prayer's own offset
+ * (before or after it) and with its own sound, then a single prompt at the
+ * last one's time. A prayer whose reminder is off has no entry, and passed
+ * reminders are left out, as they are on iOS.
  */
 export async function buildReminderPayload(
   settings: AppSettings,
@@ -87,8 +88,6 @@ export async function buildReminderPayload(
   const twentyFourHour = uses24Hour(settings.timeFormat, deviceUses24Hour);
   const timetableZone = locationTimeZones[settings.location];
   const horizonEnd = now.getTime() + horizonDays * 24 * 60 * 60 * 1000;
-  const body = reminderBody(settings.notifyMinutes);
-  const leadMs = settings.notifyMinutes * 60_000;
 
   const reminders: Array<ReminderEntry> = [];
   let lastPrayerAt: number | null = null;
@@ -107,19 +106,22 @@ export async function buildReminderPayload(
       }
       for (const prayerTime of dayTimes) {
         const atPrayer = prayerTime.time.getTime();
-        if (atPrayer <= now.getTime()) {
-          continue;
-        }
         if (atPrayer > horizonEnd) {
           pastHorizon = true;
           break;
         }
-        lastPrayerAt = atPrayer;
-        const fireAt = atPrayer - leadMs;
+        const reminder = settings.reminders[prayerKey(prayerTime.prayer)];
+        if (!reminder.on) {
+          continue;
+        }
+        // A reminder set after its prayer can still be ahead when the prayer
+        // itself has passed, so it is the reminder's time that decides.
+        const fireAt = atPrayer + reminder.offset * 60_000;
         if (fireAt <= now.getTime()) {
           continue;
         }
-        const sound = soundForPrayer(prayerTime.prayer, settings);
+        lastPrayerAt = Math.max(lastPrayerAt ?? 0, atPrayer, fireAt);
+        const sound = reminder.sound;
         reminders.push({
           at: fireAt,
           title: reminderTitle(
@@ -128,7 +130,7 @@ export async function buildReminderPayload(
               withPeriod: true,
             })
           ),
-          body,
+          body: reminderBody(reminder.offset),
           ...(sound === "default" ? {} : { sound }),
         });
       }
@@ -146,6 +148,9 @@ export async function buildReminderPayload(
       year += 1;
     }
   }
+
+  // Prayers either side of one with a reminder after it can land out of order.
+  reminders.sort((a, b) => a.at - b.at);
 
   if (lastPrayerAt !== null && lastPrayerAt > now.getTime()) {
     reminders.push({
