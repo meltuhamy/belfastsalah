@@ -24,9 +24,10 @@ import { AppSettings } from "./settings";
 import { resolveDisplayTimeZone } from "./displayZone";
 import { formatDateInZone, getZonedDateParts } from "./timeZone";
 import { formatClockTime, uses24Hour } from "./timeFormat";
+import { SkyColours, skyColourTable, skyPoints } from "./sky";
 
 /** Bump when the shape changes, so an old widget ignores a payload it cannot read. */
-export const WIDGET_PAYLOAD_VERSION = 3;
+export const WIDGET_PAYLOAD_VERSION = 4;
 
 /** How far ahead to write, so the widget survives the app going unopened. */
 export const DEFAULT_HORIZON_DAYS = 90;
@@ -55,6 +56,12 @@ export type WidgetDay = {
   /** e.g. "Sun 15 Feb", in the display zone. */
   dateLabel: string;
   prayers: Array<WidgetPrayer>;
+  /**
+   * The day's ten sky points as epoch milliseconds, in SKY_PHASES order -
+   * the times skyAtTimes in src/lib/sky.ts works from. A Sky widget runs the
+   * same calculation natively from these and `skyColours`.
+   */
+  sky: Array<number>;
 };
 
 export type WidgetPayload = {
@@ -72,6 +79,8 @@ export type WidgetPayload = {
   days: Array<WidgetDay>;
   /** Every prayer still to come within the horizon, earliest first. */
   upcoming: Array<WidgetUpcoming>;
+  /** Each sky point's colours, in the same order as every day's `sky`. */
+  skyColours: Array<SkyColours>;
 };
 
 function prayerTimesFor(settings: AppSettings): PrayerTimes | null {
@@ -162,6 +171,7 @@ export async function buildWidgetPayload(
           name: prayerToString(p.prayer),
           time: formatClockTime(p.time, displayZone, twentyFourHour),
         })),
+        sky: skyPoints(dayTimes).map((p) => p.at),
       });
       for (const prayerTime of ahead) {
         upcoming.push({
@@ -186,5 +196,6 @@ export async function buildWidgetPayload(
     locationLabel: locationNames[settings.location],
     days,
     upcoming,
+    skyColours: skyColourTable(),
   };
 }

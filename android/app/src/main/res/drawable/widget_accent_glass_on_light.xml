@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The next prayer's highlight on the Sky palette, where the sky is light and the
+  text black: a brighter frosted pane, which only lightens what is behind it.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#8CFFFFFF" />
+    <stroke android:width="1dp" android:color="#CCFFFFFF" />
+    <corners android:radius="8dp" />
+</shape>

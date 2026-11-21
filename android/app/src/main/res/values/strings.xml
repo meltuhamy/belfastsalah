@@ -32,6 +32,7 @@
     <string name="config_bg_system">Match system</string>
     <string name="config_bg_light">Light</string>
     <string name="config_bg_dark">Dark</string>
+    <string name="config_bg_sky">Sky</string>
     <string name="config_opacity">Opacity</string>
     <string name="config_text_colour">Text</string>
     <string name="config_text_auto">Automatic</string>

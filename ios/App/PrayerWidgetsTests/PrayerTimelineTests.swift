@@ -101,6 +101,42 @@ final class PrayerTimelineTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(times(entries[63])).nextName, "Maghrib")
     }
 
+    // MARK: The Sky palette
+
+    func testTheSkyMovesOnEveryQuarterOfAnHour() throws {
+        let (entries, _) = build(at: Fixture.onePM, WidgetSettings(palette: .sky))
+        // 12:59:59.5, then each quarter until Asr at 14:02, which starts its own.
+        XCTAssertEqual(
+            entries.prefix(7).map(\.date),
+            [Fixture.onePM, Fixture.on15th("13:00"), Fixture.on15th("13:15"),
+             Fixture.on15th("13:30"), Fixture.on15th("13:45"), Fixture.on15th("14:00"),
+             Fixture.on15th("14:02")]
+        )
+        XCTAssertEqual(try XCTUnwrap(times(entries[5])).nextName, "Asr")
+        XCTAssertEqual(try XCTUnwrap(times(entries[6])).nextName, "Maghrib")
+    }
+
+    func testEachSkyEntryCarriesItsOwnSky() throws {
+        let (entries, _) = build(at: Fixture.onePM, WidgetSettings(palette: .sky))
+        let payload = Fixture.payload()
+        for entry in entries.prefix(20) {
+            XCTAssertEqual(entry.sky, payload.skyAt(entry.date))
+        }
+        XCTAssertNotEqual(entries[0].sky, entries[19].sky)
+    }
+
+    func testOtherPalettesCarryNoSkyAndNoExtraEntries() {
+        let (entries, _) = build(at: Fixture.onePM, WidgetSettings(palette: .light))
+        XCTAssertTrue(entries.allSatisfy { $0.sky == nil })
+        XCTAssertEqual(entries[1].date, Fixture.on15th("14:02"))
+    }
+
+    func testTheSkyStopsAtTheCapAndAsksForMore() {
+        let (entries, reload) = build(at: Fixture.onePM, WidgetSettings(palette: .sky))
+        XCTAssertEqual(entries.count, PrayerTimeline.maxEntries)
+        XCTAssertEqual(reload, .atEnd)
+    }
+
     func testMinutesTextReadsNaturally() {
         XCTAssertEqual(minutesText(61), "1h 1m")
         XCTAssertEqual(minutesText(60), "1h 0m")

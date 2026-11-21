@@ -59,7 +59,113 @@ final class WidgetPayloadTests: XCTestCase {
         XCTAssertNil(WidgetPayload.parse(""))
         XCTAssertNil(WidgetPayload.parse("{not json"))
         let otherVersion = Fixture.json("london-2026-01-15")
-            .replacingOccurrences(of: "\"version\": 3", with: "\"version\": 99")
+            .replacingOccurrences(of: "\"version\": 4", with: "\"version\": 99")
         XCTAssertNil(WidgetPayload.parse(otherVersion))
+    }
+}
+
+/**
+ * The Sky palette's colours, held to TypeScript's.
+ *
+ * WidgetSky repeats skyAtDays from src/lib/sky.ts. The samples are what
+ * TypeScript worked out from the same London fixture, every ten minutes for
+ * two days and every minute through dawn and into sunset; if the two blends
+ * drift apart, this fails. WidgetSkyTest checks Android against the same file.
+ */
+final class SkyTests: XCTestCase {
+
+    private struct Samples: Decodable {
+        struct Sun: Decodable {
+            let x: Double
+            let y: Double
+            let colour: String
+        }
+
+        struct Sample: Decodable {
+            let at: Int64
+            let top: String
+            let mid: String
+            let horizon: String
+            let text: String
+            let sun: Sun?
+            let night: Double
+        }
+
+        let samples: [Sample]
+    }
+
+    /**
+     * How far apart two colours are, in the largest single channel. Swift's
+     * and JavaScript's maths libraries can round the last bit of a power or a
+     * cube root differently, which can tip a channel by one.
+     */
+    private func distance(_ a: String, _ b: String) -> Int {
+        zip(WidgetSky.channels(a), WidgetSky.channels(b)).map { abs($0 - $1) }.max() ?? 0
+    }
+
+    func testDrawsTheSameSkyAsTheAppAtEverySample() throws {
+        let payload = Fixture.payload()
+        let samples = try JSONDecoder().decode(
+            Samples.self, from: Data(Fixture.json("sky-london-2026-01-15").utf8)
+        ).samples
+        XCTAssertGreaterThan(samples.count, 400)
+
+        for expected in samples {
+            let at = Date(timeIntervalSince1970: TimeInterval(expected.at) / 1000)
+            let sky = try XCTUnwrap(payload.skyAt(at))
+            let label = "sample at \(expected.at)"
+            XCTAssertLessThanOrEqual(distance(sky.top, expected.top), 1, "\(label) top")
+            XCTAssertLessThanOrEqual(distance(sky.mid, expected.mid), 1, "\(label) mid")
+            XCTAssertLessThanOrEqual(distance(sky.horizon, expected.horizon), 1, "\(label) horizon")
+            XCTAssertEqual(sky.lightText, expected.text == "light", "\(label) text")
+            XCTAssertEqual(sky.night, expected.night, accuracy: 1e-9, "\(label) night")
+            if let sun = expected.sun {
+                let actual = try XCTUnwrap(sky.sun, "\(label) sun")
+                XCTAssertEqual(actual.x, sun.x, accuracy: 1e-9, label)
+                XCTAssertEqual(actual.y, sun.y, accuracy: 1e-9, label)
+                XCTAssertLessThanOrEqual(distance(actual.colour, sun.colour), 1, label)
+            } else {
+                XCTAssertNil(sky.sun, "\(label) sun")
+            }
+        }
+    }
+
+    func testReadsEachDaysSkyFromThePayload() {
+        let payload = Fixture.payload()
+        XCTAssertEqual(payload.skyColours.count, 10)
+        XCTAssertTrue(payload.days.allSatisfy { $0.sky.count == 10 })
+        // The 15th's dawn point is Fajr itself.
+        XCTAssertEqual(payload.days[0].sky[1], Int64(Fixture.on15th("06:20").timeIntervalSince1970 * 1000))
+    }
+
+    func testRejectsADayWithoutItsSky() {
+        let json = Fixture.json("london-2026-01-15")
+            .replacingOccurrences(of: "\"sky\"", with: "\"skyless\"")
+        XCTAssertNil(WidgetPayload.parse(json))
+    }
+
+    func testSkyColoursTheTextBlackByDayAndWhiteAtNight() {
+        let day = WidgetColors(
+            settings: WidgetSettings(palette: .sky), systemScheme: .light,
+            sky: Fixture.payload().skyAt(Fixture.onePM)
+        )
+        XCTAssertEqual(day.primary, .black)
+        XCTAssertEqual(day.secondary, .black)
+        XCTAssertNotNil(day.sky)
+
+        let night = WidgetColors(
+            settings: WidgetSettings(palette: .sky), systemScheme: .light,
+            sky: Fixture.payload().skyAt(Fixture.afterIsha)
+        )
+        XCTAssertEqual(night.primary, .white)
+    }
+
+    func testOtherPalettesIgnoreTheSky() {
+        let colors = WidgetColors(
+            settings: WidgetSettings(palette: .light), systemScheme: .light,
+            sky: Fixture.payload().skyAt(Fixture.onePM)
+        )
+        XCTAssertNil(colors.sky)
+        XCTAssertEqual(colors.background, .white)
     }
 }

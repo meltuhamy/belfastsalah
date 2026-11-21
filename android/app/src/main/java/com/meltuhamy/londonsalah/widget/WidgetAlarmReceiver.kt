@@ -9,7 +9,9 @@ import android.content.Intent
  *
  * The countdown itself needs no help - the launcher ticks a Chronometer on its
  * own - so this runs six times a day rather than every second, and only to
- * swap which prayer is being counted down to.
+ * swap which prayer is being counted down to. While a widget shows the Sky
+ * palette it also runs every quarter of an hour the screen is on, to move the
+ * sky along (WidgetAlarms.scheduleSkyTick).
  */
 class WidgetAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

@@ -488,6 +488,36 @@ nowhere else.
 - The sun and stars are a decorative layer inside the card, clipped on its
   own: the card itself keeps `overflow`/`contain` undone for the tail.
 
+### Sky widgets
+
+The widgets have a Sky palette too, drawn from the same module. The sky
+changes all day but the payload is only written when the app runs, so this is
+the one calculation the native side does itself:
+
+- **The payload carries the inputs, not the answers**: each day's ten point
+  times (`WidgetDay.sky`) and the ten points' colours (`skyColours`).
+  `WidgetSky.kt` and the `WidgetSky` enum in `WidgetPayload.swift` are
+  line-by-line ports of `skyAtTimes`/`skyAtDays`. A change to the blend in
+  `sky.ts` has to be made in both.
+- **`fixtures/widget-payload/sky-london-2026-01-15.json` holds them to it**:
+  TypeScript writes over 500 samples of its own answer (every ten minutes for
+  two days, every minute through dawn and into sunset), and `WidgetSkyTest`
+  and `SkyTests` check the ports against them, a channel's rounding apart.
+  Regenerate with `UPDATE_FIXTURES=1 npx vitest run widgetPayload.fixture`.
+- **Android draws the sky as a bitmap** (`SkyPainter`) into an ImageView,
+  `sky_background`, which every widget layout now has behind its content in
+  a FrameLayout - RemoteViews cannot set a gradient at runtime. The picture
+  is kept under about 470KB: a RemoteViews crosses processes in one binder
+  transaction, which fails above about 1MB.
+- **Android redraws a Sky widget every quarter hour** with a plain RTC
+  alarm (`WidgetAlarms.scheduleSkyTick`), which does not wake the phone:
+  while the screen is off it waits, so the sky costs nothing until someone
+  could see it. The prayer boundary's exact alarm is separate and unchanged.
+- **iOS gives a Sky timeline an entry every quarter hour**, each with its
+  own `PrayerEntry.sky`. Sixty entries is about fifteen hours.
+- On the sky, text is black or white at full strength and the next prayer's
+  highlight is frosted glass, whatever highlight colour was chosen.
+
 ## Prayer data
 
 The files in `src/prayer_data/` are the single source of truth for which

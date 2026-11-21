@@ -58,7 +58,8 @@ class NextPrayerTileProvider : AppWidgetProvider() {
                 context,
                 WidgetKind.TILE,
                 WidgetConfig.load(context, appWidgetId),
-                sizeDp
+                sizeDp,
+                boxDp = widgetBoxDp(options)
             )
         )
     }

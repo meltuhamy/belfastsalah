@@ -115,31 +115,60 @@ export type Sky = SkyColours & {
   night: number;
 };
 
+/** The order of a day's points, which every list of them follows. */
+export const SKY_PHASES: ReadonlyArray<SkyPhase> = [
+  "night",
+  "dawn",
+  "sunrise",
+  "morning",
+  "midday",
+  "afternoon",
+  "golden",
+  "sunset",
+  "dusk",
+  "lateNight",
+];
+
+/** Each point's colours, in SKY_PHASES order: what the widgets are sent. */
+export function skyColourTable(): Array<SkyColours> {
+  return SKY_PHASES.map((phase) => COLOURS[phase]);
+}
+
 /** The sky at an instant of the given day. */
 export function skyAt(now: Date, day: PrayerDayTimes): Sky {
-  const t = now.getTime();
-  const points = skyPoints(day);
+  return skyAtTimes(
+    now.getTime(),
+    skyPoints(day).map((p) => p.at)
+  );
+}
 
+/**
+ * The sky at an instant, from a day's ten point times in SKY_PHASES order.
+ *
+ * This is the whole calculation, and the widgets repeat it natively from the
+ * same times - so it reads nothing else. The prayers it needs are points of
+ * their own: Fajr is dawn, Shuruq sunrise, Maghrib sunset and Isha dusk.
+ */
+export function skyAtTimes(t: number, times: ReadonlyArray<number>): Sky {
   let colours: SkyColours = NIGHT;
-  let phase: SkyPhase = t < points[0].at ? "night" : "lateNight";
-  for (let i = 0; i < points.length - 1; i++) {
-    const a = points[i];
-    const b = points[i + 1];
-    if (t >= a.at && t < b.at) {
-      colours = blend(a, b, (t - a.at) / (b.at - a.at));
-      phase = a.phase;
+  let phase: SkyPhase = t < times[0] ? "night" : "lateNight";
+  for (let i = 0; i < times.length - 1; i++) {
+    if (t >= times[i] && t < times[i + 1]) {
+      colours = blend(
+        COLOURS[SKY_PHASES[i]],
+        COLOURS[SKY_PHASES[i + 1]],
+        (t - times[i]) / (times[i + 1] - times[i])
+      );
+      phase = SKY_PHASES[i];
       break;
     }
   }
 
-  const shuruq = day[Prayer.Shuruq].time.getTime();
-  const maghrib = day[Prayer.Maghrib].time.getTime();
+  const [, fajr, shuruq, , , , , maghrib, isha] = times;
   const progress = (t - shuruq) / (maghrib - shuruq);
   const elevation = Math.sin(Math.PI * progress);
   const sunUp = t >= shuruq - 45 * MINUTE && t <= maghrib + 45 * MINUTE;
 
-  const fajr = day[Prayer.Fajr].time.getTime();
-  const isha = day[Prayer.Isha].time.getTime();
   let night = 0;
   if (t >= isha) night = Math.min(1, (t - isha) / (60 * MINUTE));
   else if (t < fajr) night = Math.min(1, (fajr - t) / (40 * MINUTE));
@@ -158,6 +187,23 @@ export function skyAt(now: Date, day: PrayerDayTimes): Sky {
       : null,
     night,
   };
+}
+
+/**
+ * The sky at an instant, from several days' point times - how a widget sees
+ * it, holding a run of days rather than knowing which one is today. Uses the
+ * last day that has begun; between one day's last point and the next day's
+ * first, both are the same night.
+ */
+export function skyAtDays(
+  t: number,
+  days: ReadonlyArray<ReadonlyArray<number>>
+): Sky {
+  let chosen = days[0];
+  for (const times of days) {
+    if (times[0] <= t) chosen = times;
+  }
+  return skyAtTimes(t, chosen);
 }
 
 /**
