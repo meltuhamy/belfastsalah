@@ -1,0 +1,29 @@
+/*
+  The Sky theme: Ionic's palette re-pointed at colours worked out in
+  src/lib/sky.ts, which useTheme puts on <html> as custom properties once a
+  minute along with the sky-theme class.
+
+  Imported after palettes/dark.class.css, and as specific as its most specific
+  rule (.ion-palette-dark.ios), so these win in either palette by source
+  order. The palette's own text colours are left alone: the tints are faint
+  enough that they keep their contrast, which sky.test.ts checks.
+*/
+:root.sky-theme {
+  --ion-background-color: var(--sky-page);
+  --ion-background-color-rgb: var(--sky-page-rgb);
+  --ion-toolbar-background: var(--sky-page);
+  --ion-item-background: var(--sky-surface);
+  --ion-card-background: var(--sky-surface);
+
+  /* The month table's striped rows. */
+  --ion-color-light: var(--sky-stripe);
+  --ion-color-light-rgb: var(--sky-stripe-rgb);
+
+  /* Buttons, toggles, the slider and today's row in the month table. */
+  --ion-color-primary: var(--sky-accent);
+  --ion-color-primary-rgb: var(--sky-accent-rgb);
+  --ion-color-primary-contrast: var(--sky-accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--sky-accent-contrast-rgb);
+  --ion-color-primary-shade: var(--sky-accent);
+  --ion-color-primary-tint: var(--sky-accent);
+}

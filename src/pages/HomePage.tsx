@@ -30,6 +30,7 @@ import { getZonedDateParts } from "../lib/timeZone";
 import { shouldPromptForZone } from "../lib/displayZone";
 import { locationNames, timetableZoneFor } from "../lib/PrayerTimeData";
 import { useSettings } from "../lib/useSettings";
+import SkyDayBar from "../components/SkyDayBar";
 import TimeZoneNotice from "../components/TimeZoneNotice";
 
 let shouldExitApp = false;
@@ -128,6 +129,7 @@ const HomePage: React.FC = () => {
                   />
                 </div>
               </div>
+              {appSettings?.theme === "sky" && <SkyDayBar size="thin" />}
             </IonCardHeader>
             <IonCardContent className="HomePage__month-card__content">
               <MonthPrayerTable

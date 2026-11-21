@@ -441,8 +441,8 @@ and there is the test day (`/settings/notifications/test`).
 
 ## Theming
 
-One setting, `theme`, with four values: `system` (default), `light`, `dark`,
-`maghrib`. `src/lib/theme.ts` decides; `useTheme` in `App.tsx` is the only
+One setting, `theme`, with five values: `system` (default), `light`, `dark`,
+`maghrib`, `sky`. `src/lib/theme.ts` decides; `useTheme` in `App.tsx` is the only
 thing that touches the palette class, and it puts Ionic's `.ion-palette-dark`
 on `<html>`.
 
@@ -454,6 +454,39 @@ looks fine until you notice the striped rows in the month table are white.
 
 Setup keeps its answers local until Done, so it reports the theme up to
 `App` via `onThemePreview` — otherwise the picker looks dead on that screen.
+
+### Sky
+
+The Sky theme paints the countdown card as the sky for the moment, and tints
+the rest of the app from it. `src/lib/sky.ts` decides everything and is pure:
+ten colour points built from the day's own prayer times (the six prayers, plus
+Fajr − 60, Shuruq + 90, Maghrib − 25 and Isha + 90), blended in OKLab. The
+widgets will draw the same sky from it (MEL-336), so colours belong there and
+nowhere else.
+
+- **`useTheme` applies it**, as custom properties on `<html>` plus the
+  `sky-theme` class, and only when the minute changes - not on the
+  once-a-second tick. `theme/sky.css` re-points Ionic's palette at them and
+  is imported after `dark.class.css`, at the same specificity as its most
+  specific rule. Tints are computed in TypeScript because the oldest iOS the
+  app runs on has no `color-mix()`.
+- **Dark follows `maghrib`'s rule.** The tint changes all day, but the
+  palette only flips at Maghrib and Shuruq, so the page's text colour is
+  never caught between the two.
+- **Text on the card is black or white, at full strength.** Any colour reads
+  at 4.58:1 or better against one of the two. Where the sky turns from dark to
+  light, a straight blend leaves the top of the card dark while its middle is
+  already light, and no text colour reads against both. So `blend` bends the
+  middle and horizon to cross over at the instant the top does. `sky.test.ts`
+  checks every five minutes of a year, and every minute of the clock-change
+  days. Do not fade the card's secondary lines in this theme: the contrast
+  only holds at full opacity.
+- **Setup has no times yet**, so `useTheme` stands London's day in for the
+  preview.
+- **The day bar runs midnight to midnight in the timetable's zone**
+  (`timetableZoneFor`), so Istanbul's day starts at Istanbul's midnight.
+- The sun and stars are a decorative layer inside the card, clipped on its
+  own: the card itself keeps `overflow`/`contain` undone for the tail.
 
 ## Prayer data
 

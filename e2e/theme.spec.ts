@@ -5,7 +5,7 @@ import {
   openSettings as openSettingsScreen,
 } from "./support/app";
 
-// The theme is one setting with four values, replacing a pair of coupled
+// The theme is one setting with five values, replacing a pair of coupled
 // booleans. What matters is that choosing one actually repaints the app, so
 // these assert the palette class and the colour it produces rather than the
 // value stored - a setting that saves correctly but never reaches the DOM
@@ -109,6 +109,7 @@ test.describe("dark after Maghrib", () => {
       "Light",
       "Dark",
       "Dark after Maghrib",
+      "Sky",
     ]);
   });
 

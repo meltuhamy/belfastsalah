@@ -85,3 +85,8 @@
   margin-inline-end: 32px;
   opacity: 0.54;
 }
+
+/* The Sky theme's day under the theme picker, with a line on what it does. */
+.settings-list__sky p {
+  margin-top: 8px;
+}

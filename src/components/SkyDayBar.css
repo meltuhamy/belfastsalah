@@ -1,0 +1,38 @@
+.SkyDayBar {
+  position: relative;
+  background: var(--sky-day-band);
+}
+
+.SkyDayBar--thin {
+  height: 6px;
+  border-radius: 3px;
+  margin-top: 10px;
+}
+
+.SkyDayBar--tall {
+  height: 24px;
+  border-radius: 8px;
+}
+
+.SkyDayBar__now {
+  position: absolute;
+  left: var(--sky-now);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+
+.SkyDayBar--thin .SkyDayBar__now {
+  width: 12px;
+  height: 12px;
+  background: var(--ion-card-background);
+  box-shadow: 0 0 0 2px var(--ion-text-color, #000);
+}
+
+.SkyDayBar--tall .SkyDayBar__now {
+  width: 4px;
+  height: 32px;
+  border-radius: 2px;
+  background: #fff;
+  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.4);
+}
