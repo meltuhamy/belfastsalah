@@ -441,8 +441,8 @@ and there is the test day (`/settings/notifications/test`).
 
 ## Theming
 
-One setting, `theme`, with four values: `system` (default), `light`, `dark`,
-`maghrib`. `src/lib/theme.ts` decides; `useTheme` in `App.tsx` is the only
+One setting, `theme`, with five values: `system` (default), `light`, `dark`,
+`maghrib`, `sky`. `src/lib/theme.ts` decides; `useTheme` in `App.tsx` is the only
 thing that touches the palette class, and it puts Ionic's `.ion-palette-dark`
 on `<html>`.
 
@@ -454,6 +454,69 @@ looks fine until you notice the striped rows in the month table are white.
 
 Setup keeps its answers local until Done, so it reports the theme up to
 `App` via `onThemePreview` — otherwise the picker looks dead on that screen.
+
+### Sky
+
+The Sky theme paints the countdown card as the sky for the moment, and tints
+the rest of the app from it. `src/lib/sky.ts` decides everything and is pure:
+ten colour points built from the day's own prayer times (the six prayers, plus
+Fajr − 60, Shuruq + 90, Maghrib − 25 and Isha + 90), blended in OKLab. The
+widgets will draw the same sky from it (MEL-336), so colours belong there and
+nowhere else.
+
+- **`useTheme` applies it**, as custom properties on `<html>` plus the
+  `sky-theme` class, and only when the minute changes - not on the
+  once-a-second tick. `theme/sky.css` re-points Ionic's palette at them and
+  is imported after `dark.class.css`, at the same specificity as its most
+  specific rule. Tints are computed in TypeScript because the oldest iOS the
+  app runs on has no `color-mix()`.
+- **Dark follows `maghrib`'s rule.** The tint changes all day, but the
+  palette only flips at Maghrib and Shuruq, so the page's text colour is
+  never caught between the two.
+- **Text on the card is black or white, at full strength.** Any colour reads
+  at 4.58:1 or better against one of the two. Where the sky turns from dark to
+  light, a straight blend leaves the top of the card dark while its middle is
+  already light, and no text colour reads against both. So `blend` bends the
+  middle and horizon to cross over at the instant the top does. `sky.test.ts`
+  checks every five minutes of a year, and every minute of the clock-change
+  days. Do not fade the card's secondary lines in this theme: the contrast
+  only holds at full opacity.
+- **Setup has no times yet**, so `useTheme` stands London's day in for the
+  preview.
+- **The day bar runs midnight to midnight in the timetable's zone**
+  (`timetableZoneFor`), so Istanbul's day starts at Istanbul's midnight.
+- The sun and stars are a decorative layer inside the card, clipped on its
+  own: the card itself keeps `overflow`/`contain` undone for the tail.
+
+### Sky widgets
+
+The widgets have a Sky palette too, drawn from the same module. The sky
+changes all day but the payload is only written when the app runs, so this is
+the one calculation the native side does itself:
+
+- **The payload carries the inputs, not the answers**: each day's ten point
+  times (`WidgetDay.sky`) and the ten points' colours (`skyColours`).
+  `WidgetSky.kt` and the `WidgetSky` enum in `WidgetPayload.swift` are
+  line-by-line ports of `skyAtTimes`/`skyAtDays`. A change to the blend in
+  `sky.ts` has to be made in both.
+- **`fixtures/widget-payload/sky-london-2026-01-15.json` holds them to it**:
+  TypeScript writes over 500 samples of its own answer (every ten minutes for
+  two days, every minute through dawn and into sunset), and `WidgetSkyTest`
+  and `SkyTests` check the ports against them, a channel's rounding apart.
+  Regenerate with `UPDATE_FIXTURES=1 npx vitest run widgetPayload.fixture`.
+- **Android draws the sky as a bitmap** (`SkyPainter`) into an ImageView,
+  `sky_background`, which every widget layout now has behind its content in
+  a FrameLayout - RemoteViews cannot set a gradient at runtime. The picture
+  is kept under about 470KB: a RemoteViews crosses processes in one binder
+  transaction, which fails above about 1MB.
+- **Android redraws a Sky widget every quarter hour** with a plain RTC
+  alarm (`WidgetAlarms.scheduleSkyTick`), which does not wake the phone:
+  while the screen is off it waits, so the sky costs nothing until someone
+  could see it. The prayer boundary's exact alarm is separate and unchanged.
+- **iOS gives a Sky timeline an entry every quarter hour**, each with its
+  own `PrayerEntry.sky`. Sixty entries is about fifteen hours.
+- On the sky, text is black or white at full strength and the next prayer's
+  highlight is frosted glass, whatever highlight colour was chosen.
 
 ## Prayer data
 

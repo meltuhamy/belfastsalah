@@ -46,9 +46,27 @@ describe("isDark", () => {
   });
 });
 
+describe("sky", () => {
+  // Its colours change all day, but it goes dark on the same rule as
+  // "Dark after Maghrib", so its night agrees with the timetable's.
+  it("Should be dark between Maghrib and sunrise, and light otherwise", () => {
+    for (const nextPrayer of [Prayer.Isha, Prayer.Fajr, Prayer.Shuruq]) {
+      expect(isDark("sky", { prefersDark: false, nextPrayer })).toBe(true);
+    }
+    for (const nextPrayer of [Prayer.Duhr, Prayer.Asr, Prayer.Maghrib]) {
+      expect(isDark("sky", { prefersDark: true, nextPrayer })).toBe(false);
+    }
+  });
+
+  it("Should fall back to the device before it has a day to follow", () => {
+    expect(isDark("sky", { prefersDark: true, nextPrayer: null })).toBe(true);
+    expect(isDark("sky", { prefersDark: false, nextPrayer: null })).toBe(false);
+  });
+});
+
 describe("theme options", () => {
   it("Should offer the standard three first, then this app's own", () => {
-    expect(THEMES).toEqual(["system", "light", "dark", "maghrib"]);
+    expect(THEMES).toEqual(["system", "light", "dark", "maghrib", "sky"]);
   });
 
   it("Should label every option it offers", () => {

@@ -10,18 +10,32 @@
 
 import { Prayer } from "./PrayerTimes";
 
-export type Theme = "system" | "light" | "dark" | "maghrib";
+export type Theme = "system" | "light" | "dark" | "maghrib" | "sky";
 
 // Also the order they appear in the picker: the standard three first, then
-// the one specific to this app.
-export const THEMES: ReadonlyArray<Theme> = ["system", "light", "dark", "maghrib"];
+// the two specific to this app.
+export const THEMES: ReadonlyArray<Theme> = [
+  "system",
+  "light",
+  "dark",
+  "maghrib",
+  "sky",
+];
 
 export const themeLabels: Record<Theme, string> = {
   system: "Match device",
   light: "Light",
   dark: "Dark",
   maghrib: "Dark after Maghrib",
+  sky: "Sky",
 };
+
+/**
+ * Put on <html> alongside the palette class while the Sky theme is on, so its
+ * stylesheet only applies then. The colours themselves arrive as custom
+ * properties, from sky.ts.
+ */
+export const SKY_THEME_CLASS = "sky-theme";
 
 /** Ionic 8 ships this palette; adding the class to <html> switches to it. */
 export const DARK_PALETTE_CLASS = "ion-palette-dark";
@@ -53,6 +67,8 @@ export function isDark(theme: Theme, conditions: Conditions): boolean {
     case "dark":
       return true;
     case "maghrib":
+    // Sky goes dark on the same rule, so its night falls at Maghrib too.
+    case "sky":
       // Falling back to the device's setting rather than to light: it is the
       // better guess for the moment before the timetable arrives, and someone
       // who picked this mode wants dark at night, which is when a device is

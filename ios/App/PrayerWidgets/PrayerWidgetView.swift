@@ -16,15 +16,77 @@ struct PrayerWidgetEntryView: View {
     let entry: PrayerEntry
 
     var body: some View {
-        let colors = WidgetColors(settings: entry.settings, systemScheme: scheme)
+        let colors = WidgetColors(settings: entry.settings, systemScheme: scheme, sky: entry.sky)
         PrayerWidgetContent(entry: entry, family: family, colors: colors)
             .containerBackground(for: .widget) {
                 switch family {
                 case .accessoryCircular: AccessoryWidgetBackground()
                 case .accessoryRectangular, .accessoryInline: Color.clear
-                default: colors.background
+                default: WidgetBackground(colors: colors)
                 }
             }
+    }
+}
+
+/** The widget's background: the sky for the Sky palette, else a plain colour. */
+struct WidgetBackground: View {
+    let colors: WidgetColors
+
+    var body: some View {
+        if let sky = colors.sky {
+            SkyBackground(sky: sky)
+        } else {
+            colors.background
+        }
+    }
+}
+
+/**
+ * The sky as the app's countdown card draws it: a gradient from its top down
+ * to the horizon, the sun on its arc, and stars after Isha.
+ */
+struct SkyBackground: View {
+    let sky: SkyState
+
+    /** Fractions across and down, a radius in points and a strength. */
+    private static let stars: [(x: Double, y: Double, r: Double, o: Double)] = [
+        (0.06, 0.14, 1.0, 0.9), (0.14, 0.38, 0.75, 0.6), (0.22, 0.09, 0.75, 0.7),
+        (0.31, 0.26, 1.0, 0.8), (0.40, 0.12, 0.75, 0.5), (0.48, 0.34, 0.75, 0.6),
+        (0.57, 0.08, 1.0, 0.9), (0.64, 0.22, 0.75, 0.6), (0.72, 0.40, 0.75, 0.5),
+        (0.79, 0.13, 1.0, 0.8), (0.87, 0.30, 0.75, 0.6), (0.94, 0.10, 0.75, 0.7),
+        (0.36, 0.46, 0.75, 0.4), (0.84, 0.52, 0.75, 0.4),
+    ]
+
+    var body: some View {
+        GeometryReader { geometry in
+            let size = geometry.size
+            ZStack {
+                LinearGradient(
+                    stops: [
+                        .init(color: Color(hex: sky.top), location: 0),
+                        .init(color: Color(hex: sky.mid), location: 0.6),
+                        .init(color: Color(hex: sky.horizon), location: 1),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                if sky.night > 0 {
+                    ForEach(Array(Self.stars.enumerated()), id: \.offset) { _, star in
+                        Circle()
+                            .fill(Color.white.opacity(star.o * sky.night))
+                            .frame(width: star.r * 2, height: star.r * 2)
+                            .position(x: star.x * size.width, y: star.y * size.height)
+                    }
+                }
+                if let sun = sky.sun {
+                    Circle()
+                        .fill(Color(hex: sun.colour))
+                        .frame(width: 26, height: 26)
+                        .shadow(color: Color(hex: sun.colour).opacity(0.5), radius: 14)
+                        .position(x: sun.x * size.width, y: sun.y * size.height)
+                }
+            }
+        }
     }
 }
 

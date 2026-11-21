@@ -15,6 +15,14 @@ object WidgetUpdater {
         PrayerTimesVerticalWidgetProvider::class.java
     )
 
+    /** Every widget of this app placed on a home screen, of any kind. */
+    fun placedIds(context: Context): List<Int> {
+        val manager = AppWidgetManager.getInstance(context)
+        return PROVIDERS.flatMap {
+            manager.getAppWidgetIds(ComponentName(context, it)).toList()
+        }
+    }
+
     fun refreshAll(context: Context) {
         val manager = AppWidgetManager.getInstance(context)
         for (provider in PROVIDERS) {

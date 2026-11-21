@@ -66,6 +66,19 @@ class WidgetScreenshotTest(private val kind: WidgetKind) {
 
     @Test
     fun noTimes() = shoot("no_times", light, payload = null)
+
+    // The Sky palette through the day: a midday sky with the sun high, the
+    // sun setting into the horizon, and stars after Isha.
+    private val sky = WidgetConfig(palette = WidgetPalette.SKY)
+
+    @Test
+    fun skyMidday() = shoot("sky_midday", sky)
+
+    @Test
+    fun skySunset() = shoot("sky_sunset", sky, nowMillis = PayloadFixture.SUNSET)
+
+    @Test
+    fun skyAfterIsha() = shoot("sky_after_isha", sky, nowMillis = AFTER_ISHA)
 }
 
 /** The settings that change a widget's layout, on the widgets they apply to. */

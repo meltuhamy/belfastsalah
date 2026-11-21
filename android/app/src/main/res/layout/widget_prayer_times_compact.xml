@@ -8,281 +8,300 @@
   actually drawn. Without it the picker offers five identical white boxes,
   which is how the one-column widget became impossible to find.
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/compact_root"
+<!--
+  The FrameLayout only carries the Sky palette's picture, behind everything
+  else: RemoteViews cannot give a view a gradient at runtime, so the sky is
+  drawn as a bitmap (SkyPainter) into sky_background. Hidden in every other
+  palette, where the content's own background colour is the widget's.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/widget_background"
-    android:baselineAligned="false"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:paddingStart="6dp"
-    android:paddingTop="4dp"
-    android:paddingEnd="6dp"
-    android:paddingBottom="4dp">
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/sky_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
 
     <LinearLayout
-        android:id="@+id/compact_col_0"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:paddingTop="3dp"
-        android:paddingBottom="3dp">
+        android:id="@+id/compact_root"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_background"
+        android:baselineAligned="false"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="6dp"
+        android:paddingTop="4dp"
+        android:paddingEnd="6dp"
+        android:paddingBottom="4dp">
 
-        <TextView
-            android:id="@+id/compact_name_0"
-            android:text="Fajr"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:id="@+id/compact_col_0"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp" />
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp">
 
-        <TextView
-            android:id="@+id/compact_time_0"
-            android:text="05:36"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
+            <TextView
+                android:id="@+id/compact_name_0"
+                android:text="Fajr"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9sp" />
 
-        <!--
-          Only ever visible in the next prayer's column, which is what keeps
-          the countdown inside the highlight rather than costing the row a
-          second line of its own.
-        -->
-        <Chronometer
-            android:id="@+id/compact_countdown_0"
-            android:layout_width="wrap_content"
+            <TextView
+                android:id="@+id/compact_time_0"
+                android:text="05:36"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <!--
+              Only ever visible in the next prayer's column, which is what keeps
+              the countdown inside the highlight rather than costing the row a
+              second line of its own.
+            -->
+            <Chronometer
+                android:id="@+id/compact_countdown_0"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/compact_col_1"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
-            android:visibility="gone" />
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp">
+
+            <TextView
+                android:id="@+id/compact_name_1"
+                android:text="Shuruq"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9sp" />
+
+            <TextView
+                android:id="@+id/compact_time_1"
+                android:text="07:13"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <!--
+              Only ever visible in the next prayer's column, which is what keeps
+              the countdown inside the highlight rather than costing the row a
+              second line of its own.
+            -->
+            <Chronometer
+                android:id="@+id/compact_countdown_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/compact_col_2"
+            android:background="@drawable/widget_accent_blue"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp">
+
+            <TextView
+                android:id="@+id/compact_name_2"
+                android:text="Duhr"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@android:color/white"
+                android:textSize="9sp" />
+
+            <TextView
+                android:id="@+id/compact_time_2"
+                android:text="12:20"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <!--
+              Only ever visible in the next prayer's column, which is what keeps
+              the countdown inside the highlight rather than costing the row a
+              second line of its own.
+            -->
+            <Chronometer
+                android:id="@+id/compact_countdown_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/compact_col_3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp">
+
+            <TextView
+                android:id="@+id/compact_name_3"
+                android:text="Asr"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9sp" />
+
+            <TextView
+                android:id="@+id/compact_time_3"
+                android:text="14:45"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <!--
+              Only ever visible in the next prayer's column, which is what keeps
+              the countdown inside the highlight rather than costing the row a
+              second line of its own.
+            -->
+            <Chronometer
+                android:id="@+id/compact_countdown_3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/compact_col_4"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp">
+
+            <TextView
+                android:id="@+id/compact_name_4"
+                android:text="Maghrib"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9sp" />
+
+            <TextView
+                android:id="@+id/compact_time_4"
+                android:text="17:18"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <!--
+              Only ever visible in the next prayer's column, which is what keeps
+              the countdown inside the highlight rather than costing the row a
+              second line of its own.
+            -->
+            <Chronometer
+                android:id="@+id/compact_countdown_4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/compact_col_5"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp">
+
+            <TextView
+                android:id="@+id/compact_name_5"
+                android:text="Isha"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9sp" />
+
+            <TextView
+                android:id="@+id/compact_time_5"
+                android:text="18:48"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <!--
+              Only ever visible in the next prayer's column, which is what keeps
+              the countdown inside the highlight rather than costing the row a
+              second line of its own.
+            -->
+            <Chronometer
+                android:id="@+id/compact_countdown_5"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9sp"
+                android:visibility="gone" />
+        </LinearLayout>
     </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/compact_col_1"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:paddingTop="3dp"
-        android:paddingBottom="3dp">
-
-        <TextView
-            android:id="@+id/compact_name_1"
-            android:text="Shuruq"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp" />
-
-        <TextView
-            android:id="@+id/compact_time_1"
-            android:text="07:13"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <!--
-          Only ever visible in the next prayer's column, which is what keeps
-          the countdown inside the highlight rather than costing the row a
-          second line of its own.
-        -->
-        <Chronometer
-            android:id="@+id/compact_countdown_1"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
-            android:visibility="gone" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/compact_col_2"
-        android:background="@drawable/widget_accent_blue"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:paddingTop="3dp"
-        android:paddingBottom="3dp">
-
-        <TextView
-            android:id="@+id/compact_name_2"
-            android:text="Duhr"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@android:color/white"
-            android:textSize="9sp" />
-
-        <TextView
-            android:id="@+id/compact_time_2"
-            android:text="12:20"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@android:color/white"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <!--
-          Only ever visible in the next prayer's column, which is what keeps
-          the countdown inside the highlight rather than costing the row a
-          second line of its own.
-        -->
-        <Chronometer
-            android:id="@+id/compact_countdown_2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
-            android:visibility="gone" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/compact_col_3"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:paddingTop="3dp"
-        android:paddingBottom="3dp">
-
-        <TextView
-            android:id="@+id/compact_name_3"
-            android:text="Asr"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp" />
-
-        <TextView
-            android:id="@+id/compact_time_3"
-            android:text="14:45"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <!--
-          Only ever visible in the next prayer's column, which is what keeps
-          the countdown inside the highlight rather than costing the row a
-          second line of its own.
-        -->
-        <Chronometer
-            android:id="@+id/compact_countdown_3"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
-            android:visibility="gone" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/compact_col_4"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:paddingTop="3dp"
-        android:paddingBottom="3dp">
-
-        <TextView
-            android:id="@+id/compact_name_4"
-            android:text="Maghrib"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp" />
-
-        <TextView
-            android:id="@+id/compact_time_4"
-            android:text="17:18"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <!--
-          Only ever visible in the next prayer's column, which is what keeps
-          the countdown inside the highlight rather than costing the row a
-          second line of its own.
-        -->
-        <Chronometer
-            android:id="@+id/compact_countdown_4"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
-            android:visibility="gone" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/compact_col_5"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:paddingTop="3dp"
-        android:paddingBottom="3dp">
-
-        <TextView
-            android:id="@+id/compact_name_5"
-            android:text="Isha"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp" />
-
-        <TextView
-            android:id="@+id/compact_time_5"
-            android:text="18:48"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <!--
-          Only ever visible in the next prayer's column, which is what keeps
-          the countdown inside the highlight rather than costing the row a
-          second line of its own.
-        -->
-        <Chronometer
-            android:id="@+id/compact_countdown_5"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
-            android:visibility="gone" />
-    </LinearLayout>
-</LinearLayout>
+</FrameLayout>

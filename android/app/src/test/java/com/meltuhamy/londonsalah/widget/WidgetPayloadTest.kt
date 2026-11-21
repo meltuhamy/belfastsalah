@@ -29,7 +29,8 @@ class WidgetPayloadTest {
                 { "name": "Asr", "time": "14:45" },
                 { "name": "Maghrib", "time": "17:18" },
                 { "name": "Isha", "time": "18:48" }
-              ]
+              ],
+              "sky": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
             },
             {
               "dateLabel": "Mon 16 Feb",
@@ -40,10 +41,12 @@ class WidgetPayloadTest {
                 { "name": "Asr", "time": "14:47" },
                 { "name": "Maghrib", "time": "17:20" },
                 { "name": "Isha", "time": "18:50" }
-              ]
+              ],
+              "sky": [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
             }
           ],
-          "upcoming": $upcoming
+          "upcoming": $upcoming,
+          "skyColours": ${PayloadFixture.SKY_COLOURS}
         }
     """.trimIndent()
 
@@ -117,6 +120,22 @@ class WidgetPayloadTest {
         assertNull(
             WidgetPayload.parse(payloadJson(upcoming = """[{ "name": "Fajr", "at": 1000, "day": 0 }]"""))
         )
+    }
+
+    @Test
+    fun `reads each day's sky and the colours to paint it`() {
+        val payload = WidgetPayload.parse(payloadJson(upcoming = "[]"))!!
+        assertEquals((11L..20L).toList(), payload.days[1].sky.toList())
+        assertEquals(10, payload.skyColours.size)
+        assertEquals(SkyColours("#4f9ae4", "#7dbbef", "#b9def8"), payload.skyColours[4])
+    }
+
+    @Test
+    fun `refuses a day without its sky`() {
+        // A Sky widget would have nothing to draw, and version 4 always has it.
+        val noSky = payloadJson(upcoming = "[]")
+            .replace(""""sky": [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]""", """"sky": [11, 12]""")
+        assertNull(WidgetPayload.parse(noSky))
     }
 
     @Test

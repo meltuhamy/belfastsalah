@@ -219,3 +219,102 @@
     transition: none;
   }
 }
+
+/*
+  The Sky theme. The card becomes the sky itself, from its top down to the
+  horizon, in colours useTheme sets on <html> from src/lib/sky.ts. Outer-tree
+  declarations on the ion-card host beat its shadow styles, so the background
+  and colour here replace the primary colour it was given.
+*/
+.sky-theme .PrayerDayCard__bubble {
+  background: linear-gradient(
+    180deg,
+    var(--sky-top) 0%,
+    var(--sky-mid) 62%,
+    var(--sky-horizon) 100%
+  );
+  color: var(--sky-text);
+}
+
+/*
+  sky.ts picks the text colour to read at 4.5:1 against the sky behind it,
+  which only holds at full strength - so no fading the secondary lines here.
+  Size and weight carry the hierarchy instead.
+*/
+.sky-theme .PrayerDayCard .PrayerDayCard__label,
+.sky-theme .PrayerDayCard .PrayerDayCard__line .PrayerDayCard__label,
+.sky-theme .PrayerDayCard .PrayerDayCard__meta {
+  opacity: 1;
+}
+
+.sky-theme .PrayerDayCard__badge {
+  background: rgba(var(--sky-text-rgb), 0.16);
+}
+
+/* The tail hangs below the card, so it carries on the horizon's colour. */
+.sky-theme .PrayerDayCard__tail {
+  background: var(--sky-horizon);
+}
+
+/* The next prayer is a small piece of the same sky: its lower half. */
+.sky-theme .PrayerDayCard__cell[data-next="true"] {
+  background: linear-gradient(170deg, var(--sky-mid), var(--sky-horizon));
+}
+
+.sky-theme .PrayerDayCard__cell[data-next="true"] .PrayerDayCard__cell-name,
+.sky-theme .PrayerDayCard__cell[data-next="true"] .PrayerDayCard__cell-time {
+  color: var(--sky-lower-text);
+}
+
+.PrayerDayCard__sky {
+  display: none;
+}
+
+.sky-theme .PrayerDayCard__sky {
+  display: block;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Positioned so it paints above the sky layer, which comes before it. */
+.sky-theme .PrayerDayCard__bubble-content {
+  position: relative;
+}
+
+/* Moved along its arc by --sky-sun-x/y; parked below the card at night. */
+.PrayerDayCard__sun {
+  position: absolute;
+  left: var(--sky-sun-x);
+  top: var(--sky-sun-y);
+  width: 30px;
+  height: 30px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--sky-sun-colour);
+  box-shadow: 0 0 28px 10px var(--sky-sun-glow);
+}
+
+/* Fixed points scaled to the card, faded in after Isha by --sky-night. */
+.PrayerDayCard__stars {
+  position: absolute;
+  inset: 0;
+  opacity: var(--sky-night);
+  background-image:
+    radial-gradient(circle at 6% 18%, #fff 0 1px, transparent 1.6px),
+    radial-gradient(circle at 14% 62%, #fff 0 0.75px, transparent 1.3px),
+    radial-gradient(circle at 22% 12%, #fff 0 0.75px, transparent 1.3px),
+    radial-gradient(circle at 31% 40%, #fff 0 1px, transparent 1.6px),
+    radial-gradient(circle at 40% 16%, #fff 0 0.75px, transparent 1.3px),
+    radial-gradient(circle at 48% 70%, #fff 0 0.75px, transparent 1.3px),
+    radial-gradient(circle at 57% 10%, #fff 0 1px, transparent 1.6px),
+    radial-gradient(circle at 64% 34%, #fff 0 0.75px, transparent 1.3px),
+    radial-gradient(circle at 72% 78%, #fff 0 0.75px, transparent 1.3px),
+    radial-gradient(circle at 79% 20%, #fff 0 1px, transparent 1.6px),
+    radial-gradient(circle at 87% 52%, #fff 0 0.75px, transparent 1.3px),
+    radial-gradient(circle at 94% 12%, #fff 0 0.75px, transparent 1.3px),
+    radial-gradient(circle at 36% 86%, #fff 0 0.75px, transparent 1.3px),
+    radial-gradient(circle at 84% 88%, #fff 0 0.75px, transparent 1.3px);
+}

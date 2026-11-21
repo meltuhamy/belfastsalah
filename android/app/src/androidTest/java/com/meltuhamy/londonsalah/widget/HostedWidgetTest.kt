@@ -15,6 +15,7 @@ import android.util.TypedValue
 import android.view.View
 import android.widget.Button
 import android.widget.CheckBox
+import android.widget.RadioButton
 import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -206,6 +207,28 @@ class HostedWidgetTest {
         assertFalse(WidgetConfig.load(context, wide.id).showLocation)
         waitUntil("the city to go") { !wide.isShown(R.id.widget_location) }
         assertTrue(onMain { wide.isShown(R.id.widget_date) })
+    }
+
+    @Test
+    fun choosingTheSkyDrawsTheSkyBehindTheWidget() {
+        val wide = bind(PrayerTimesWidgetProvider::class.java, 390, 139)
+        waitUntil("the widget to draw") { wide.text(R.id.prayer_time_3) == "14:01" }
+        assertFalse(onMain { wide.isShown(R.id.sky_background) })
+
+        val intent = Intent(context, WidgetConfigActivity::class.java)
+            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, wide.id)
+        ActivityScenario.launch<WidgetConfigActivity>(intent).use { scenario ->
+            scenario.onActivity { screen ->
+                screen.findViewById<RadioButton>(R.id.palette_sky).performClick()
+                screen.findViewById<Button>(R.id.config_save).performClick()
+            }
+        }
+
+        assertEquals(WidgetPalette.SKY, WidgetConfig.load(context, wide.id).palette)
+        // Drawn through the real host, so this is the picture crossing from
+        // the app's process to the launcher's in one piece - a bitmap too big
+        // for that never arrives, and the widget would stay as it was.
+        waitUntil("the sky to be drawn") { onMain { wide.isShown(R.id.sky_background) } }
     }
 
     // --- Hosting -------------------------------------------------------------

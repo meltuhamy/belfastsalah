@@ -70,6 +70,15 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
       data-points-at={nextColumn ?? undefined}
     >
       <IonCard color="primary" className="PrayerDayCard__bubble">
+        {/*
+          The Sky theme's sun and stars, drawn behind the text. Only shown in
+          that theme, and in a layer of its own so it can clip to the card's
+          corners without the card clipping its tail.
+        */}
+        <span className="PrayerDayCard__sky" aria-hidden="true">
+          <span className="PrayerDayCard__stars" />
+          <span className="PrayerDayCard__sun" />
+        </span>
         <IonCardContent className="PrayerDayCard__bubble-content">
           <div className="PrayerDayCard__countdown">
             {next == null || prev == null ? (
