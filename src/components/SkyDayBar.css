@@ -9,9 +9,15 @@
   margin-top: 10px;
 }
 
+/*
+  Under the theme picker, with a caption below it. The space is the bar's own:
+  Ionic zeroes the margins of a p inside an ion-label, so a margin on the
+  caption never arrived.
+*/
 .SkyDayBar--tall {
   height: 24px;
   border-radius: 8px;
+  margin-bottom: 10px;
 }
 
 .SkyDayBar__now {
