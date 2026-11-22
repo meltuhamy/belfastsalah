@@ -79,43 +79,36 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
           <span className="PrayerDayCard__stars" />
           <span className="PrayerDayCard__sun" />
         </span>
+        {/*
+          Laid out like the home screen widget: what is next across the top,
+          where and when along the bottom, and the sky in between - the card is
+          tall on purpose, so the sun has an arc to travel and the stars room
+          to be seen.
+        */}
         <IonCardContent className="PrayerDayCard__bubble-content">
-          <div className="PrayerDayCard__countdown">
-            {next == null || prev == null ? (
-              <>
-                <IonSkeletonText animated style={{ width: "40%" }} />
-                <IonSkeletonText animated style={{ width: "70%" }} />
-                <IonSkeletonText animated style={{ width: "55%" }} />
-              </>
+          <div className="PrayerDayCard__top">
+            {next == null ? (
+              <IonSkeletonText
+                animated
+                className="PrayerDayCard__skeleton"
+                style={{ width: "55%" }}
+              />
             ) : (
-              <>
-                <p className="PrayerDayCard__line">
-                  <span className="PrayerDayCard__label">
-                    {prayerToString(next.prayer)} in
-                  </span>
-                  <span
-                    className="PrayerDayCard__remaining"
-                    data-testid="countdown"
-                  >
-                    {timeDurationString(
-                      (next.time.getTime() - now.getTime()) / 1000,
-                      "short"
-                    )}
-                  </span>
-                </p>
-                <p className="PrayerDayCard__label">
-                  {prayerToString(prev.prayer)} was{" "}
+              <p className="PrayerDayCard__line">
+                <span className="PrayerDayCard__label">
+                  {prayerToString(next.prayer)} in
+                </span>
+                <span
+                  className="PrayerDayCard__remaining"
+                  data-testid="countdown"
+                >
                   {timeDurationString(
-                    (now.getTime() - prev.time.getTime()) / 1000,
+                    (next.time.getTime() - now.getTime()) / 1000,
                     "short"
-                  )}{" "}
-                  ago
-                </p>
-              </>
+                  )}
+                </span>
+              </p>
             )}
-          </div>
-
-          <div className="PrayerDayCard__meta">
             {showsNextDay && (
               <span
                 className="PrayerDayCard__badge"
@@ -124,13 +117,35 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
                 Tomorrow
               </span>
             )}
-            {locationName !== null && <p>{locationName}</p>}
-            <p data-testid="day-date">{formatDateInZone(stripDay, timeZone)}</p>
-            {showsOtherZone && locationName !== null && (
-              <p data-testid="display-zone-caption">
-                Showing {locationName} time
+          </div>
+
+          <div className="PrayerDayCard__bottom">
+            <div className="PrayerDayCard__since">
+              {prev == null ? (
+                <IonSkeletonText animated style={{ width: "70%" }} />
+              ) : (
+                <p className="PrayerDayCard__label">
+                  {prayerToString(prev.prayer)} was{" "}
+                  {timeDurationString(
+                    (now.getTime() - prev.time.getTime()) / 1000,
+                    "short"
+                  )}{" "}
+                  ago
+                </p>
+              )}
+            </div>
+
+            <div className="PrayerDayCard__meta">
+              {locationName !== null && <p>{locationName}</p>}
+              <p data-testid="day-date">
+                {formatDateInZone(stripDay, timeZone)}
               </p>
-            )}
+              {showsOtherZone && locationName !== null && (
+                <p data-testid="display-zone-caption">
+                  Showing {locationName} time
+                </p>
+              )}
+            </div>
           </div>
         </IonCardContent>
         {/*

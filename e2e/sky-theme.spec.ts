@@ -75,7 +75,8 @@ test("paints the card as the midday sky at Duhr, with dark text", async ({
     "linear-gradient(170deg, rgb(125, 187, 239), rgb(185, 222, 248))"
   );
 
-  await expect(page.getByTestId("sky-day-bar")).toBeVisible();
+  // The card is the sky on the home screen; the day bar is for settings only.
+  await expect(page.getByTestId("sky-day-bar")).toHaveCount(0);
 });
 
 test("goes dark at Maghrib, with light text on the sunset", async ({ page }) => {
@@ -151,22 +152,4 @@ test("takes its colours away when another theme is chosen", async ({ page }) => 
   await expect.poll(() => htmlHas(page, "sky-theme")).toBe(false);
   expect(await property(page, "--sky-top")).toBe("");
   await expect(page.getByTestId("sky-day-bar")).toHaveCount(0);
-});
-
-// ion-card-header lays its children out in reverse in iOS mode, which once put
-// the day bar above the month's name on iPhones only. The rest of the suite
-// runs in Android's mode, so this one asks for iOS's.
-test("keeps the day bar under the month's name in iOS mode", async ({ page }) => {
-  await pinDate(page, "2026-01-15T12:15:00Z");
-  await setUpWithSky(page);
-  // Settings are written through a 500ms debounce; let them land first.
-  await page.waitForTimeout(700);
-  await page.goto("/?ionic:mode=ios");
-  await expect(page.locator(PRAYER_STRIP)).toBeVisible();
-
-  const bar = await page.getByTestId("sky-day-bar").boundingBox();
-  const month = await page
-    .locator(".HomePage__month-card ion-card-subtitle")
-    .boundingBox();
-  expect(bar!.y).toBeGreaterThan(month!.y + month!.height);
 });

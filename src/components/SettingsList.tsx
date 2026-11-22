@@ -353,7 +353,7 @@ const SettingsList: React.FC<Props> = ({
       {settings.theme === "sky" && (
         <IonItem className="settings-list__note-item">
           <IonLabel className="ion-text-wrap settings-list__sky">
-            <SkyDayBar size="tall" />
+            <SkyDayBar />
             <p>
               Colours follow today's prayer times: dawn at Fajr, sunset at
               Maghrib, dark until Shuruq.

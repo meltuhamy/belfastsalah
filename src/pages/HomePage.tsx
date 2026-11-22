@@ -30,7 +30,6 @@ import { getZonedDateParts } from "../lib/timeZone";
 import { shouldPromptForZone } from "../lib/displayZone";
 import { locationNames, timetableZoneFor } from "../lib/PrayerTimeData";
 import { useSettings } from "../lib/useSettings";
-import SkyDayBar from "../components/SkyDayBar";
 import TimeZoneNotice from "../components/TimeZoneNotice";
 
 let shouldExitApp = false;
@@ -116,26 +115,18 @@ const HomePage: React.FC = () => {
           <PrayerDayCard today={today} next={next} prev={prev} now={now} />
           <IonCard className="HomePage__month-card">
             <IonCardHeader ref={cardHeaderRef}>
-              {/*
-                One child, so the day bar stays under the month's name: in
-                iOS mode ion-card-header lays its children out in reverse,
-                which put the bar above it.
-              */}
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <div>
-                    <IonCardSubtitle>{monthName}</IonCardSubtitle>
-                  </div>
-                  <div>
-                    <MonthPicker
-                      now={now}
-                      timeZone={timetableZone}
-                      value={selectedMonth}
-                      onChange={(newMonth) => setSelectedMonth(newMonth)}
-                    />
-                  </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <div>
+                  <IonCardSubtitle>{monthName}</IonCardSubtitle>
                 </div>
-                {appSettings?.theme === "sky" && <SkyDayBar size="thin" />}
+                <div>
+                  <MonthPicker
+                    now={now}
+                    timeZone={timetableZone}
+                    value={selectedMonth}
+                    onChange={(newMonth) => setSelectedMonth(newMonth)}
+                  />
+                </div>
               </div>
             </IonCardHeader>
             <IonCardContent className="HomePage__month-card__content">

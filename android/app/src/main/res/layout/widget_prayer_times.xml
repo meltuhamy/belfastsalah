@@ -88,11 +88,20 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!--
+          Takes whatever height the header leaves and sits the times at the
+          bottom of it, so on a tall widget the spare room is between the
+          countdown and the times, not under the times - where the Sky
+          palette's horizon is. The margin is the gap on a widget with none to
+          spare. The iOS medium widget does the same with a Spacer.
+        -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:layout_marginTop="10dp"
             android:baselineAligned="false"
+            android:gravity="bottom"
             android:orientation="horizontal">
 
         <LinearLayout

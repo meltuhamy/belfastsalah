@@ -2,12 +2,11 @@
   The wrapper owns the margins, and the card inside it owns none. That is what
   makes the tail's arithmetic below hold: the bubble and the strip are both
   exactly this element's width, by construction rather than by two separate
-  elements happening to agree. 10px is ion-card's own margin, so the card and
-  the month card below it still line up.
+  elements happening to agree.
 */
 .PrayerDayCard {
   --strip-columns: 6;
-  margin: 10px;
+  margin: 12px 16px 10px;
 }
 
 /*
@@ -64,15 +63,44 @@
   display: none;
 }
 
-.PrayerDayCard__bubble-content {
+/*
+  Tall, like the home screen widget: the countdown across the top, where and
+  when along the bottom, and open sky in between for the sun's arc and the
+  stars. sky.ts places the sun as a fraction of the card's height, so the
+  height is what gives it room to travel.
+*/
+.PrayerDayCard .PrayerDayCard__bubble-content {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 188px;
+  box-sizing: border-box;
+  padding: 20px 20px 18px;
+}
+
+.PrayerDayCard__top,
+.PrayerDayCard__bottom {
+  display: flex;
   justify-content: space-between;
   gap: 12px;
 }
 
-.PrayerDayCard__countdown {
+.PrayerDayCard__top {
+  align-items: flex-start;
+}
+
+.PrayerDayCard__bottom {
+  align-items: flex-end;
+}
+
+.PrayerDayCard__since {
   min-width: 0;
+  flex: 1;
+}
+
+.PrayerDayCard__skeleton {
+  height: 28px;
 }
 
 /*
@@ -91,12 +119,12 @@
 /*
   The prayer's name is set at the countdown's size, so the line reads as one
   phrase rather than a caption stuck to a number - weight and opacity carry the
-  hierarchy instead. Both are a couple of points down on the countdown alone,
-  which is what keeps the longest pairing ("Maghrib in 23h 59m") on one line on
-  a 320dp screen.
+  hierarchy instead. The countdown has the card's full width to itself, so
+  the longest pairing ("Maghrib in 23h 59m") fits on one line from 360dp up;
+  narrower screens step down below.
 */
 .PrayerDayCard .PrayerDayCard__line .PrayerDayCard__label {
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1.1;
   letter-spacing: -0.01em;
   opacity: 0.8;
@@ -110,13 +138,14 @@
 .PrayerDayCard .PrayerDayCard__line {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  margin: 0 0 2px;
+  gap: 8px;
+  margin: 0;
+  min-width: 0;
   flex-wrap: wrap;
 }
 
 .PrayerDayCard .PrayerDayCard__remaining {
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.02em;
@@ -147,7 +176,8 @@
   a second rule.
 */
 .PrayerDayCard__badge {
-  margin-bottom: 2px;
+  flex: none;
+  margin-top: 4px;
   padding: 1px 8px;
   border-radius: 999px;
   background: rgba(var(--ion-color-primary-contrast-rgb), 0.22);
@@ -165,7 +195,7 @@
 .PrayerDayCard__strip {
   display: grid;
   grid-template-columns: repeat(var(--strip-columns), 1fr);
-  margin-top: 13px;
+  margin-top: 16px;
 }
 
 .PrayerDayCard__strip-loading {
@@ -176,9 +206,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 8px 1px;
-  border-radius: 8px;
+  gap: 3px;
+  padding: 10px 1px;
+  border-radius: 10px;
   transition: background-color 320ms cubic-bezier(0.32, 0.72, 0.3, 1);
 }
 
@@ -204,6 +234,14 @@
 }
 
 @media (max-width: 359px) {
+  .PrayerDayCard .PrayerDayCard__line .PrayerDayCard__label {
+    font-size: 20px;
+  }
+
+  .PrayerDayCard .PrayerDayCard__remaining {
+    font-size: 25px;
+  }
+
   .PrayerDayCard__cell-name {
     font-size: 10px;
   }
@@ -217,6 +255,10 @@
   .PrayerDayCard__tail,
   .PrayerDayCard__cell {
     transition: none;
+  }
+
+  .PrayerDayCard__stars::after {
+    animation: none;
   }
 }
 
@@ -284,11 +326,18 @@
   position: relative;
 }
 
-/* Moved along its arc by --sky-sun-x/y; parked below the card at night. */
+/*
+  Moved along its arc by --sky-sun-x/y; parked below the card at night.
+  sky.ts's arc spans the whole card, which on this tall one puts the noon sun
+  on top of the countdown. So the noon sun is brought down into the open sky
+  between the two rows of text, 24% of the card becoming 38%, and the horizon
+  is lowered to the card's bottom edge, so the sun sets into it rather than
+  behind the date. The widgets draw sky.ts's arc as it is.
+*/
 .PrayerDayCard__sun {
   position: absolute;
   left: var(--sky-sun-x);
-  top: var(--sky-sun-y);
+  top: calc(var(--sky-sun-y) * 0.91 + 16%);
   width: 30px;
   height: 30px;
   transform: translate(-50%, -50%);
@@ -297,24 +346,85 @@
   box-shadow: 0 0 28px 10px var(--sky-sun-glow);
 }
 
-/* Fixed points scaled to the card, faded in after Isha by --sky-night. */
+/*
+  Faded in after Isha by --sky-night. Scattered rather than spaced: mostly
+  faint pinpricks of varying brightness, thicker towards the top of the card
+  where the sky is darkest, positioned as fractions of the card so they stay
+  put whatever its width. The positions came from a seeded random scatter,
+  not by hand - spacing them out by eye is what made the old ones look like
+  a pattern.
+*/
 .PrayerDayCard__stars {
   position: absolute;
   inset: 0;
   opacity: var(--sky-night);
   background-image:
-    radial-gradient(circle at 6% 18%, #fff 0 1px, transparent 1.6px),
-    radial-gradient(circle at 14% 62%, #fff 0 0.75px, transparent 1.3px),
-    radial-gradient(circle at 22% 12%, #fff 0 0.75px, transparent 1.3px),
-    radial-gradient(circle at 31% 40%, #fff 0 1px, transparent 1.6px),
-    radial-gradient(circle at 40% 16%, #fff 0 0.75px, transparent 1.3px),
-    radial-gradient(circle at 48% 70%, #fff 0 0.75px, transparent 1.3px),
-    radial-gradient(circle at 57% 10%, #fff 0 1px, transparent 1.6px),
-    radial-gradient(circle at 64% 34%, #fff 0 0.75px, transparent 1.3px),
-    radial-gradient(circle at 72% 78%, #fff 0 0.75px, transparent 1.3px),
-    radial-gradient(circle at 79% 20%, #fff 0 1px, transparent 1.6px),
-    radial-gradient(circle at 87% 52%, #fff 0 0.75px, transparent 1.3px),
-    radial-gradient(circle at 94% 12%, #fff 0 0.75px, transparent 1.3px),
-    radial-gradient(circle at 36% 86%, #fff 0 0.75px, transparent 1.3px),
-    radial-gradient(circle at 84% 88%, #fff 0 0.75px, transparent 1.3px);
+    radial-gradient(circle at 9.8% 27.0%, rgba(255, 255, 255, 0.62) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 37.4% 26.5%, rgba(255, 255, 255, 0.42) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 54.3% 29.7%, rgba(255, 255, 255, 0.36) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 82.8% 38.8%, rgba(255, 255, 255, 0.49) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 37.3% 32.9%, rgba(255, 255, 255, 0.36) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 49.2% 20.5%, rgba(255, 255, 255, 0.61) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 73.5% 25.7%, rgba(255, 255, 255, 0.44) 0 0.6px, transparent 1.10px),
+    radial-gradient(circle at 32.3% 69.0%, rgba(255, 255, 255, 0.65) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 42.5% 52.1%, rgba(255, 255, 255, 0.52) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 93.7% 27.3%, rgba(255, 255, 255, 0.72) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 54.0% 10.6%, rgba(255, 255, 255, 0.39) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 25.0% 77.7%, rgba(255, 255, 255, 0.39) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 16.9% 11.0%, rgba(255, 255, 255, 0.54) 0 0.6px, transparent 1.10px),
+    radial-gradient(circle at 24.4% 40.8%, rgba(255, 255, 255, 0.38) 0 0.6px, transparent 1.10px),
+    radial-gradient(circle at 35.5% 7.4%, rgba(255, 255, 255, 0.80) 0 0.6px, transparent 1.10px),
+    radial-gradient(circle at 27.4% 10.1%, rgba(255, 255, 255, 0.82) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 30.9% 12.0%, rgba(255, 255, 255, 0.67) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 36.6% 58.5%, rgba(255, 255, 255, 0.77) 0 0.75px, transparent 1.25px),
+    radial-gradient(circle at 22.5% 26.9%, rgba(255, 255, 255, 0.37) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 25.7% 85.0%, rgba(255, 255, 255, 0.77) 0 0.6px, transparent 1.10px),
+    radial-gradient(circle at 54.8% 11.0%, rgba(255, 255, 255, 0.64) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 10.5% 7.0%, rgba(255, 255, 255, 0.53) 0 0.6px, transparent 1.10px),
+    radial-gradient(circle at 55.4% 67.9%, rgba(255, 255, 255, 0.68) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 3.5% 66.6%, rgba(255, 255, 255, 0.39) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 98.5% 8.4%, rgba(255, 255, 255, 0.60) 0 0.6px, transparent 1.10px),
+    radial-gradient(circle at 56.0% 64.4%, rgba(255, 255, 255, 0.81) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 86.8% 12.6%, rgba(255, 255, 255, 0.38) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 19.2% 88.1%, rgba(255, 255, 255, 0.47) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 38.1% 41.7%, rgba(255, 255, 255, 0.50) 0 0.6px, transparent 1.10px),
+    radial-gradient(circle at 76.0% 65.6%, rgba(255, 255, 255, 0.40) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 2.5% 50.5%, rgba(255, 255, 255, 0.63) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 55.4% 53.1%, rgba(255, 255, 255, 0.78) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 73.9% 42.3%, rgba(255, 255, 255, 0.61) 0 0.75px, transparent 1.25px),
+    radial-gradient(circle at 44.4% 17.6%, rgba(255, 255, 255, 0.69) 0 0.6px, transparent 1.10px),
+    radial-gradient(circle at 26.4% 66.5%, rgba(255, 255, 255, 0.40) 0 0.75px, transparent 1.25px),
+    radial-gradient(circle at 64.6% 59.9%, rgba(255, 255, 255, 0.44) 0 0.6px, transparent 1.10px),
+    radial-gradient(circle at 62.2% 25.7%, rgba(255, 255, 255, 0.61) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 82.9% 13.1%, rgba(255, 255, 255, 0.62) 0 0.6px, transparent 1.10px),
+    radial-gradient(circle at 17.8% 16.3%, rgba(255, 255, 255, 0.41) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 78.7% 6.8%, rgba(255, 255, 255, 0.39) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 66.9% 23.2%, rgba(255, 255, 255, 0.48) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 17.3% 11.4%, rgba(255, 255, 255, 0.52) 0 0.45px, transparent 0.95px),
+    radial-gradient(circle at 62.7% 6.3%, rgba(255, 255, 255, 0.84) 0 0.75px, transparent 1.25px),
+    radial-gradient(circle at 27.7% 38.1%, rgba(255, 255, 255, 0.43) 0 0.45px, transparent 0.95px);
+}
+
+/* A handful of brighter ones, breathing slowly. */
+.PrayerDayCard__stars::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 3.0% 64.1%, rgba(255, 255, 255, 0.88) 0 1.1px, transparent 1.60px),
+    radial-gradient(circle at 28.1% 8.5%, rgba(255, 255, 255, 0.95) 0 0.9px, transparent 1.40px),
+    radial-gradient(circle at 18.1% 10.0%, rgba(255, 255, 255, 0.85) 0 0.9px, transparent 1.40px),
+    radial-gradient(circle at 91.7% 79.7%, rgba(255, 255, 255, 0.81) 0 1.1px, transparent 1.60px),
+    radial-gradient(circle at 52.6% 41.8%, rgba(255, 255, 255, 0.81) 0 1.0px, transparent 1.50px),
+    radial-gradient(circle at 93.5% 24.6%, rgba(255, 255, 255, 0.86) 0 1.1px, transparent 1.60px);
+  animation: PrayerDayCard-twinkle 5.5s ease-in-out infinite alternate;
+}
+
+@keyframes PrayerDayCard-twinkle {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.55;
+  }
 }
