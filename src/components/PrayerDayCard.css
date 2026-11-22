@@ -226,6 +226,14 @@
 }
 
 /*
+  Faded back, like the cells below them, except the next prayer's - and one
+  that has just come in, whose pulse would otherwise be lost.
+*/
+.PrayerDayCard__dot:not([data-next="true"]):not([data-recent="true"]) {
+  opacity: 0.55;
+}
+
+/*
   Just come in: the bead breathes, slowly, for its first ten minutes. Only the
   glow moves, so the dot itself stays put.
 */

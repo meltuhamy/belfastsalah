@@ -202,6 +202,9 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
                   className="PrayerDayCard__dot"
                   data-passed={passed[i] ? "true" : "false"}
                   data-recent={recent[i] ? "true" : "false"}
+                  data-next={
+                    prayerTime.prayer === nextPrayer ? "true" : "false"
+                  }
                 />
               ))}
             </div>

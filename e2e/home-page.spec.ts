@@ -84,6 +84,13 @@ test("fills a dot on the timeline for each prayer that has passed", async ({
     .poll(() => dots.evaluateAll((all) => all.map((d) => d.dataset.passed)))
     .toEqual(["true", "true", "false", "false", "false", "false"]);
 
+  // The next prayer's dot is at full strength; the rest are faded back.
+  await expect
+    .poll(() =>
+      dots.evaluateAll((all) => all.map((d) => getComputedStyle(d).opacity))
+    )
+    .toEqual(["0.55", "0.55", "1", "0.55", "0.55", "0.55"]);
+
   // After Isha the strip is tomorrow's, none of which has happened yet.
   await page.clock.setFixedTime(new Date("2026-02-15T20:00:00Z"));
   await expect
