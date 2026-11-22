@@ -226,6 +226,16 @@
 }
 
 /*
+  On a dark sky full white glares, so the beads are a softer grey-white and
+  glow less. Opaque, not faded: a translucent bead lets the line show through.
+*/
+.ion-palette-dark .PrayerDayCard__dot[data-passed="true"] {
+  background: #c4c6d6;
+  border-color: #c4c6d6;
+  box-shadow: 0 0 3px rgba(255, 255, 255, 0.2);
+}
+
+/*
   The prayers still to come after the next one are faded back, like their
   cells below. The next prayer's ring stays at full strength, and so do the
   prayers that have come in: faded, a bead turns translucent and the line
