@@ -67,13 +67,10 @@ describe("makeStarfield", () => {
     );
   });
 
-  it("Should keep every layer, swing and all, inside the room left for it", () => {
-    for (const layer of STAR_LAYERS) {
-      // An underdamped spring's first swing past its target, as a fraction.
-      const zeta = layer.spring.dampingRatio;
-      const overshoot = Math.exp((-zeta * Math.PI) / Math.sqrt(1 - zeta * zeta));
-      expect(layer.shift * (1 + overshoot)).toBeLessThanOrEqual(TILT_SHIFT);
-    }
+  it("Should keep every layer inside the room left for it, nearer moving further", () => {
+    const shifts = STAR_LAYERS.map((layer) => layer.shift);
+    expect(Math.max(...shifts)).toBeLessThanOrEqual(TILT_SHIFT);
+    expect(shifts).toEqual([...shifts].sort((x, y) => x - y));
   });
 
   it("Should make a different sky each time", () => {

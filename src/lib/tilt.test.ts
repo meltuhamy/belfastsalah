@@ -36,20 +36,11 @@ describe("createTiltFollower", () => {
     expect(tipped.y).toBe(-8);
   });
 
-  it("Should keep a tilt for a while, rather than springing straight back", () => {
+  it("Should settle back to the centre when held still at a new angle", () => {
     const follow = createTiltFollower(8);
     follow(40, 0, 0);
     const first = follow(40, 15, 16).x;
-    // Two seconds held at the new angle: the stars have barely moved back.
-    const later = hold(follow, 40, 15, 16, 2);
-    expect(Math.abs(later.x)).toBeGreaterThan(Math.abs(first) * 0.9);
-  });
-
-  it("Should drift back to the centre over half a minute or so", () => {
-    const follow = createTiltFollower(8);
-    follow(40, 0, 0);
-    const first = follow(40, 15, 16).x;
-    const later = hold(follow, 40, 15, 16, 75);
+    const later = hold(follow, 40, 15, 16, 3);
     expect(Math.abs(later.x)).toBeLessThan(Math.abs(first) / 10);
   });
 
@@ -59,10 +50,11 @@ describe("createTiltFollower", () => {
     const slow = createTiltFollower(8);
     slow(40, 0, 0);
     let a = { x: 0, y: 0 };
-    for (let t = 0; t <= 10_000; t += 5) a = fast(40, 15, t);
+    // 60 readings a second against 20: within half a px of each other.
+    for (let t = 0; t <= 600; t += 1000 / 60) a = fast(40, 15, t);
     let b = { x: 0, y: 0 };
-    for (let t = 0; t <= 10_000; t += 100) b = slow(40, 15, t);
-    expect(a.x).toBeCloseTo(b.x, 1);
+    for (let t = 0; t <= 600; t += 50) b = slow(40, 15, t);
+    expect(Math.abs(a.x - b.x)).toBeLessThan(0.5);
   });
 
   it("Should stay still without readings", () => {

@@ -154,41 +154,19 @@ test("shifts the stars by depth as the phone is tipped", async ({ page }) => {
   expect(await shift(2)).toEqual({ x: 0, y: 0 });
 
   // Tipped right and towards the reader: every layer slides left and up, the
-  // near stars furthest and the far ones least. Watched frame by frame for a
-  // few seconds, since the springs are meant to carry on past and swing back.
+  // near stars furthest and the far ones least, by a few px at most.
   await tip(50, 10);
-  const track = await page.evaluate(
-    () =>
-      new Promise<Array<{ far: number; near: number }>>((resolve) => {
-        const at = (depth: number) =>
-          new DOMMatrix(
-            getComputedStyle(
-              document.querySelector(`.StarField__tilt[data-depth="${depth}"]`)!
-            ).transform
-          ).m41;
-        const frames: Array<{ far: number; near: number }> = [];
-        const start = performance.now();
-        const step = () => {
-          frames.push({ far: at(0), near: at(2) });
-          if (performance.now() - start < 4000) requestAnimationFrame(step);
-          else resolve(frames);
-        };
-        requestAnimationFrame(step);
-      })
-  );
-  const end = track[track.length - 1];
-  const furthest = Math.min(...track.map((f) => f.near));
-  // It overshoots: at some moment the near stars were further left than where
-  // they came to rest.
-  expect(furthest).toBeLessThan(end.near - 0.5);
-  // And they stay where the tilt put them, rather than springing back to the
-  // centre: the resting angle only catches up over half a minute.
-  expect(end.near).toBeLessThan(-2);
-  expect(Math.abs(end.near)).toBeGreaterThan(Math.abs(end.far));
-  expect(Math.abs(furthest)).toBeLessThanOrEqual(16);
+  await expect.poll(async () => (await shift(2)).x).toBeLessThan(-2);
+  // Let the ease finish before comparing depths.
+  await page.waitForTimeout(500);
+  const far = await shift(0);
   const mid = await shift(1);
-  expect(Math.abs(mid.x)).toBeGreaterThan(Math.abs(end.far));
-  expect(Math.abs(mid.x)).toBeLessThan(Math.abs(end.near));
+  const near = await shift(2);
+  expect(far.x).toBeLessThan(0);
+  expect(far.y).toBeLessThan(0);
+  expect(Math.abs(mid.x)).toBeGreaterThan(Math.abs(far.x));
+  expect(Math.abs(near.x)).toBeGreaterThan(Math.abs(mid.x));
+  expect(Math.abs(near.x)).toBeLessThanOrEqual(10);
 });
 
 test("shows the sun on the card during the day", async ({ page }) => {

@@ -4,10 +4,8 @@
  * little way behind the glass.
  *
  * Relative, not absolute: the offset is measured from a resting angle that
- * follows the phone slowly. Slowly enough that a tilt is kept - the stars stay
- * where it moved them - but whatever angle the phone is then held at drifts
- * back to being the centre over half a minute or so, so lying down does not
- * leave the sky pushed to one side.
+ * follows the phone, so whatever angle it is held at soon becomes the centre
+ * again and only the movement shows.
  */
 
 export type Tilt = { x: number; y: number };
@@ -16,10 +14,11 @@ export type Tilt = { x: number; y: number };
 const FULL_TILT = 25;
 /**
  * How long, in seconds, the resting angle takes to close most (63%) of the gap
- * to the angle the phone is held at. By time, not per reading: phones send
- * readings at very different rates.
+ * to the angle the phone is held at - the pace the first version of this had
+ * at 60 readings a second. By time, not per reading: phones send readings at
+ * very different rates.
  */
-const REST_SECONDS = 25;
+const REST_SECONDS = 0.8;
 
 function clamp(value: number, limit: number): number {
   return Math.max(-limit, Math.min(limit, value));

@@ -8,11 +8,9 @@
  * covered at every angle of the turn.
  *
  * The stars sit at three depths. Tipping the phone shifts each depth by a
- * different amount, on a spring of its own (STAR_LAYERS), so the layers slide
- * past each other a little and the sky reads as deep rather than flat.
+ * different amount (STAR_LAYERS), so the layers slide past each other a little
+ * and the sky reads as deep rather than flat.
  */
-
-import type { Spring } from "./spring";
 
 export type Star = {
   /** Position in the field, in px from its top left. */
@@ -28,16 +26,14 @@ export type Star = {
 export type DepthStar = Star & { depth: 0 | 1 | 2 };
 
 /**
- * The three depths, far to near: how many px the full tilt shifts each, and
- * the spring it follows. Soft and lightly damped, so the stars carry on past
- * where the tilt puts them and swing back before they settle, as though they
- * had some weight. The nearer the layer the further it moves and the looser
- * its spring, so it lags and swings the most; the far stars barely stir.
+ * The three depths, far to near, and how many px the full tilt shifts each:
+ * the nearer the layer the further it moves, so the layers slide past each
+ * other and the sky has depth.
  */
-export const STAR_LAYERS: ReadonlyArray<{ shift: number; spring: Spring }> = [
-  { shift: 3, spring: { stiffness: 60, dampingRatio: 0.5 } },
-  { shift: 6, spring: { stiffness: 45, dampingRatio: 0.4 } },
-  { shift: 10, spring: { stiffness: 35, dampingRatio: 0.32 } },
+export const STAR_LAYERS: ReadonlyArray<{ shift: number }> = [
+  { shift: 3 },
+  { shift: 6 },
+  { shift: 10 },
 ];
 
 export type Starfield = {
@@ -59,11 +55,8 @@ const FAINT_DENSITY = 45 / (360 * 236);
 /** Bright stars per px², about six on a phone-sized card. */
 const BRIGHT_DENSITY = 6 / (360 * 236);
 
-/**
- * How far, in px, a layer may ever be from centre: the nearest layer's shift
- * and room for its spring to swing past it. Positions are held to this.
- */
-export const TILT_SHIFT = 16;
+/** How far, in px, a layer may ever be from centre: the nearest layer's shift. */
+export const TILT_SHIFT = 10;
 
 /**
  * The side of a field that keeps a width × height card covered while turning

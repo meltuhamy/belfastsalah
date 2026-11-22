@@ -299,12 +299,8 @@ sky.ts's arc as it is. The stars are `StarField`: a new random scatter
 and turned slowly about the middle of the card's top edge - made on mount, not
 on render, or the once-a-second tick would reshuffle them. They sit at three
 depths, each its own layer; tipping the phone (`tilt.ts`) moves each layer by a
-different amount on a spring of its own (`STAR_LAYERS`, `spring.ts`), written
-onto the elements from an animation loop that stops when the springs settle.
-The springs are soft and lightly damped on purpose, so the stars carry on past
-and swing back, and a tilt is kept: the resting angle only catches up over
-about 25 seconds, by time rather than per reading.
-No animation library: the spring is twenty lines and tested.
+different amount (`STAR_LAYERS`), written onto the elements and eased in CSS.
+Springs, with overshoot, were tried and taken out: plain easing felt better.
 
 Two Ionic details to know, both handled in `PrayerDayCard.css`:
 

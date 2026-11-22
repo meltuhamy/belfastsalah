@@ -5,9 +5,7 @@ import {
   makeStarfield,
   STAR_LAYERS,
   Starfield,
-  TILT_SHIFT,
 } from "../lib/starfield";
-import { isSettled, SpringState, stepSpring } from "../lib/spring";
 import { createTiltFollower } from "../lib/tilt";
 import "./StarField.css";
 
@@ -24,10 +22,9 @@ import "./StarField.css";
  * changed with it would flicker.
  *
  * Tipping the phone shifts each layer a few px the other way, the near ones
- * furthest, each on its own spring (STAR_LAYERS), so they slide past each
- * other and the sky has depth. That is written straight onto the elements
- * from an animation loop that stops once every spring is at rest - not
- * through state, for the same once-a-second reason.
+ * furthest (STAR_LAYERS), so they slide past each other and the sky has
+ * depth. That is written straight onto the elements, once a frame at most and
+ * eased in CSS - not through state, for the same once-a-second reason.
  */
 const StarField: React.FC = () => {
   const box = useRef<HTMLSpanElement>(null);
@@ -40,40 +37,20 @@ const StarField: React.FC = () => {
       return;
     }
     const follow = createTiltFollower(1);
-    let target = { x: 0, y: 0 };
-    const springs = STAR_LAYERS.map(() => ({
-      x: { position: 0, velocity: 0 } as SpringState,
-      y: { position: 0, velocity: 0 } as SpringState,
-    }));
     let frame = 0;
-    let last = 0;
-
-    const draw = (now: number) => {
-      const seconds = last === 0 ? 1 / 60 : (now - last) / 1000;
-      last = now;
-      let moving = false;
-      STAR_LAYERS.forEach((layer, i) => {
-        const s = springs[i];
-        const tx = target.x * layer.shift;
-        const ty = target.y * layer.shift;
-        s.x = stepSpring(s.x, tx, layer.spring, seconds);
-        s.y = stepSpring(s.y, ty, layer.spring, seconds);
-        if (!isSettled(s.x, tx) || !isSettled(s.y, ty)) moving = true;
-        const clamp = (v: number) => Math.max(-TILT_SHIFT, Math.min(TILT_SHIFT, v));
-        layers.current[i]?.style.setProperty(
-          "transform",
-          `translate3d(${clamp(s.x.position).toFixed(2)}px, ${clamp(
-            s.y.position
-          ).toFixed(2)}px, 0)`
-        );
-      });
-      frame = moving ? requestAnimationFrame(draw) : 0;
-      if (!moving) last = 0;
-    };
-
     const onOrientation = (event: DeviceOrientationEvent) => {
-      target = follow(event.beta, event.gamma, event.timeStamp);
-      if (frame === 0) frame = requestAnimationFrame(draw);
+      const { x, y } = follow(event.beta, event.gamma, event.timeStamp);
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        STAR_LAYERS.forEach((layer, i) => {
+          layers.current[i]?.style.setProperty(
+            "transform",
+            `translate3d(${(x * layer.shift).toFixed(2)}px, ${(
+              y * layer.shift
+            ).toFixed(2)}px, 0)`
+          );
+        });
+      });
     };
     window.addEventListener("deviceorientation", onOrientation);
 
