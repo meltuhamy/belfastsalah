@@ -29,14 +29,15 @@ export type DepthStar = Star & { depth: 0 | 1 | 2 };
 
 /**
  * The three depths, far to near: how many px the full tilt shifts each, and
- * the spring it follows. The nearer the layer the further it moves and the
- * looser its spring, so it lags a beat behind and swings a touch past - the
- * far stars barely stir.
+ * the spring it follows. Soft and lightly damped, so the stars carry on past
+ * where the tilt puts them and swing back before they settle, as though they
+ * had some weight. The nearer the layer the further it moves and the looser
+ * its spring, so it lags and swings the most; the far stars barely stir.
  */
 export const STAR_LAYERS: ReadonlyArray<{ shift: number; spring: Spring }> = [
-  { shift: 3, spring: { stiffness: 140, dampingRatio: 0.85 } },
-  { shift: 6, spring: { stiffness: 100, dampingRatio: 0.7 } },
-  { shift: 10, spring: { stiffness: 70, dampingRatio: 0.55 } },
+  { shift: 3, spring: { stiffness: 60, dampingRatio: 0.5 } },
+  { shift: 6, spring: { stiffness: 45, dampingRatio: 0.4 } },
+  { shift: 10, spring: { stiffness: 35, dampingRatio: 0.32 } },
 ];
 
 export type Starfield = {
@@ -62,7 +63,7 @@ const BRIGHT_DENSITY = 6 / (360 * 236);
  * How far, in px, a layer may ever be from centre: the nearest layer's shift
  * and room for its spring to swing past it. Positions are held to this.
  */
-export const TILT_SHIFT = 14;
+export const TILT_SHIFT = 16;
 
 /**
  * The side of a field that keeps a width × height card covered while turning

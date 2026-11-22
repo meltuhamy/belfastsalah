@@ -72,7 +72,7 @@ const StarField: React.FC = () => {
     };
 
     const onOrientation = (event: DeviceOrientationEvent) => {
-      target = follow(event.beta, event.gamma);
+      target = follow(event.beta, event.gamma, event.timeStamp);
       if (frame === 0) frame = requestAnimationFrame(draw);
     };
     window.addEventListener("deviceorientation", onOrientation);
