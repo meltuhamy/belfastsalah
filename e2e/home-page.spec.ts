@@ -74,6 +74,24 @@ test("highlights the columns on either end inside the card", async ({
   await expect.poll(() => paintedHighlight(page)).toBe("Fajr");
 });
 
+test("fills a dot on the timeline for each prayer that has passed", async ({
+  page,
+}) => {
+  const dots = page.locator("[data-testid=timeline] .PrayerDayCard__dot");
+  // 10:00: Fajr and Shuruq are behind us, Duhr at 12:20 is not.
+  await expect(dots).toHaveCount(6);
+  await expect
+    .poll(() => dots.evaluateAll((all) => all.map((d) => d.dataset.passed)))
+    .toEqual(["true", "true", "false", "false", "false", "false"]);
+
+  // After Isha the strip is tomorrow's, none of which has happened yet.
+  await page.clock.setFixedTime(new Date("2026-02-15T20:00:00Z"));
+  await expect
+    .poll(() => dots.evaluateAll((all) => all.map((d) => d.dataset.passed)))
+    .toEqual(["false", "false", "false", "false", "false", "false"]);
+  await expect(page.locator(".PrayerDayCard__timeline-fill")).toHaveCount(0);
+});
+
 test("rolls the countdown onto the next prayer once one passes", async ({
   page,
 }) => {

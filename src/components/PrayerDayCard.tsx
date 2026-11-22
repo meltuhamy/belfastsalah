@@ -54,6 +54,21 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   // timetable's own zone is on screen, so it is named after the location
   // rather than the zone - "London time" beats "British Summer Time".
   const showsOtherZone = showsForeignZone(settings, now);
+
+  // How far through the strip's day now is, in columns: 0 at Fajr's dot, 5 at
+  // Isha's, and in between by time. Null before Fajr, which is also all
+  // night once the strip has rolled on to tomorrow.
+  const passed = strip?.map((p) => p.time.getTime() <= now.getTime()) ?? [];
+  const lastPassed = passed.lastIndexOf(true);
+  let progress: number | null = null;
+  if (strip != null && lastPassed >= 0) {
+    const from = strip[lastPassed].time.getTime();
+    const to = strip[lastPassed + 1]?.time.getTime();
+    progress =
+      to === undefined
+        ? lastPassed
+        : lastPassed + Math.min(1, (now.getTime() - from) / (to - from));
+  }
   const locationName =
     settings?.location != null ? locationNames[settings.location] : null;
 
@@ -126,22 +141,50 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
             <IonSkeletonText animated />
           </div>
         ) : (
-          <div className="PrayerDayCard__strip" data-testid="prayer-strip">
-            {strip.map((prayerTime) => (
-              <div
-                key={prayerTime.prayer}
-                className="PrayerDayCard__cell"
-                data-testid="strip-cell"
-                data-next={prayerTime.prayer === nextPrayer ? "true" : "false"}
-              >
-                <span className="PrayerDayCard__cell-name">
-                  {prayerToString(prayerTime.prayer)}
-                </span>
-                <span className="PrayerDayCard__cell-time">
-                  {formatClockTime(prayerTime.time, timeZone, uses24)}
-                </span>
-              </div>
-            ))}
+          <div className="PrayerDayCard__day">
+            {/*
+            A hairline through the day, a dot above each prayer: filled once
+            its time has passed, and the line filled up to now.
+          */}
+            <div
+              className="PrayerDayCard__timeline"
+              aria-hidden="true"
+              data-testid="timeline"
+              style={
+                { "--progress": (progress ?? 0) / 5 } as React.CSSProperties
+              }
+            >
+              <span className="PrayerDayCard__timeline-track" />
+              {progress !== null && (
+                <span className="PrayerDayCard__timeline-fill" />
+              )}
+              {strip.map((prayerTime, i) => (
+                <span
+                  key={prayerTime.prayer}
+                  className="PrayerDayCard__dot"
+                  data-passed={passed[i] ? "true" : "false"}
+                />
+              ))}
+            </div>
+            <div className="PrayerDayCard__strip" data-testid="prayer-strip">
+              {strip.map((prayerTime) => (
+                <div
+                  key={prayerTime.prayer}
+                  className="PrayerDayCard__cell"
+                  data-testid="strip-cell"
+                  data-next={
+                    prayerTime.prayer === nextPrayer ? "true" : "false"
+                  }
+                >
+                  <span className="PrayerDayCard__cell-name">
+                    {prayerToString(prayerTime.prayer)}
+                  </span>
+                  <span className="PrayerDayCard__cell-time">
+                    {formatClockTime(prayerTime.time, timeZone, uses24)}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </IonCardContent>

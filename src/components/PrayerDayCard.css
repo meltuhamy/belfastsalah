@@ -148,10 +148,85 @@
   font-variant-numeric: tabular-nums;
 }
 
+/*
+  The glass the highlight and the timeline's dots are made of, and the colour
+  of the strip's text as rgb, for the timeline's line. The Sky theme swaps in
+  its own below.
+*/
+.PrayerDayCard {
+  --pane: rgba(var(--ion-color-primary-contrast-rgb), 0.16);
+  --pane-edge: rgba(var(--ion-color-primary-contrast-rgb), 0.4);
+  --strip-text-rgb: var(--ion-color-primary-contrast-rgb);
+}
+
 /* The next prayer: a frosted pane, as on the widget. */
 .PrayerDayCard__cell[data-next="true"] {
-  background: rgba(var(--ion-color-primary-contrast-rgb), 0.16);
-  border-color: rgba(var(--ion-color-primary-contrast-rgb), 0.4);
+  background: var(--pane);
+  border-color: var(--pane-edge);
+}
+
+/*
+  The timeline: a hairline from Fajr's dot to Isha's, over the same six
+  columns as the strip so each dot sits above its prayer. Kept faint - it is
+  there to be noticed, not read.
+*/
+.PrayerDayCard__timeline {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+  align-items: center;
+  height: 9px;
+  margin-bottom: 6px;
+}
+
+.PrayerDayCard__timeline-track,
+.PrayerDayCard__timeline-fill {
+  position: absolute;
+  top: 50%;
+  left: calc(100% / 12);
+  height: 1px;
+  transform: translateY(-50%);
+  border-radius: 1px;
+}
+
+.PrayerDayCard__timeline-track {
+  right: calc(100% / 12);
+  background: rgba(var(--strip-text-rgb), 0.18);
+}
+
+.PrayerDayCard__timeline-fill {
+  width: calc(var(--progress) * (100% - 100% / 6));
+  background: linear-gradient(
+    90deg,
+    rgba(var(--strip-text-rgb), 0.15),
+    rgba(var(--strip-text-rgb), 0.4)
+  );
+}
+
+/*
+  Still to come: an empty ring. Passed: a bead of white glass with a soft
+  glow, the same on any sky - a dark bead on the noon sky read as a hole
+  rather than a light.
+*/
+.PrayerDayCard__dot {
+  position: relative;
+  justify-self: center;
+  width: 7px;
+  height: 7px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1px solid rgba(var(--strip-text-rgb), 0.3);
+  transition:
+    background-color 320ms ease,
+    border-color 320ms ease,
+    box-shadow 320ms ease;
+}
+
+.PrayerDayCard__dot[data-passed="true"] {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(var(--strip-text-rgb), 0.15);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.55);
 }
 
 .PrayerDayCard__cell[data-next="true"] .PrayerDayCard__cell-name {
@@ -173,7 +248,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .PrayerDayCard__cell {
+  .PrayerDayCard__cell,
+  .PrayerDayCard__dot {
     transition: none;
   }
 
@@ -219,9 +295,10 @@
   color: var(--sky-lower-text);
 }
 
-.sky-theme .PrayerDayCard__cell[data-next="true"] {
-  background: var(--sky-glass);
-  border-color: var(--sky-glass-edge);
+.sky-theme .PrayerDayCard {
+  --pane: var(--sky-glass);
+  --pane-edge: var(--sky-glass-edge);
+  --strip-text-rgb: var(--sky-lower-text-rgb);
 }
 
 .PrayerDayCard__sky {
