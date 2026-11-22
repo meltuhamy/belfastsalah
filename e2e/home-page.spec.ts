@@ -6,7 +6,7 @@ import {
   highlightedPrayer,
   monthRows,
   pinDate,
-  tailTarget,
+  paintedHighlight,
   todayTimes,
   waitForMonthTable,
 } from "./support/app";
@@ -54,33 +54,24 @@ test("names the next prayer and counts down to it", async ({ page }) => {
   await expect(page.getByText("Shuruq was 2h 48m ago")).toBeVisible();
 });
 
-test("points the card at the prayer it is counting down to", async ({
-  page,
-}) => {
+test("highlights the prayer it is counting down to", async ({ page }) => {
   expect(await highlightedPrayer(page)).toBe("Duhr");
-  await expect
-    .poll(() => tailTarget(page))
-    .toEqual({ painted: true, column: "Duhr" });
+  await expect.poll(() => paintedHighlight(page)).toBe("Duhr");
 });
 
-test("points at the columns on either end without losing the tail", async ({
+test("highlights the columns on either end inside the card", async ({
   page,
 }) => {
-  // The two positions where the tail sits closest to the card's own corner
-  // radius, and the ones a fractional width most easily rounds off the end of.
+  // The two cells closest to the card's rounded corners.
   // Walked forwards, because that is the only direction the app expects the
   // clock to move: it refetches when a prayer passes, not when one un-passes.
   await page.clock.setFixedTime(new Date("2026-02-15T18:00:00Z"));
   await expect.poll(() => highlightedPrayer(page)).toBe("Isha");
-  await expect
-    .poll(() => tailTarget(page))
-    .toEqual({ painted: true, column: "Isha" });
+  await expect.poll(() => paintedHighlight(page)).toBe("Isha");
 
   await page.clock.setFixedTime(new Date("2026-02-16T03:00:00Z"));
   await expect.poll(() => highlightedPrayer(page)).toBe("Fajr");
-  await expect
-    .poll(() => tailTarget(page))
-    .toEqual({ painted: true, column: "Fajr" });
+  await expect.poll(() => paintedHighlight(page)).toBe("Fajr");
 });
 
 test("rolls the countdown onto the next prayer once one passes", async ({
@@ -93,9 +84,7 @@ test("rolls the countdown onto the next prayer once one passes", async ({
   await expect(page.getByText("Asr in")).toBeVisible();
   await expect(page.getByText("Duhr was 10m ago")).toBeVisible();
   await expect.poll(() => highlightedPrayer(page)).toBe("Asr");
-  await expect
-    .poll(() => tailTarget(page))
-    .toEqual({ painted: true, column: "Asr" });
+  await expect.poll(() => paintedHighlight(page)).toBe("Asr");
 });
 
 test("moves the strip onto tomorrow once the last prayer has passed", async ({
@@ -109,9 +98,7 @@ test("moves the strip onto tomorrow once the last prayer has passed", async ({
   // 16 Feb's own Fajr, not the 15th's.
   await expect.poll(async () => (await todayTimes(page)).Fajr).toBe("05:33");
   await expect.poll(() => highlightedPrayer(page)).toBe("Fajr");
-  await expect
-    .poll(() => tailTarget(page))
-    .toEqual({ painted: true, column: "Fajr" });
+  await expect.poll(() => paintedHighlight(page)).toBe("Fajr");
 });
 
 test("carries the day over at midnight", async ({ page }) => {

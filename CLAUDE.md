@@ -285,39 +285,28 @@ without it the knob was being yanked back to the stored value mid-drag. It is
 also why `SetupPage` uses a functional state update. Bear it in mind before
 adding another control that has to hold state while being interacted with.
 
-## The card that points at the next prayer
+## The day card
 
-`PrayerDayCard` is the blue countdown card, and below it the strip of the
-day's six times on the page background. The card has a tail that points at
-whichever column is next.
+`PrayerDayCard` is one card, laid out like the home screen widget: the
+countdown and where and when across the top, the day's six times along the
+bottom with the next one on a frosted pane, and open sky in between. It is tall
+on purpose - in the Sky theme the sun travels that space and the stars fill it.
+The Sky theme's colours, sun position and highlight panes (`--sky-glass`) all
+come from `skyProperties` in `src/lib/sky.ts`; the card squeezes the sun's arc
+into the open band so it never sits on the countdown, while the widgets draw
+sky.ts's arc as it is.
 
-The tail is placed by arithmetic, not by measuring: `--next-column` is the
-`Prayer` enum value of the next prayer — the enum is ordered as the strip is,
-so it *is* the column index — and the tail sits at
-`(column + 0.5) × (100% / 6)` of the card's width. That only lands on a column
-centre because the card and the strip are the same width and the strip's grid
-spans all of it. The wrapper owns the margins and the `IonCard` inside it has
-none, so that is true by construction rather than by two elements agreeing;
-keep it that way, and keep horizontal padding out of the strip itself (it goes
-inside the cells instead).
+Two Ionic details to know, both handled in `PrayerDayCard.css`:
 
-Two Ionic details cost an afternoon each, and both are undone in
-`PrayerDayCard.css`:
-
-- **`ion-card` sets `contain: content` as well as `overflow: hidden`.** Paint
-  containment clips to the border box by itself, whatever `overflow` says, so
-  overriding only `overflow` leaves the tail invisible with nothing in the DOM
-  to show for it. `e2e/support/app.ts`'s `tailTarget` asks the page what is
-  actually painted in the gap below the card, via `elementFromPoint`, because
-  a clipped tail keeps its box and its position — a geometry assertion passes
-  straight through this bug.
 - **`ion-card` is a shadow host**, so `::before`/`::after` on it are never
-  rendered; its box children come from the shadow tree. The tail is a real
-  `<span>`.
+  rendered; the sun and stars are real `<span>`s in a layer of their own.
+- **Text inside a card needs its class doubled up** (`.PrayerDayCard .X`):
+  Ionic styles it as `.card-content-md p`, which outweighs a single class of
+  ours and flattens every line to the same size.
 
-Text inside a card needs its class doubled up (`.PrayerDayCard .X`): Ionic
-styles it as `.card-content-md p`, which outweighs a single class of ours and
-flattens every line to the same size.
+`e2e/support/app.ts`'s `paintedHighlight` asks the page what is actually drawn
+at the highlighted cell, via `elementFromPoint`, so a cell clipped by the
+card's corners does not pass on its box alone.
 
 After the last prayer of the day the strip shows *tomorrow's* times, since
 that is what the card is counting down to — `usePrayerStrip`. The "Tomorrow"

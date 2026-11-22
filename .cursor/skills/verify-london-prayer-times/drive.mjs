@@ -72,28 +72,30 @@ async function readStrip(page) {
 }
 
 /**
- * The card's tail, read off the screen rather than out of the markup.
- *
- * `painted` asks the page what is drawn in the gap below the card, because a
- * clipped tail keeps its box and its position. Same test as `tailTarget` in
- * e2e/support/app.ts.
+ * The next prayer's highlight, read off the screen rather than out of the
+ * markup: the highlighted cell must lie inside the card and be what is drawn
+ * at its own centre. Returns its prayer's name, or null. Same test as
+ * `paintedHighlight` in e2e/support/app.ts.
  */
-async function tailTarget(page) {
+async function paintedHighlight(page) {
   return page.evaluate(() => {
-    const tail = document.querySelector(".PrayerDayCard__tail");
-    const bubble = document.querySelector(".PrayerDayCard__bubble");
-    if (!tail || !bubble) return { painted: false, column: null };
-    const box = tail.getBoundingClientRect();
-    const x = box.x + box.width / 2;
-    const y = bubble.getBoundingClientRect().bottom + 2;
-    let column = null;
-    for (const cell of document.querySelectorAll("[data-testid=strip-cell]")) {
-      const rect = cell.getBoundingClientRect();
-      if (x >= rect.left && x <= rect.right) {
-        column = cell.querySelector("span").textContent.trim();
-      }
-    }
-    return { painted: document.elementFromPoint(x, y) === tail, column };
+    const cell = document.querySelector("[data-testid=strip-cell][data-next=true]");
+    const card = document.querySelector(".PrayerDayCard");
+    if (!cell || !card) return null;
+    const box = cell.getBoundingClientRect();
+    const outer = card.getBoundingClientRect();
+    const inside =
+      box.left >= outer.left &&
+      box.right <= outer.right &&
+      box.top >= outer.top &&
+      box.bottom <= outer.bottom;
+    const hit = document.elementFromPoint(
+      box.left + box.width / 2,
+      box.top + box.height / 2
+    );
+    return inside && hit && cell.contains(hit)
+      ? cell.querySelector("span").textContent.trim()
+      : null;
   });
 }
 
@@ -151,7 +153,7 @@ async function today() {
     const when = shown.date;
     const { utc, expected } = shown.times;
     const { order, times } = await readStrip(page);
-    const tail = await tailTarget(page);
+    const painted = await paintedHighlight(page);
     const cardMeta = (await page.locator(".PrayerDayCard__meta").innerText()).trim();
     const countdownLine = (
       await page.locator(".PrayerDayCard__countdown").innerText()
@@ -178,8 +180,8 @@ async function today() {
     // The card names the location and the previous prayer ("Duhr was 12m ago").
     const cardLocationOk = cardMeta.split("\n").includes("London");
     const previousPrayerOk = /\bwas\b.+\bago\b/.test(countdownLine);
-    // The tail must point at the column the strip highlights, and be painted.
-    const tailOk = tail.painted && tail.column === highlighted;
+    // The highlight must be painted, inside the card.
+    const highlightOk = painted === highlighted;
 
     await page.screenshot({ path: join(evidenceDir, "today-home.png") });
 
@@ -201,7 +203,7 @@ async function today() {
         orderOk &&
         cardLocationOk &&
         previousPrayerOk &&
-        tailOk &&
+        highlightOk &&
         storedOk &&
         reloadOk,
       baseURL,
@@ -218,7 +220,7 @@ async function today() {
       highlighted,
       cardMeta,
       countdownLine,
-      tail,
+      paintedHighlight: painted,
       storedLocation: storedSettings?.location ?? null,
       reloadOk,
     };

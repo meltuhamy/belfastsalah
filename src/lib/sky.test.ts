@@ -287,6 +287,16 @@ describe("skyProperties", () => {
     expect(properties["--sky-text"]).toBe("#000000");
     expect(properties["--sky-now"]).toBe("50.00%");
     expect(properties["--sky-accent-rgb"]).toMatch(/^\d+, \d+, \d+$/);
+    // Black text on the lower sky at noon, so the widgets' brighter pane.
+    expect(properties["--sky-glass"]).toBe("rgba(255, 255, 255, 0.55)");
+  });
+
+  it("Should frost the highlight more faintly under white text", async () => {
+    const day = await london.getDay(new Date("2026-01-15T12:00:00Z"));
+    const now = new Date("2026-01-15T21:00:00Z");
+    const properties = skyProperties(now, day, "Europe/London", true);
+    expect(properties["--sky-lower-text"]).toBe("#ffffff");
+    expect(properties["--sky-glass"]).toBe("rgba(255, 255, 255, 0.18)");
   });
 });
 

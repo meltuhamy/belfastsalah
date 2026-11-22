@@ -6,7 +6,7 @@ import {
   openSettings,
   openSetup,
   pinDate,
-  tailTarget,
+  paintedHighlight,
 } from "./support/app";
 
 // The Sky theme paints the countdown card as the sky for the moment, worked
@@ -30,7 +30,7 @@ async function setUpWithSky(page: Page) {
   await expect(page.locator(PRAYER_STRIP)).toBeVisible();
 }
 
-const card = (page: Page) => page.locator(".PrayerDayCard__bubble");
+const card = (page: Page) => page.locator(".PrayerDayCard");
 
 const cardStyle = (page: Page) =>
   card(page).evaluate((el) => {
@@ -65,15 +65,14 @@ test("paints the card as the midday sky at Duhr, with dark text", async ({
   expect((await cardStyle(page)).colour).toBe("rgb(0, 0, 0)");
   expect(await htmlHas(page, "ion-palette-dark")).toBe(false);
 
-  // The sky must not cost the card its tail, which still points at Asr.
-  expect(await tailTarget(page)).toEqual({ painted: true, column: "Asr" });
-
-  // Asr's highlight in the strip is a piece of the same sky.
+  // Asr's highlight is the widgets' frosted pane, the bright one under black
+  // text, and is still painted above the sky.
   const highlight = page.locator("[data-testid=strip-cell][data-next=true]");
   await expect(highlight).toHaveCSS(
-    "background-image",
-    "linear-gradient(170deg, rgb(125, 187, 239), rgb(185, 222, 248))"
+    "background-color",
+    "rgba(255, 255, 255, 0.55)"
   );
+  expect(await paintedHighlight(page)).toBe("Asr");
 
   // The card is the sky on the home screen; the day bar is for settings only.
   await expect(page.getByTestId("sky-day-bar")).toHaveCount(0);
@@ -89,7 +88,7 @@ test("goes dark at Maghrib, with light text on the sunset", async ({ page }) => 
     .toContain("rgb(43, 47, 102) 0%");
   expect((await cardStyle(page)).colour).toBe("rgb(255, 255, 255)");
   await expect.poll(() => htmlHas(page, "ion-palette-dark")).toBe(true);
-  expect(await tailTarget(page)).toEqual({ painted: true, column: "Isha" });
+  expect(await paintedHighlight(page)).toBe("Isha");
 });
 
 test("brings the stars out at night and puts the sun away", async ({ page }) => {
@@ -113,7 +112,7 @@ test("shows the sun on the card during the day", async ({ page }) => {
         const sun = document.querySelector(".PrayerDayCard__sun")!;
         const box = sun.getBoundingClientRect();
         const bubble = document
-          .querySelector(".PrayerDayCard__bubble")!
+          .querySelector(".PrayerDayCard")!
           .getBoundingClientRect();
         return (
           box.width > 0 &&

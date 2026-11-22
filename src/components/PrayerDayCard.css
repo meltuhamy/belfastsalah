@@ -1,22 +1,20 @@
 /*
-  The wrapper owns the margins, and the card inside it owns none. That is what
-  makes the tail's arithmetic below hold: the bubble and the strip are both
-  exactly this element's width, by construction rather than by two separate
-  elements happening to agree.
+  One card for the whole day, laid out like the home screen widget. Its margins
+  are ion-card's own, so it lines up with the month card below it.
 */
 .PrayerDayCard {
-  --strip-columns: 6;
+  position: relative;
   margin: 12px 16px 10px;
+  border-radius: 22px;
 }
 
 /*
   Ionic's dark palette pairs its lighter primary with black contrast text,
   which is right for a small button and wrong for this: a large flat block of
   blue, where it reads as low contrast and looks nothing like the light theme's
-  white-on-blue. Pinned to white here, which reaches the card, the tail and the
-  strip's highlight - custom properties cross the shadow boundary, so the value
-  is inherited by ion-card's own colour rules. Scoped to this component so the
-  rest of the palette is untouched.
+  white-on-blue. Pinned to white here. Custom properties cross the shadow
+  boundary, so the value is inherited by ion-card's own colour rules. Scoped to
+  this component so the rest of the palette is untouched.
 */
 .ion-palette-dark .PrayerDayCard {
   --ion-color-primary-contrast: #ffffff;
@@ -24,132 +22,63 @@
 }
 
 /*
-  The tail hangs into the gap between the two cards, so the bubble must not
-  clip it. ion-card sets both overflow: hidden and contain: content on its own
-  host, and the second is the one that catches you out - paint containment
-  clips to the border box on its own, whatever overflow says. Both are undone
-  from here: declarations from the outer tree beat the shadow tree's whatever
-  the specificity.
+  The countdown across the top and the times along the bottom, with whatever
+  height is left between them as open sky. sky.ts places the sun as a fraction
+  of the card's height, so the height is what gives it room to travel.
 */
-.PrayerDayCard__bubble {
+.PrayerDayCard .PrayerDayCard__content {
   position: relative;
-  overflow: visible;
-  contain: none;
-  margin: 0;
-  border-radius: 18px;
-}
-
-/*
-  Where the tail sits is a fraction of the card's width, set from the index of
-  the next prayer. The strip's columns are sixths of the same width, so the
-  arithmetic lands on a column centre without measuring anything, and survives
-  a resize.
-*/
-.PrayerDayCard__tail {
-  position: absolute;
-  bottom: -5px;
-  left: calc((var(--next-column) + 0.5) * (100% / var(--strip-columns)));
-  width: 12px;
-  height: 12px;
-  margin-left: -6px;
-  background: var(--ion-color-primary);
-  transform: rotate(45deg);
-  border-bottom-right-radius: 2px;
-  transition: left 320ms cubic-bezier(0.32, 0.72, 0.3, 1);
-}
-
-/* Nothing to point at until the next prayer is known. */
-.PrayerDayCard:not([data-points-at]) .PrayerDayCard__tail {
-  display: none;
-}
-
-/*
-  Tall, like the home screen widget: the countdown across the top, where and
-  when along the bottom, and open sky in between for the sun's arc and the
-  stars. sky.ts places the sun as a fraction of the card's height, so the
-  height is what gives it room to travel.
-*/
-.PrayerDayCard .PrayerDayCard__bubble-content {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 24px;
-  min-height: 188px;
+  gap: 28px;
+  min-height: 236px;
   box-sizing: border-box;
-  padding: 20px 20px 18px;
-}
-
-.PrayerDayCard__top,
-.PrayerDayCard__bottom {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  padding: 20px 14px 14px;
 }
 
 .PrayerDayCard__top {
+  display: flex;
+  justify-content: space-between;
   align-items: flex-start;
+  gap: 12px;
+  padding: 0 6px;
 }
 
-.PrayerDayCard__bottom {
-  align-items: flex-end;
-}
-
-.PrayerDayCard__since {
+.PrayerDayCard__countdown {
   min-width: 0;
-  flex: 1;
 }
 
 .PrayerDayCard__skeleton {
-  height: 28px;
+  height: 34px;
 }
 
 /*
-  Doubled up on the wrapper throughout this block. Ionic styles the text inside
-  a card by element - .card-content-md p and friends - which outweighs a single
-  class of ours, so a bare .PrayerDayCard__label loses and every line comes out
-  the same size.
+  Doubled up on the wrapper throughout. Ionic styles the text inside a card by
+  element - .card-content-md p and friends - which outweighs a single class of
+  ours, so a bare class loses and every line comes out the same size.
 */
 .PrayerDayCard .PrayerDayCard__label {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.35;
+  font-size: 15px;
+  line-height: 1.3;
   opacity: 0.85;
 }
 
-/*
-  The prayer's name is set at the countdown's size, so the line reads as one
-  phrase rather than a caption stuck to a number - weight and opacity carry the
-  hierarchy instead. The countdown has the card's full width to itself, so
-  the longest pairing ("Maghrib in 23h 59m") fits on one line from 360dp up;
-  narrower screens step down below.
-*/
-.PrayerDayCard .PrayerDayCard__line .PrayerDayCard__label {
-  font-size: 24px;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-  opacity: 0.8;
-}
-
-/*
-  The prayer's name and the time left read as one sentence, so they sit on one
-  line - aligned on the baseline rather than centred, or the small text floats
-  in the middle of the big text's height.
-*/
-.PrayerDayCard .PrayerDayCard__line {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin: 0;
-  min-width: 0;
-  flex-wrap: wrap;
-}
-
 .PrayerDayCard .PrayerDayCard__remaining {
-  font-size: 30px;
+  margin: 0;
+  font-size: 38px;
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+}
+
+.PrayerDayCard .PrayerDayCard__since {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.35;
+  opacity: 0.85;
 }
 
 .PrayerDayCard .PrayerDayCard__meta {
@@ -171,75 +100,67 @@
 }
 
 /*
-  Marks the strip as belonging to a day the reader is not on yet. Tinted from
-  the card's own contrast colour so it stays legible in either palette without
-  a second rule.
+  Marks the times as belonging to a day the reader is not on yet. Tinted from
+  the card's own text colour so it stays legible in either palette.
 */
 .PrayerDayCard__badge {
-  flex: none;
-  margin-top: 4px;
+  margin-bottom: 4px;
   padding: 1px 8px;
   border-radius: 999px;
   background: rgba(var(--ion-color-primary-contrast-rgb), 0.22);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  opacity: 1;
 }
 
-/*
-  No card behind the times, and no horizontal padding: the columns have to be
-  sixths of the wrapper's full width for the tail above to line up with them,
-  so the breathing room goes inside the cells instead.
-*/
 .PrayerDayCard__strip {
   display: grid;
-  grid-template-columns: repeat(var(--strip-columns), 1fr);
-  margin-top: 16px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
 }
 
 .PrayerDayCard__strip-loading {
-  padding: 26px 6px 12px;
+  padding: 12px 6px;
 }
 
 .PrayerDayCard__cell {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 10px 1px;
+  gap: 2px;
+  padding: 7px 1px;
+  border: 1px solid transparent;
   border-radius: 10px;
-  transition: background-color 320ms cubic-bezier(0.32, 0.72, 0.3, 1);
+  transition:
+    background-color 320ms cubic-bezier(0.32, 0.72, 0.3, 1),
+    border-color 320ms cubic-bezier(0.32, 0.72, 0.3, 1);
 }
 
 .PrayerDayCard__cell-name {
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: -0.01em;
-  color: var(--ion-color-medium);
+  opacity: 0.85;
 }
 
 .PrayerDayCard__cell-time {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
+/* The next prayer: a frosted pane, as on the widget. */
 .PrayerDayCard__cell[data-next="true"] {
-  background: var(--ion-color-primary);
+  background: rgba(var(--ion-color-primary-contrast-rgb), 0.16);
+  border-color: rgba(var(--ion-color-primary-contrast-rgb), 0.4);
 }
 
-.PrayerDayCard__cell[data-next="true"] .PrayerDayCard__cell-name,
-.PrayerDayCard__cell[data-next="true"] .PrayerDayCard__cell-time {
-  color: var(--ion-color-primary-contrast);
+.PrayerDayCard__cell[data-next="true"] .PrayerDayCard__cell-name {
+  opacity: 1;
 }
 
 @media (max-width: 359px) {
-  .PrayerDayCard .PrayerDayCard__line .PrayerDayCard__label {
-    font-size: 20px;
-  }
-
   .PrayerDayCard .PrayerDayCard__remaining {
-    font-size: 25px;
+    font-size: 32px;
   }
 
   .PrayerDayCard__cell-name {
@@ -247,12 +168,11 @@
   }
 
   .PrayerDayCard__cell-time {
-    font-size: 12px;
+    font-size: 13px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .PrayerDayCard__tail,
   .PrayerDayCard__cell {
     transition: none;
   }
@@ -268,7 +188,7 @@
   declarations on the ion-card host beat its shadow styles, so the background
   and colour here replace the primary colour it was given.
 */
-.sky-theme .PrayerDayCard__bubble {
+.sky-theme .PrayerDayCard {
   background: linear-gradient(
     180deg,
     var(--sky-top) 0%,
@@ -280,12 +200,13 @@
 
 /*
   sky.ts picks the text colour to read at 4.5:1 against the sky behind it,
-  which only holds at full strength - so no fading the secondary lines here.
-  Size and weight carry the hierarchy instead.
+  which only holds at full strength - so no fading here. Size and weight carry
+  the hierarchy instead.
 */
 .sky-theme .PrayerDayCard .PrayerDayCard__label,
-.sky-theme .PrayerDayCard .PrayerDayCard__line .PrayerDayCard__label,
-.sky-theme .PrayerDayCard .PrayerDayCard__meta {
+.sky-theme .PrayerDayCard .PrayerDayCard__since,
+.sky-theme .PrayerDayCard .PrayerDayCard__meta,
+.sky-theme .PrayerDayCard__cell-name {
   opacity: 1;
 }
 
@@ -293,19 +214,14 @@
   background: rgba(var(--sky-text-rgb), 0.16);
 }
 
-/* The tail hangs below the card, so it carries on the horizon's colour. */
-.sky-theme .PrayerDayCard__tail {
-  background: var(--sky-horizon);
-}
-
-/* The next prayer is a small piece of the same sky: its lower half. */
-.sky-theme .PrayerDayCard__cell[data-next="true"] {
-  background: linear-gradient(170deg, var(--sky-mid), var(--sky-horizon));
-}
-
-.sky-theme .PrayerDayCard__cell[data-next="true"] .PrayerDayCard__cell-name,
-.sky-theme .PrayerDayCard__cell[data-next="true"] .PrayerDayCard__cell-time {
+/* The times sit on the lower sky, so they take its text colour. */
+.sky-theme .PrayerDayCard__strip {
   color: var(--sky-lower-text);
+}
+
+.sky-theme .PrayerDayCard__cell[data-next="true"] {
+  background: var(--sky-glass);
+  border-color: var(--sky-glass-edge);
 }
 
 .PrayerDayCard__sky {
@@ -321,23 +237,19 @@
   pointer-events: none;
 }
 
-/* Positioned so it paints above the sky layer, which comes before it. */
-.sky-theme .PrayerDayCard__bubble-content {
-  position: relative;
-}
-
 /*
   Moved along its arc by --sky-sun-x/y; parked below the card at night.
-  sky.ts's arc spans the whole card, which on this tall one puts the noon sun
-  on top of the countdown. So the noon sun is brought down into the open sky
-  between the two rows of text, 24% of the card becoming 38%, and the horizon
-  is lowered to the card's bottom edge, so the sun sets into it rather than
-  behind the date. The widgets draw sky.ts's arc as it is.
+  sky.ts's arc spans the whole card, which here would put the noon sun on the
+  countdown. So the noon sun is brought down into the open sky between the
+  countdown and the times, 24% of the card becoming 37%, and the horizon is
+  lowered past the card's bottom edge, so the sun sinks out of the card as
+  Maghrib comes rather than settling behind the times. The widgets draw
+  sky.ts's arc as it is.
 */
 .PrayerDayCard__sun {
   position: absolute;
   left: var(--sky-sun-x);
-  top: calc(var(--sky-sun-y) * 0.91 + 16%);
+  top: calc(var(--sky-sun-y) * 1.05 + 12%);
   width: 30px;
   height: 30px;
   transform: translate(-50%, -50%);
