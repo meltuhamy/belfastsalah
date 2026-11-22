@@ -4,11 +4,13 @@
   overflow: hidden;
 }
 
-/* Shifted a few px by the phone's tilt; eased so readings do not judder. */
+/*
+  One per depth, shifted a few px by the phone's tilt on a spring of its own
+  (StarField.tsx). The springs do the easing, so there is no transition here.
+*/
 .StarField__tilt {
   position: absolute;
   inset: 0;
-  transition: transform 300ms ease-out;
   will-change: transform;
 }
 

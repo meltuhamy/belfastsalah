@@ -297,7 +297,11 @@ into the open band so it never sits on the countdown, while the widgets draw
 sky.ts's arc as it is. The stars are `StarField`: a new random scatter
 (`src/lib/starfield.ts`) every time the card mounts, painted once into a canvas
 and turned slowly about the middle of the card's top edge - made on mount, not
-on render, or the once-a-second tick would reshuffle them.
+on render, or the once-a-second tick would reshuffle them. They sit at three
+depths, each its own layer; tipping the phone (`tilt.ts`) moves each layer by a
+different amount on a spring of its own (`STAR_LAYERS`, `spring.ts`), written
+onto the elements from an animation loop that stops when the springs settle.
+No animation library: the spring is twenty lines and tested.
 
 Two Ionic details to know, both handled in `PrayerDayCard.css`:
 

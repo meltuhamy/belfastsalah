@@ -1,10 +1,13 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
+  DepthStar,
   fieldSide,
   makeStarfield,
+  STAR_LAYERS,
   Starfield,
   TILT_SHIFT,
 } from "../lib/starfield";
+import { isSettled, SpringState, stepSpring } from "../lib/spring";
 import { createTiltFollower } from "../lib/tilt";
 import "./StarField.css";
 
@@ -13,36 +16,64 @@ import "./StarField.css";
  * slowly about the middle of the card's top edge. Fills its positioned parent,
  * which clips it.
  *
- * The faint stars are painted once into a canvas, which the browser then only
- * has to rotate; the few bright ones are elements of their own so each can
- * twinkle on its own phase. Made on mount rather than on render, because the
- * app re-renders every second and a sky that changed with it would flicker.
+ * The stars sit at three depths, each its own layer turning in step with the
+ * others: the two faint ones are painted once into a canvas each, which the
+ * browser then only has to move; the few bright, nearest stars are elements
+ * of their own so each can twinkle on its own phase. Made on mount rather
+ * than on render, because the app re-renders every second and a sky that
+ * changed with it would flicker.
  *
- * Tipping the phone shifts the whole sky a few px the other way, as though it
- * sat a little behind the glass (tilt.ts). That is written straight onto the
- * element rather than through state, for the same once-a-second reason.
+ * Tipping the phone shifts each layer a few px the other way, the near ones
+ * furthest, each on its own spring (STAR_LAYERS), so they slide past each
+ * other and the sky has depth. That is written straight onto the elements
+ * from an animation loop that stops once every spring is at rest - not
+ * through state, for the same once-a-second reason.
  */
 const StarField: React.FC = () => {
   const box = useRef<HTMLSpanElement>(null);
-  const canvas = useRef<HTMLCanvasElement>(null);
-  const tilt = useRef<HTMLSpanElement>(null);
+  const canvases = useRef<Array<HTMLCanvasElement | null>>([]);
+  const layers = useRef<Array<HTMLSpanElement | null>>([]);
   const [sky, setSky] = useState<Starfield | null>(null);
 
   useEffect(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       return;
     }
-    const follow = createTiltFollower(TILT_SHIFT);
+    const follow = createTiltFollower(1);
+    let target = { x: 0, y: 0 };
+    const springs = STAR_LAYERS.map(() => ({
+      x: { position: 0, velocity: 0 } as SpringState,
+      y: { position: 0, velocity: 0 } as SpringState,
+    }));
     let frame = 0;
-    const onOrientation = (event: DeviceOrientationEvent) => {
-      const { x, y } = follow(event.beta, event.gamma);
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        tilt.current?.style.setProperty(
+    let last = 0;
+
+    const draw = (now: number) => {
+      const seconds = last === 0 ? 1 / 60 : (now - last) / 1000;
+      last = now;
+      let moving = false;
+      STAR_LAYERS.forEach((layer, i) => {
+        const s = springs[i];
+        const tx = target.x * layer.shift;
+        const ty = target.y * layer.shift;
+        s.x = stepSpring(s.x, tx, layer.spring, seconds);
+        s.y = stepSpring(s.y, ty, layer.spring, seconds);
+        if (!isSettled(s.x, tx) || !isSettled(s.y, ty)) moving = true;
+        const clamp = (v: number) => Math.max(-TILT_SHIFT, Math.min(TILT_SHIFT, v));
+        layers.current[i]?.style.setProperty(
           "transform",
-          `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`
+          `translate3d(${clamp(s.x.position).toFixed(2)}px, ${clamp(
+            s.y.position
+          ).toFixed(2)}px, 0)`
         );
       });
+      frame = moving ? requestAnimationFrame(draw) : 0;
+      if (!moving) last = 0;
+    };
+
+    const onOrientation = (event: DeviceOrientationEvent) => {
+      target = follow(event.beta, event.gamma);
+      if (frame === 0) frame = requestAnimationFrame(draw);
     };
     window.addEventListener("deviceorientation", onOrientation);
 
@@ -94,54 +125,82 @@ const StarField: React.FC = () => {
     return () => observer.disconnect();
   }, []);
 
+  // The two faint layers, painted once each.
   useLayoutEffect(() => {
-    const el = canvas.current;
-    if (el == null || sky == null) return;
+    if (sky == null) return;
     const scale = Math.min(window.devicePixelRatio || 1, 2);
-    el.width = Math.round(sky.side * scale);
-    el.height = Math.round(sky.side * scale);
-    const context = el.getContext?.("2d");
-    if (context == null) return;
-    context.scale(scale, scale);
-    for (const star of sky.faint) {
-      context.beginPath();
-      context.arc(star.x, star.y, star.r, 0, Math.PI * 2);
-      context.fillStyle = `rgba(255, 255, 255, ${star.a.toFixed(2)})`;
-      context.fill();
-    }
+    [0, 1].forEach((depth) => {
+      const el = canvases.current[depth];
+      if (el == null) return;
+      el.width = Math.round(sky.side * scale);
+      el.height = Math.round(sky.side * scale);
+      const context = el.getContext?.("2d");
+      if (context == null) return;
+      context.scale(scale, scale);
+      sky.faint
+        .filter((star: DepthStar) => star.depth === depth)
+        .forEach((star) => {
+          context.beginPath();
+          context.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+          context.fillStyle = `rgba(255, 255, 255, ${star.a.toFixed(2)})`;
+          context.fill();
+        });
+    });
   }, [sky]);
+
+  const field = (children: React.ReactNode) =>
+    sky == null ? null : (
+      <span
+        className="StarField__sky"
+        style={
+          {
+            width: sky.side,
+            height: sky.side,
+            "--start-angle": `${sky.startAngle.toFixed(1)}deg`,
+          } as React.CSSProperties
+        }
+      >
+        {children}
+      </span>
+    );
 
   return (
     <span ref={box} className="StarField" data-testid="starfield">
-      <span ref={tilt} className="StarField__tilt">
-      {sky != null && (
+      {STAR_LAYERS.map((_, depth) => (
         <span
-          className="StarField__sky"
-          style={
-            {
-              width: sky.side,
-              height: sky.side,
-              "--start-angle": `${sky.startAngle.toFixed(1)}deg`,
-            } as React.CSSProperties
-          }
+          key={depth}
+          ref={(el) => {
+            layers.current[depth] = el;
+          }}
+          className="StarField__tilt"
+          data-depth={depth}
         >
-          <canvas ref={canvas} className="StarField__faint" />
-          {sky.bright.map((star, i) => (
-            <span
-              key={i}
-              className="StarField__bright"
-              style={{
-                left: star.x,
-                top: star.y,
-                width: star.r * 2,
-                height: star.r * 2,
-                animationDelay: `${(-star.phase * 5.5).toFixed(2)}s`,
-              }}
-            />
-          ))}
+          {field(
+            depth < 2 ? (
+              <canvas
+                ref={(el) => {
+                  canvases.current[depth] = el;
+                }}
+                className="StarField__faint"
+              />
+            ) : (
+              sky?.bright.map((star, i) => (
+                <span
+                  key={i}
+                  className="StarField__bright"
+                  style={{
+                    left: star.x,
+                    top: star.y,
+                    width: star.r * 2,
+                    height: star.r * 2,
+                    animationDelay: `${(-star.phase * 5.5).toFixed(2)}s`,
+                  }}
+                />
+              ))
+            )
+          )}
         </span>
-      )}
-      </span>
+      ))}
     </span>
   );
 };

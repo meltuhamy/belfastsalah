@@ -6,7 +6,13 @@
  * card's top edge, and the card turns the field slowly about that pivot, as
  * the sky turns about the pole. The field is large enough that the card stays
  * covered at every angle of the turn.
+ *
+ * The stars sit at three depths. Tipping the phone shifts each depth by a
+ * different amount, on a spring of its own (STAR_LAYERS), so the layers slide
+ * past each other a little and the sky reads as deep rather than flat.
  */
+
+import type { Spring } from "./spring";
 
 export type Star = {
   /** Position in the field, in px from its top left. */
@@ -18,12 +24,30 @@ export type Star = {
   a: number;
 };
 
+/** A star with the depth it sits at: 0, the farthest, to 2, the nearest. */
+export type DepthStar = Star & { depth: 0 | 1 | 2 };
+
+/**
+ * The three depths, far to near: how many px the full tilt shifts each, and
+ * the spring it follows. The nearer the layer the further it moves and the
+ * looser its spring, so it lags a beat behind and swings a touch past - the
+ * far stars barely stir.
+ */
+export const STAR_LAYERS: ReadonlyArray<{ shift: number; spring: Spring }> = [
+  { shift: 3, spring: { stiffness: 140, dampingRatio: 0.85 } },
+  { shift: 6, spring: { stiffness: 100, dampingRatio: 0.7 } },
+  { shift: 10, spring: { stiffness: 70, dampingRatio: 0.55 } },
+];
+
 export type Starfield = {
   /** The field's side, in px. */
   side: number;
-  /** Faint stars, drawn once. */
-  faint: Star[];
-  /** The few bright ones, which twinkle; each has its own phase, 0 to 1. */
+  /** Faint stars, drawn once, each at a depth. */
+  faint: DepthStar[];
+  /**
+   * The few bright ones, which twinkle; each has its own phase, 0 to 1. Always
+   * the nearest, as the brightest stars would be.
+   */
   bright: Array<Star & { phase: number }>;
   /** Where the slow turn starts, in degrees, so it opens on a different sky. */
   startAngle: number;
@@ -34,8 +58,11 @@ const FAINT_DENSITY = 45 / (360 * 236);
 /** Bright stars per px², about six on a phone-sized card. */
 const BRIGHT_DENSITY = 6 / (360 * 236);
 
-/** How far, in px, the phone's tilt may shift the field (see tilt.ts). */
-export const TILT_SHIFT = 8;
+/**
+ * How far, in px, a layer may ever be from centre: the nearest layer's shift
+ * and room for its spring to swing past it. Positions are held to this.
+ */
+export const TILT_SHIFT = 14;
 
 /**
  * The side of a field that keeps a width × height card covered while turning
@@ -55,16 +82,22 @@ export function makeStarfield(
   const side = fieldSide(width, height);
   const area = side * side;
 
-  const faint = Array.from({ length: Math.round(area * FAINT_DENSITY) }, () => {
-    const u = random();
-    return {
-      x: random() * side,
-      y: random() * side,
-      // Mostly pinpricks, a few slightly larger.
-      r: u < 0.6 ? 0.45 : u < 0.9 ? 0.6 : 0.75,
-      a: 0.35 + random() * 0.5,
-    };
-  });
+  const faint = Array.from(
+    { length: Math.round(area * FAINT_DENSITY) },
+    (): DepthStar => {
+      const u = random();
+      return {
+        x: random() * side,
+        y: random() * side,
+        // Mostly pinpricks, a few slightly larger.
+        r: u < 0.6 ? 0.45 : u < 0.9 ? 0.6 : 0.75,
+        a: 0.35 + random() * 0.5,
+        // The smallest are the farthest; the larger faint ones sit between
+        // them and the bright, nearest stars.
+        depth: u < 0.6 ? 0 : 1,
+      };
+    }
+  );
 
   const bright = Array.from(
     { length: Math.round(area * BRIGHT_DENSITY) },

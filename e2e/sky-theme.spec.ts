@@ -106,13 +106,15 @@ test("opens on a different night sky each time, and turns it", async ({
   await pinDate(page, "2026-01-15T21:00:00Z");
   await setUpWithSky(page);
 
-  const sky = page.locator(".StarField__sky");
+  // The far layer's field; the others turn in step with it.
+  const sky = page.locator('.StarField__tilt[data-depth="0"] .StarField__sky');
   await expect(sky).toBeVisible();
   // Something is painted: the field is wider than the card it turns behind.
   const field = await sky.boundingBox();
   const cardBox = await card(page).boundingBox();
   expect(field!.width).toBeGreaterThan(cardBox!.width);
-  await expect(page.locator(".StarField__faint")).toHaveCount(1);
+  // A canvas for each of the two faint depths.
+  await expect(page.locator(".StarField__faint")).toHaveCount(2);
   await expect(sky).toHaveCSS("animation-name", "StarField-turn");
 
   const angle = () =>
@@ -125,11 +127,12 @@ test("opens on a different night sky each time, and turns it", async ({
   expect(await angle()).not.toBe(first);
 });
 
-test("shifts the stars a little as the phone is tipped", async ({ page }) => {
+test("shifts the stars by depth as the phone is tipped", async ({ page }) => {
   await pinDate(page, "2026-01-15T21:00:00Z");
   await setUpWithSky(page);
-  const tilt = page.locator(".StarField__tilt");
-  await expect(tilt).toBeAttached();
+  const layer = (depth: number) =>
+    page.locator(`.StarField__tilt[data-depth="${depth}"]`);
+  await expect(layer(2)).toBeAttached();
 
   const tip = (beta: number, gamma: number) =>
     page.evaluate(
@@ -139,25 +142,31 @@ test("shifts the stars a little as the phone is tipped", async ({ page }) => {
         ),
       [beta, gamma]
     );
-  const shift = () =>
-    tilt.evaluate((el) => {
+  const shift = (depth: number) =>
+    layer(depth).evaluate((el) => {
       const m = new DOMMatrix(getComputedStyle(el).transform);
       return { x: m.m41, y: m.m42 };
     });
 
   // The first reading is the resting angle: nothing moves.
   await tip(40, 0);
-  await page.waitForTimeout(400);
-  expect(await shift()).toEqual({ x: 0, y: 0 });
+  await page.waitForTimeout(300);
+  expect(await shift(2)).toEqual({ x: 0, y: 0 });
 
-  // Tipped right and towards the reader: the sky slides left and up, by a
-  // few px and no more.
+  // Tipped right and towards the reader: every layer slides left and up, the
+  // near stars furthest and the far ones least, by a few px at most.
   await tip(50, 10);
-  await expect.poll(async () => (await shift()).x).toBeLessThan(-1);
-  const moved = await shift();
-  expect(moved.y).toBeLessThan(-1);
-  expect(Math.abs(moved.x)).toBeLessThanOrEqual(8);
-  expect(Math.abs(moved.y)).toBeLessThanOrEqual(8);
+  await expect.poll(async () => (await shift(2)).x).toBeLessThan(-2);
+  // Let the springs come to rest before comparing depths.
+  await page.waitForTimeout(1500);
+  const far = await shift(0);
+  const mid = await shift(1);
+  const near = await shift(2);
+  expect(far.x).toBeLessThan(0);
+  expect(far.y).toBeLessThan(0);
+  expect(Math.abs(mid.x)).toBeGreaterThan(Math.abs(far.x));
+  expect(Math.abs(near.x)).toBeGreaterThan(Math.abs(mid.x));
+  expect(Math.abs(near.x)).toBeLessThanOrEqual(14);
 });
 
 test("shows the sun on the card during the day", async ({ page }) => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fieldSide, makeStarfield, TILT_SHIFT } from "./starfield";
+import { fieldSide, makeStarfield, STAR_LAYERS, TILT_SHIFT } from "./starfield";
 
 /** A small seeded generator, so a run can be repeated. */
 function seeded(seed: number) {
@@ -52,6 +52,27 @@ describe("makeStarfield", () => {
       const expected = (45 * (w * h)) / (360 * 236);
       expect(onCard).toBeGreaterThan(expected * 0.9);
       expect(onCard).toBeLessThan(expected * 1.1);
+    }
+  });
+
+  it("Should put the faint stars at two depths behind the bright ones", () => {
+    const sky = makeStarfield(358, 236, seeded(3));
+    const far = sky.faint.filter((s) => s.depth === 0);
+    const mid = sky.faint.filter((s) => s.depth === 1);
+    expect(far.length).toBeGreaterThan(mid.length);
+    expect(mid.length).toBeGreaterThan(0);
+    // The farthest are the smallest.
+    expect(Math.max(...far.map((s) => s.r))).toBeLessThan(
+      Math.min(...mid.map((s) => s.r))
+    );
+  });
+
+  it("Should keep every layer, swing and all, inside the room left for it", () => {
+    for (const layer of STAR_LAYERS) {
+      // An underdamped spring's first swing past its target, as a fraction.
+      const zeta = layer.spring.dampingRatio;
+      const overshoot = Math.exp((-zeta * Math.PI) / Math.sqrt(1 - zeta * zeta));
+      expect(layer.shift * (1 + overshoot)).toBeLessThanOrEqual(TILT_SHIFT);
     }
   });
 
