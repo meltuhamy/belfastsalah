@@ -16,6 +16,7 @@ import { showsForeignZone } from "../lib/displayZone";
 import { locationNames } from "../lib/PrayerTimeData";
 import { usePrayerStrip } from "../lib/usePrayerStrip";
 import { isLaterDay } from "../lib/prayerStrip";
+import StarField from "./StarField";
 import "./PrayerDayCard.css";
 
 type Props = {
@@ -88,7 +89,9 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
         in that theme.
       */}
       <span className="PrayerDayCard__sky" aria-hidden="true">
-        <span className="PrayerDayCard__stars" />
+        <span className="PrayerDayCard__stars">
+          <StarField />
+        </span>
         <span className="PrayerDayCard__sun" />
       </span>
       <IonCardContent className="PrayerDayCard__content">

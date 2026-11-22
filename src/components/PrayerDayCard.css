@@ -261,7 +261,6 @@
     transition: none;
   }
 
-  .PrayerDayCard__stars::after,
   .PrayerDayCard__dot[data-recent="true"] {
     animation: none;
   }
@@ -344,84 +343,10 @@
 }
 
 /*
-  Faded in after Isha by --sky-night. Scattered rather than spaced: mostly
-  faint pinpricks of varying brightness, thicker towards the top of the card
-  where the sky is darkest, positioned as fractions of the card so they stay
-  put whatever its width. The positions came from a seeded random scatter,
-  not by hand - spacing them out by eye is what made the old ones look like
-  a pattern.
+  Faded in after Isha by --sky-night. The stars themselves are StarField's.
 */
 .PrayerDayCard__stars {
   position: absolute;
   inset: 0;
   opacity: var(--sky-night);
-  background-image:
-    radial-gradient(circle at 9.8% 27.0%, rgba(255, 255, 255, 0.62) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 37.4% 26.5%, rgba(255, 255, 255, 0.42) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 54.3% 29.7%, rgba(255, 255, 255, 0.36) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 82.8% 38.8%, rgba(255, 255, 255, 0.49) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 37.3% 32.9%, rgba(255, 255, 255, 0.36) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 49.2% 20.5%, rgba(255, 255, 255, 0.61) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 73.5% 25.7%, rgba(255, 255, 255, 0.44) 0 0.6px, transparent 1.10px),
-    radial-gradient(circle at 32.3% 69.0%, rgba(255, 255, 255, 0.65) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 42.5% 52.1%, rgba(255, 255, 255, 0.52) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 93.7% 27.3%, rgba(255, 255, 255, 0.72) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 54.0% 10.6%, rgba(255, 255, 255, 0.39) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 25.0% 77.7%, rgba(255, 255, 255, 0.39) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 16.9% 11.0%, rgba(255, 255, 255, 0.54) 0 0.6px, transparent 1.10px),
-    radial-gradient(circle at 24.4% 40.8%, rgba(255, 255, 255, 0.38) 0 0.6px, transparent 1.10px),
-    radial-gradient(circle at 35.5% 7.4%, rgba(255, 255, 255, 0.80) 0 0.6px, transparent 1.10px),
-    radial-gradient(circle at 27.4% 10.1%, rgba(255, 255, 255, 0.82) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 30.9% 12.0%, rgba(255, 255, 255, 0.67) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 36.6% 58.5%, rgba(255, 255, 255, 0.77) 0 0.75px, transparent 1.25px),
-    radial-gradient(circle at 22.5% 26.9%, rgba(255, 255, 255, 0.37) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 25.7% 85.0%, rgba(255, 255, 255, 0.77) 0 0.6px, transparent 1.10px),
-    radial-gradient(circle at 54.8% 11.0%, rgba(255, 255, 255, 0.64) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 10.5% 7.0%, rgba(255, 255, 255, 0.53) 0 0.6px, transparent 1.10px),
-    radial-gradient(circle at 55.4% 67.9%, rgba(255, 255, 255, 0.68) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 3.5% 66.6%, rgba(255, 255, 255, 0.39) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 98.5% 8.4%, rgba(255, 255, 255, 0.60) 0 0.6px, transparent 1.10px),
-    radial-gradient(circle at 56.0% 64.4%, rgba(255, 255, 255, 0.81) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 86.8% 12.6%, rgba(255, 255, 255, 0.38) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 19.2% 88.1%, rgba(255, 255, 255, 0.47) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 38.1% 41.7%, rgba(255, 255, 255, 0.50) 0 0.6px, transparent 1.10px),
-    radial-gradient(circle at 76.0% 65.6%, rgba(255, 255, 255, 0.40) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 2.5% 50.5%, rgba(255, 255, 255, 0.63) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 55.4% 53.1%, rgba(255, 255, 255, 0.78) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 73.9% 42.3%, rgba(255, 255, 255, 0.61) 0 0.75px, transparent 1.25px),
-    radial-gradient(circle at 44.4% 17.6%, rgba(255, 255, 255, 0.69) 0 0.6px, transparent 1.10px),
-    radial-gradient(circle at 26.4% 66.5%, rgba(255, 255, 255, 0.40) 0 0.75px, transparent 1.25px),
-    radial-gradient(circle at 64.6% 59.9%, rgba(255, 255, 255, 0.44) 0 0.6px, transparent 1.10px),
-    radial-gradient(circle at 62.2% 25.7%, rgba(255, 255, 255, 0.61) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 82.9% 13.1%, rgba(255, 255, 255, 0.62) 0 0.6px, transparent 1.10px),
-    radial-gradient(circle at 17.8% 16.3%, rgba(255, 255, 255, 0.41) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 78.7% 6.8%, rgba(255, 255, 255, 0.39) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 66.9% 23.2%, rgba(255, 255, 255, 0.48) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 17.3% 11.4%, rgba(255, 255, 255, 0.52) 0 0.45px, transparent 0.95px),
-    radial-gradient(circle at 62.7% 6.3%, rgba(255, 255, 255, 0.84) 0 0.75px, transparent 1.25px),
-    radial-gradient(circle at 27.7% 38.1%, rgba(255, 255, 255, 0.43) 0 0.45px, transparent 0.95px);
-}
-
-/* A handful of brighter ones, breathing slowly. */
-.PrayerDayCard__stars::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image:
-    radial-gradient(circle at 3.0% 64.1%, rgba(255, 255, 255, 0.88) 0 1.1px, transparent 1.60px),
-    radial-gradient(circle at 28.1% 8.5%, rgba(255, 255, 255, 0.95) 0 0.9px, transparent 1.40px),
-    radial-gradient(circle at 18.1% 10.0%, rgba(255, 255, 255, 0.85) 0 0.9px, transparent 1.40px),
-    radial-gradient(circle at 91.7% 79.7%, rgba(255, 255, 255, 0.81) 0 1.1px, transparent 1.60px),
-    radial-gradient(circle at 52.6% 41.8%, rgba(255, 255, 255, 0.81) 0 1.0px, transparent 1.50px),
-    radial-gradient(circle at 93.5% 24.6%, rgba(255, 255, 255, 0.86) 0 1.1px, transparent 1.60px);
-  animation: PrayerDayCard-twinkle 5.5s ease-in-out infinite alternate;
-}
-
-@keyframes PrayerDayCard-twinkle {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0.55;
-  }
 }

@@ -1,0 +1,63 @@
+.StarField {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/*
+  The field is centred on the middle of the card's top edge and turns about
+  it, once every forty minutes - slow enough to be calm, quick enough that a
+  star is somewhere else after a minute's look. It starts at a random angle,
+  so the sky opens differently every time. Only a transform moves, which the
+  browser does without repainting the stars.
+*/
+.StarField__sky {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -50%) rotate(var(--start-angle));
+  animation: StarField-turn 2400s linear infinite;
+  will-change: transform;
+}
+
+@keyframes StarField-turn {
+  from {
+    transform: translate(-50%, -50%) rotate(var(--start-angle));
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(calc(var(--start-angle) + 360deg));
+  }
+}
+
+.StarField__faint {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* The few bright ones breathe slowly, each on its own phase. */
+.StarField__bright {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 2px rgba(255, 255, 255, 0.6);
+  animation: StarField-twinkle 5.5s ease-in-out infinite alternate;
+}
+
+@keyframes StarField-twinkle {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .StarField__sky,
+  .StarField__bright {
+    animation: none;
+  }
+}

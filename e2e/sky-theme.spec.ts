@@ -100,6 +100,31 @@ test("brings the stars out at night and puts the sun away", async ({ page }) => 
   expect(await property(page, "--sky-sun-colour")).toBe("transparent");
 });
 
+test("opens on a different night sky each time, and turns it", async ({
+  page,
+}) => {
+  await pinDate(page, "2026-01-15T21:00:00Z");
+  await setUpWithSky(page);
+
+  const sky = page.locator(".StarField__sky");
+  await expect(sky).toBeVisible();
+  // Something is painted: the field is wider than the card it turns behind.
+  const field = await sky.boundingBox();
+  const cardBox = await card(page).boundingBox();
+  expect(field!.width).toBeGreaterThan(cardBox!.width);
+  await expect(page.locator(".StarField__faint")).toHaveCount(1);
+  await expect(sky).toHaveCSS("animation-name", "StarField-turn");
+
+  const angle = () =>
+    sky.evaluate((el) => el.style.getPropertyValue("--start-angle"));
+  const first = await angle();
+  // Settings are written through a 500ms debounce; let them land first.
+  await page.waitForTimeout(700);
+  await page.reload();
+  await expect(sky).toBeVisible();
+  expect(await angle()).not.toBe(first);
+});
+
 test("shows the sun on the card during the day", async ({ page }) => {
   await pinDate(page, "2026-01-15T12:15:00Z");
   await setUpWithSky(page);
