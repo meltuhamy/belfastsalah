@@ -165,8 +165,9 @@
 
 /*
   The timeline: a dot above each prayer, over the same six columns as the
-  strip, and a faint line from Fajr's dot as far as now - nothing drawn ahead
-  of it. Kept quiet: it is there to be noticed, not read.
+  strip, and a line from Fajr's dot as far as now - solid between prayers that
+  have come in, fading out over the stretch since the last one, and nothing
+  drawn ahead of now. Kept quiet: it is there to be noticed, not read.
 */
 .PrayerDayCard__timeline {
   position: relative;
@@ -188,8 +189,8 @@
   border-radius: 1px;
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.2),
-    rgba(255, 255, 255, 0.6)
+    rgba(255, 255, 255, 0.6) calc(var(--solid) * 100%),
+    rgba(255, 255, 255, 0) 100%
   );
 }
 

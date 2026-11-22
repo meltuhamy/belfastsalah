@@ -161,7 +161,16 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
               aria-hidden="true"
               data-testid="timeline"
               style={
-                { "--progress": (progress ?? 0) / 5 } as React.CSSProperties
+                {
+                  "--progress": (progress ?? 0) / 5,
+                  // How much of the line is between prayers that have both
+                  // come in - drawn solid - rather than the stretch since the
+                  // last one, which fades out towards now.
+                  "--solid":
+                    progress != null && progress > 0
+                      ? lastPassed / progress
+                      : 1,
+                } as React.CSSProperties
               }
             >
               {progress !== null && (
