@@ -4,6 +4,14 @@
   overflow: hidden;
 }
 
+/* Shifted a few px by the phone's tilt; eased so readings do not judder. */
+.StarField__tilt {
+  position: absolute;
+  inset: 0;
+  transition: transform 300ms ease-out;
+  will-change: transform;
+}
+
 /*
   The field is centred on the middle of the card's top edge and turns about
   it, once every forty minutes - slow enough to be calm, quick enough that a

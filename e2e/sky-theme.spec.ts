@@ -125,6 +125,41 @@ test("opens on a different night sky each time, and turns it", async ({
   expect(await angle()).not.toBe(first);
 });
 
+test("shifts the stars a little as the phone is tipped", async ({ page }) => {
+  await pinDate(page, "2026-01-15T21:00:00Z");
+  await setUpWithSky(page);
+  const tilt = page.locator(".StarField__tilt");
+  await expect(tilt).toBeAttached();
+
+  const tip = (beta: number, gamma: number) =>
+    page.evaluate(
+      ([b, g]) =>
+        window.dispatchEvent(
+          new DeviceOrientationEvent("deviceorientation", { beta: b, gamma: g })
+        ),
+      [beta, gamma]
+    );
+  const shift = () =>
+    tilt.evaluate((el) => {
+      const m = new DOMMatrix(getComputedStyle(el).transform);
+      return { x: m.m41, y: m.m42 };
+    });
+
+  // The first reading is the resting angle: nothing moves.
+  await tip(40, 0);
+  await page.waitForTimeout(400);
+  expect(await shift()).toEqual({ x: 0, y: 0 });
+
+  // Tipped right and towards the reader: the sky slides left and up, by a
+  // few px and no more.
+  await tip(50, 10);
+  await expect.poll(async () => (await shift()).x).toBeLessThan(-1);
+  const moved = await shift();
+  expect(moved.y).toBeLessThan(-1);
+  expect(Math.abs(moved.x)).toBeLessThanOrEqual(8);
+  expect(Math.abs(moved.y)).toBeLessThanOrEqual(8);
+});
+
 test("shows the sun on the card during the day", async ({ page }) => {
   await pinDate(page, "2026-01-15T12:15:00Z");
   await setUpWithSky(page);

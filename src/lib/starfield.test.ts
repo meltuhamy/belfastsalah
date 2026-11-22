@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fieldSide, makeStarfield } from "./starfield";
+import { fieldSide, makeStarfield, TILT_SHIFT } from "./starfield";
 
 /** A small seeded generator, so a run can be repeated. */
 function seeded(seed: number) {
@@ -11,13 +11,14 @@ function seeded(seed: number) {
 }
 
 describe("fieldSide", () => {
-  it("Should keep every corner of the card inside the field at any angle", () => {
+  it("Should keep every corner of the card inside the field at any angle and tilt", () => {
     for (const [w, h] of [
       [288, 236],
       [358, 236],
       [608, 260],
     ]) {
-      const half = fieldSide(w, h) / 2;
+      // Less the room the tilt can shift the field by.
+      const half = fieldSide(w, h) / 2 - TILT_SHIFT;
       // The pivot is the middle of the top edge; the bottom corners are the
       // card's furthest points from it.
       expect(Math.hypot(w / 2, h)).toBeLessThanOrEqual(half);

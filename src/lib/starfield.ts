@@ -34,12 +34,16 @@ const FAINT_DENSITY = 45 / (360 * 236);
 /** Bright stars per px², about six on a phone-sized card. */
 const BRIGHT_DENSITY = 6 / (360 * 236);
 
+/** How far, in px, the phone's tilt may shift the field (see tilt.ts). */
+export const TILT_SHIFT = 8;
+
 /**
  * The side of a field that keeps a width × height card covered while turning
- * about the middle of its top edge: twice the distance to a bottom corner.
+ * about the middle of its top edge - twice the distance to a bottom corner -
+ * and while the tilt shifts it either way.
  */
 export function fieldSide(width: number, height: number): number {
-  return Math.ceil(2 * Math.hypot(width / 2, height)) + 8;
+  return Math.ceil(2 * Math.hypot(width / 2, height)) + 8 + 2 * TILT_SHIFT;
 }
 
 /** A new sky for a card of this size. `random` is Math.random in the app. */

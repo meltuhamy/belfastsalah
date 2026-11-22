@@ -1,5 +1,11 @@
-import React, { useLayoutEffect, useRef, useState } from "react";
-import { fieldSide, makeStarfield, Starfield } from "../lib/starfield";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  fieldSide,
+  makeStarfield,
+  Starfield,
+  TILT_SHIFT,
+} from "../lib/starfield";
+import { createTiltFollower } from "../lib/tilt";
 import "./StarField.css";
 
 /**
@@ -11,11 +17,61 @@ import "./StarField.css";
  * has to rotate; the few bright ones are elements of their own so each can
  * twinkle on its own phase. Made on mount rather than on render, because the
  * app re-renders every second and a sky that changed with it would flicker.
+ *
+ * Tipping the phone shifts the whole sky a few px the other way, as though it
+ * sat a little behind the glass (tilt.ts). That is written straight onto the
+ * element rather than through state, for the same once-a-second reason.
  */
 const StarField: React.FC = () => {
   const box = useRef<HTMLSpanElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const tilt = useRef<HTMLSpanElement>(null);
   const [sky, setSky] = useState<Starfield | null>(null);
+
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+    const follow = createTiltFollower(TILT_SHIFT);
+    let frame = 0;
+    const onOrientation = (event: DeviceOrientationEvent) => {
+      const { x, y } = follow(event.beta, event.gamma);
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        tilt.current?.style.setProperty(
+          "transform",
+          `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`
+        );
+      });
+    };
+    window.addEventListener("deviceorientation", onOrientation);
+
+    // iOS sends no readings until the page asks, and only lets it ask after a
+    // tap. Capacitor's web view grants the request itself, so nobody is shown
+    // a prompt: ask now, and if that is refused for want of a tap, again on
+    // the first one.
+    const ask =
+      typeof DeviceOrientationEvent === "undefined"
+        ? undefined
+        : (
+            DeviceOrientationEvent as unknown as {
+              requestPermission?: () => Promise<string>;
+            }
+          ).requestPermission?.bind(DeviceOrientationEvent);
+    const askOnTap = () => {
+      ask?.().catch(() => undefined);
+    };
+    if (ask != null) {
+      ask().catch(() =>
+        window.addEventListener("pointerup", askOnTap, { once: true })
+      );
+    }
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("deviceorientation", onOrientation);
+      window.removeEventListener("pointerup", askOnTap);
+    };
+  }, []);
 
   // A new sky for the card's size, and again if that size grows past what
   // the field covers - a phone turned on its side.
@@ -57,6 +113,7 @@ const StarField: React.FC = () => {
 
   return (
     <span ref={box} className="StarField" data-testid="starfield">
+      <span ref={tilt} className="StarField__tilt">
       {sky != null && (
         <span
           className="StarField__sky"
@@ -84,6 +141,7 @@ const StarField: React.FC = () => {
           ))}
         </span>
       )}
+      </span>
     </span>
   );
 };
