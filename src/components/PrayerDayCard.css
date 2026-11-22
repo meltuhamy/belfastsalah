@@ -149,14 +149,12 @@
 }
 
 /*
-  The glass the highlight and the timeline's dots are made of, and the colour
-  of the strip's text as rgb, for the timeline's line. The Sky theme swaps in
-  its own below.
+  The glass the next prayer's highlight is made of. The Sky theme swaps in its
+  own below.
 */
 .PrayerDayCard {
   --pane: rgba(var(--ion-color-primary-contrast-rgb), 0.16);
   --pane-edge: rgba(var(--ion-color-primary-contrast-rgb), 0.4);
-  --strip-text-rgb: var(--ion-color-primary-contrast-rgb);
 }
 
 /* The next prayer: a frosted pane, as on the widget. */
@@ -190,15 +188,15 @@
   border-radius: 1px;
   background: linear-gradient(
     90deg,
-    rgba(var(--strip-text-rgb), 0.08),
-    rgba(var(--strip-text-rgb), 0.28)
+    rgba(255, 255, 255, 0.2),
+    rgba(255, 255, 255, 0.6)
   );
 }
 
 /*
   Still to come: an empty ring. Passed: a bead of white glass with a soft
-  glow, the same on any sky - a dark bead on the noon sky read as a hole
-  rather than a light.
+  glow. All white, on any sky: in the text's colour, the ring and the trail
+  came out dark on the noon sky.
 */
 .PrayerDayCard__dot {
   position: relative;
@@ -207,7 +205,7 @@
   height: 7px;
   box-sizing: border-box;
   border-radius: 50%;
-  border: 1px solid rgba(var(--strip-text-rgb), 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   transition:
     background-color 320ms ease,
     border-color 320ms ease,
@@ -216,7 +214,7 @@
 
 .PrayerDayCard__dot[data-passed="true"] {
   background: rgba(255, 255, 255, 0.92);
-  border-color: rgba(var(--strip-text-rgb), 0.15);
+  border-color: rgba(255, 255, 255, 0.9);
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.55);
 }
 
@@ -308,7 +306,6 @@
 .sky-theme .PrayerDayCard {
   --pane: var(--sky-glass);
   --pane-edge: var(--sky-glass-edge);
-  --strip-text-rgb: var(--sky-lower-text-rgb);
 }
 
 .PrayerDayCard__sky {

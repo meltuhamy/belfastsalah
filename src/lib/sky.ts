@@ -374,7 +374,6 @@ export function skyProperties(
     "--sky-text": TEXT_COLOURS[sky.text],
     "--sky-text-rgb": rgbList(TEXT_COLOURS[sky.text]),
     "--sky-lower-text": TEXT_COLOURS[sky.lowerText],
-    "--sky-lower-text-rgb": rgbList(TEXT_COLOURS[sky.lowerText]),
     // The next prayer's frosted pane, as the widgets draw it
     // (widget_accent_glass_on_light / _on_dark): brighter where the text on
     // it is black, fainter where it is white.
