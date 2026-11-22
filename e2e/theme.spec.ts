@@ -21,8 +21,8 @@ const backgroundColour = (page: Page) =>
 
 /**
  * Finishes setup and opens the settings screen. Needed for anything about
- * "Dark after Maghrib": setup has no location yet, so there are no prayer
- * times for that mode to follow.
+ * Sky's night: setup has no location yet, so there are no prayer times for it
+ * to follow.
  */
 async function openSettings(page: Page) {
   await completeSetup(page);
@@ -110,22 +110,18 @@ test.describe("with the device set to dark", () => {
   });
 });
 
-test.describe("dark after Maghrib", () => {
+test.describe("Sky's night", () => {
   test.use({ colorScheme: "light" });
 
-  test("is offered alongside the standard three", async ({ page }) => {
+  test("is offered after the standard three, with no Dark after Maghrib", async ({
+    page,
+  }) => {
     await page.goto("/");
     await page.waitForSelector("[data-testid=theme-select]");
     const options = await page
       .locator("[data-testid=theme-select] ion-select-option")
       .allInnerTexts();
-    expect(options).toEqual([
-      "Match device",
-      "Light",
-      "Dark",
-      "Dark after Maghrib",
-      "Sky",
-    ]);
+    expect(options).toEqual(["Match device", "Light", "Dark", "Sky"]);
   });
 
   test("goes dark after Maghrib, though the device is light", async ({
@@ -135,7 +131,7 @@ test.describe("dark after Maghrib", () => {
     // with the device set to light - so only the timetable can explain dark.
     await page.clock.setFixedTime(new Date("2026-08-07T22:30:00Z"));
     await openSettings(page);
-    await chooseTheme(page, "Dark after Maghrib");
+    await chooseTheme(page, "Sky");
     await expect.poll(() => paletteIsDark(page)).toBe(true);
   });
 
@@ -143,7 +139,7 @@ test.describe("dark after Maghrib", () => {
     // 13:00 in London, before Duhr at 13:12 and long after sunrise.
     await page.clock.setFixedTime(new Date("2026-08-07T12:00:00Z"));
     await openSettings(page);
-    await chooseTheme(page, "Dark after Maghrib");
+    await chooseTheme(page, "Sky");
     await expect.poll(() => paletteIsDark(page)).toBe(false);
   });
 });

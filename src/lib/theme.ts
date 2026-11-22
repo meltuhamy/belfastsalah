@@ -10,23 +10,17 @@
 
 import { Prayer } from "./PrayerTimes";
 
-export type Theme = "system" | "light" | "dark" | "maghrib" | "sky";
+export type Theme = "system" | "light" | "dark" | "sky";
 
 // Also the order they appear in the picker: the standard three first, then
-// the two specific to this app.
-export const THEMES: ReadonlyArray<Theme> = [
-  "system",
-  "light",
-  "dark",
-  "maghrib",
-  "sky",
-];
+// this app's own. There was a "Dark after Maghrib" between them; Sky goes dark
+// at Maghrib too, and settings that had it now have Sky (migrateSettings).
+export const THEMES: ReadonlyArray<Theme> = ["system", "light", "dark", "sky"];
 
 export const themeLabels: Record<Theme, string> = {
   system: "Match device",
   light: "Light",
   dark: "Dark",
-  maghrib: "Dark after Maghrib",
   sky: "Sky",
 };
 
@@ -66,8 +60,7 @@ export function isDark(theme: Theme, conditions: Conditions): boolean {
       return false;
     case "dark":
       return true;
-    case "maghrib":
-    // Sky goes dark on the same rule, so its night falls at Maghrib too.
+    // Dark from Maghrib to sunrise, so its night agrees with the timetable's.
     case "sky":
       // Falling back to the device's setting rather than to light: it is the
       // better guess for the moment before the timetable arrives, and someone

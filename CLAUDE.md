@@ -433,10 +433,12 @@ and there is the test day (`/settings/notifications/test`).
 
 ## Theming
 
-One setting, `theme`, with five values: `system`, `light`, `dark`, `maghrib`,
-`sky`. `sky` is a new install's default (`getDefaultSettings`); settings saved
+One setting, `theme`, with four values: `system`, `light`, `dark`, `sky`.
+`sky` is a new install's default (`getDefaultSettings`); settings saved
 without a theme migrate to `system`, which was the default when they were
-written, so an upgrade does not change the look. `src/lib/theme.ts` decides; `useTheme` in `App.tsx` is the only
+written, so an upgrade does not change the look. There used to be a `maghrib`
+("Dark after Maghrib"); Sky goes dark at Maghrib too, and `migrateSettings`
+moves it there. `src/lib/theme.ts` decides; `useTheme` in `App.tsx` is the only
 thing that touches the palette class, and it puts Ionic's `.ion-palette-dark`
 on `<html>`.
 

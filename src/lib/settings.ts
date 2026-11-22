@@ -68,7 +68,8 @@ function themeFromLegacy(legacy: LegacySettings): Theme | null {
   if (!legacy.nightMode) {
     return "light";
   }
-  return legacy.nightModeMaghrib ? "maghrib" : "dark";
+  // "Dark after Maghrib" became its own theme, which Sky has since replaced.
+  return legacy.nightModeMaghrib ? "sky" : "dark";
 }
 
 /**
@@ -98,10 +99,15 @@ export function migrateSettings(stored: unknown): AppSettings {
     // upgrade does not change how the app looks.
     theme: "system" as Theme,
   };
+  // "Dark after Maghrib" is gone; Sky goes dark at Maghrib too, and has the
+  // day's colours besides.
+  const storedTheme = (rest as { theme?: string }).theme;
+  const theme: Theme | null =
+    legacyTheme ?? (storedTheme === "maghrib" ? "sky" : null);
   return {
     ...defaults,
     ...rest,
-    ...(legacyTheme === null ? {} : { theme: legacyTheme }),
+    ...(theme === null ? {} : { theme }),
     reminders: migrateReminders(reminders, { notifyMinutes, notifySound, fajrSound }),
   };
 }
