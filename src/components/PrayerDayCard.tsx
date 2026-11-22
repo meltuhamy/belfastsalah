@@ -95,57 +95,74 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
         <span className="PrayerDayCard__sun" />
       </span>
       <IonCardContent className="PrayerDayCard__content">
-        <div className="PrayerDayCard__top">
-          <div className="PrayerDayCard__countdown">
-            {next == null || prev == null ? (
-              <>
-                <IonSkeletonText animated style={{ width: "30%" }} />
-                <IonSkeletonText
-                  animated
-                  className="PrayerDayCard__skeleton"
-                  style={{ width: "60%" }}
-                />
-              </>
-            ) : (
-              <>
-                <p className="PrayerDayCard__label">
-                  {prayerToString(next.prayer)} in
-                </p>
-                <p className="PrayerDayCard__remaining" data-testid="countdown">
-                  {timeDurationString(
-                    (next.time.getTime() - now.getTime()) / 1000,
-                    "short"
-                  )}
-                </p>
-                <p className="PrayerDayCard__since">
-                  {prayerToString(prev.prayer)} was{" "}
-                  {timeDurationString(
-                    (now.getTime() - prev.time.getTime()) / 1000,
-                    "short"
-                  )}{" "}
-                  ago
-                </p>
-              </>
-            )}
-          </div>
+        {/*
+          The line about the last prayer sits under the whole top row rather
+          than in the countdown's column, so on a narrow phone it can run
+          beneath the place and date instead of wrapping beside them.
+        */}
+        <div className="PrayerDayCard__head">
+          <div className="PrayerDayCard__top">
+            <div className="PrayerDayCard__countdown">
+              {next == null || prev == null ? (
+                <>
+                  <IonSkeletonText animated style={{ width: "30%" }} />
+                  <IonSkeletonText
+                    animated
+                    className="PrayerDayCard__skeleton"
+                    style={{ width: "60%" }}
+                  />
+                </>
+              ) : (
+                <>
+                  <p className="PrayerDayCard__label">
+                    {prayerToString(next.prayer)} in
+                  </p>
+                  <p
+                    className="PrayerDayCard__remaining"
+                    data-testid="countdown"
+                  >
+                    {timeDurationString(
+                      (next.time.getTime() - now.getTime()) / 1000,
+                      "short"
+                    )}
+                  </p>
+                </>
+              )}
+            </div>
 
-          <div className="PrayerDayCard__meta">
-            {showsNextDay && (
-              <span
-                className="PrayerDayCard__badge"
-                data-testid="tomorrow-badge"
-              >
-                Tomorrow
-              </span>
-            )}
-            {locationName !== null && <p>{locationName}</p>}
-            <p data-testid="day-date">{formatDateInZone(stripDay, timeZone)}</p>
-            {showsOtherZone && locationName !== null && (
-              <p data-testid="display-zone-caption">
-                Showing {locationName} time
+            <div className="PrayerDayCard__meta">
+              {showsNextDay && (
+                <span
+                  className="PrayerDayCard__badge"
+                  data-testid="tomorrow-badge"
+                >
+                  Tomorrow
+                </span>
+              )}
+              {/* Place and date on one line: one quiet line rather than two. */}
+              <p>
+                {locationName !== null && <>{locationName} · </>}
+                <span data-testid="day-date">
+                  {formatDateInZone(stripDay, timeZone)}
+                </span>
               </p>
-            )}
+              {showsOtherZone && locationName !== null && (
+                <p data-testid="display-zone-caption">
+                  Showing {locationName} time
+                </p>
+              )}
+            </div>
           </div>
+          {next != null && prev != null && (
+            <p className="PrayerDayCard__since">
+              {prayerToString(prev.prayer)} was{" "}
+              {timeDurationString(
+                (now.getTime() - prev.time.getTime()) / 1000,
+                "short"
+              )}{" "}
+              ago
+            </p>
+          )}
         </div>
 
         {strip == null ? (

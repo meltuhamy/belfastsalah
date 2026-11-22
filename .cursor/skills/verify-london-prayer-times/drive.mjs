@@ -178,7 +178,7 @@ async function today() {
     const storedOk = storedSettings?.location === "london";
     const orderOk = order.join(",") === names.join(",");
     // The card names the location and the previous prayer ("Duhr was 12m ago").
-    const cardLocationOk = cardMeta.split("\n").includes("London");
+    const cardLocationOk = /\bLondon\b/.test(cardMeta);
     const previousPrayerOk = /\bwas\b.+\bago\b/.test(countdownLine);
     // The highlight must be painted, inside the card.
     const highlightOk = painted === highlighted;
