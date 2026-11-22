@@ -92,6 +92,24 @@ test("fills a dot on the timeline for each prayer that has passed", async ({
   await expect(page.locator(".PrayerDayCard__timeline-fill")).toHaveCount(0);
 });
 
+test("pulses a prayer's dot for its first ten minutes", async ({ page }) => {
+  const recent = () =>
+    page
+      .locator("[data-testid=timeline] .PrayerDayCard__dot")
+      .evaluateAll((all) => all.map((d) => d.dataset.recent));
+
+  // Duhr came in at 12:20.
+  await page.clock.setFixedTime(new Date("2026-02-15T12:25:00Z"));
+  await expect
+    .poll(recent)
+    .toEqual(["false", "false", "true", "false", "false", "false"]);
+
+  await page.clock.setFixedTime(new Date("2026-02-15T12:31:00Z"));
+  await expect
+    .poll(recent)
+    .toEqual(["false", "false", "false", "false", "false", "false"]);
+});
+
 test("rolls the countdown onto the next prayer once one passes", async ({
   page,
 }) => {
@@ -153,8 +171,24 @@ test("opens the month table on the current month", async ({ page }) => {
   // non-leap year in src/prayer_data does, duplicating the 28th - so this is
   // also a check that the table follows the calendar and not the file.
   expect(rows).toHaveLength(28);
-  expect(rows[0]).toEqual(["1", "05:59", "07:36", "12:19", "14:26", "16:53", "18:29"]);
-  expect(rows[27]).toEqual(["28", "05:08", "06:45", "12:18", "15:03", "17:42", "19:09"]);
+  expect(rows[0]).toEqual([
+    "1",
+    "05:59",
+    "07:36",
+    "12:19",
+    "14:26",
+    "16:53",
+    "18:29",
+  ]);
+  expect(rows[27]).toEqual([
+    "28",
+    "05:08",
+    "06:45",
+    "12:18",
+    "15:03",
+    "17:42",
+    "19:09",
+  ]);
 });
 
 test("marks today in the month table, and only today", async ({ page }) => {
@@ -172,7 +206,9 @@ test("puts the settings screen one tap away and comes back", async ({
   page,
 }) => {
   await page.locator("ion-button[router-link='/settings']").click();
-  await expect(page.locator("ion-title", { hasText: "Settings" })).toBeVisible();
+  await expect(
+    page.locator("ion-title", { hasText: "Settings" })
+  ).toBeVisible();
   await page.locator("ion-button[router-link='/']").click();
   await expect(page.locator(PRAYER_STRIP)).toBeVisible();
 });

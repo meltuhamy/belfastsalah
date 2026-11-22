@@ -32,6 +32,9 @@ type Props = {
  * is tall on purpose, so in the Sky theme the sun has an arc to travel and the
  * stars room to be seen.
  */
+/** How long a prayer's dot pulses after it comes in. */
+const RECENT_MS = 10 * 60 * 1000;
+
 const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   const timeZone = useDisplayTimeZone();
   const [settings] = useSettings();
@@ -59,6 +62,12 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   // Isha's, and in between by time. Null before Fajr, which is also all
   // night once the strip has rolled on to tomorrow.
   const passed = strip?.map((p) => p.time.getTime() <= now.getTime()) ?? [];
+  // A prayer that came in under ten minutes ago: its dot pulses.
+  const recent =
+    strip?.map((p) => {
+      const since = now.getTime() - p.time.getTime();
+      return since >= 0 && since < RECENT_MS;
+    }) ?? [];
   const lastPassed = passed.lastIndexOf(true);
   let progress: number | null = null;
   if (strip != null && lastPassed >= 0) {
@@ -144,7 +153,8 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
           <div className="PrayerDayCard__day">
             {/*
             A hairline through the day, a dot above each prayer: filled once
-            its time has passed, and the line filled up to now.
+            its time has passed, pulsing for its first ten minutes, and a
+            faint line drawn as far as now. No line ahead of now.
           */}
             <div
               className="PrayerDayCard__timeline"
@@ -154,7 +164,6 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
                 { "--progress": (progress ?? 0) / 5 } as React.CSSProperties
               }
             >
-              <span className="PrayerDayCard__timeline-track" />
               {progress !== null && (
                 <span className="PrayerDayCard__timeline-fill" />
               )}
@@ -163,6 +172,7 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
                   key={prayerTime.prayer}
                   className="PrayerDayCard__dot"
                   data-passed={passed[i] ? "true" : "false"}
+                  data-recent={recent[i] ? "true" : "false"}
                 />
               ))}
             </div>

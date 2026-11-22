@@ -166,9 +166,9 @@
 }
 
 /*
-  The timeline: a hairline from Fajr's dot to Isha's, over the same six
-  columns as the strip so each dot sits above its prayer. Kept faint - it is
-  there to be noticed, not read.
+  The timeline: a dot above each prayer, over the same six columns as the
+  strip, and a faint line from Fajr's dot as far as now - nothing drawn ahead
+  of it. Kept quiet: it is there to be noticed, not read.
 */
 .PrayerDayCard__timeline {
   position: relative;
@@ -180,27 +180,18 @@
   margin-bottom: 6px;
 }
 
-.PrayerDayCard__timeline-track,
 .PrayerDayCard__timeline-fill {
   position: absolute;
   top: 50%;
   left: calc(100% / 12);
+  width: calc(var(--progress) * (100% - 100% / 6));
   height: 1px;
   transform: translateY(-50%);
   border-radius: 1px;
-}
-
-.PrayerDayCard__timeline-track {
-  right: calc(100% / 12);
-  background: rgba(var(--strip-text-rgb), 0.18);
-}
-
-.PrayerDayCard__timeline-fill {
-  width: calc(var(--progress) * (100% - 100% / 6));
   background: linear-gradient(
     90deg,
-    rgba(var(--strip-text-rgb), 0.15),
-    rgba(var(--strip-text-rgb), 0.4)
+    rgba(var(--strip-text-rgb), 0.08),
+    rgba(var(--strip-text-rgb), 0.28)
   );
 }
 
@@ -229,6 +220,24 @@
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.55);
 }
 
+/*
+  Just come in: the bead breathes, slowly, for its first ten minutes. Only the
+  glow moves, so the dot itself stays put.
+*/
+.PrayerDayCard__dot[data-recent="true"] {
+  animation: PrayerDayCard-pulse 3.2s ease-in-out infinite;
+}
+
+@keyframes PrayerDayCard-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 4px 0 rgba(255, 255, 255, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.75);
+  }
+}
+
 .PrayerDayCard__cell[data-next="true"] .PrayerDayCard__cell-name {
   opacity: 1;
 }
@@ -253,7 +262,8 @@
     transition: none;
   }
 
-  .PrayerDayCard__stars::after {
+  .PrayerDayCard__stars::after,
+  .PrayerDayCard__dot[data-recent="true"] {
     animation: none;
   }
 }
