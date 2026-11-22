@@ -226,10 +226,12 @@
 }
 
 /*
-  Faded back, like the cells below them, except the next prayer's - and one
-  that has just come in, whose pulse would otherwise be lost.
+  The prayers still to come after the next one are faded back, like their
+  cells below. The next prayer's ring stays at full strength, and so do the
+  prayers that have come in: faded, a bead turns translucent and the line
+  shows through it.
 */
-.PrayerDayCard__dot:not([data-next="true"]):not([data-recent="true"]) {
+.PrayerDayCard__dot[data-passed="false"]:not([data-next="true"]) {
   opacity: 0.55;
 }
 
