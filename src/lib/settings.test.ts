@@ -80,4 +80,8 @@ describe("migrateSettings", () => {
     const { nightMode: _nightMode, ...noTheme } = legacyStored();
     expect(migrateSettings(noTheme).theme).toEqual("system");
   });
+
+  it("Should give a new install the Sky theme", () => {
+    expect(getDefaultSettings().theme).toEqual("sky");
+  });
 });

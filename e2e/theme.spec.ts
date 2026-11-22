@@ -35,7 +35,7 @@ const chooseTheme = (page: Page, label: string) =>
 test.describe("with the device set to light", () => {
   test.use({ colorScheme: "light" });
 
-  test("defaults to matching the device", async ({ page }) => {
+  test("starts a new install on Sky", async ({ page }) => {
     await page.goto("/");
     await page.waitForSelector("[data-testid=theme-select]");
     await expect
@@ -44,8 +44,21 @@ test.describe("with the device set to light", () => {
           .locator("[data-testid=theme-select]")
           .evaluate((s) => (s as unknown as { value: string }).value)
       )
-      .toBe("system");
-    expect(await paletteIsDark(page)).toBe(false);
+      .toBe("sky");
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          document.documentElement.classList.contains("sky-theme")
+        )
+      )
+      .toBe(true);
+  });
+
+  test("matches the device when asked to", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForSelector("[data-testid=theme-select]");
+    await chooseTheme(page, "Match device");
+    await expect.poll(() => paletteIsDark(page)).toBe(false);
   });
 
   test("goes dark when told to, regardless of the device", async ({ page }) => {
@@ -65,9 +78,10 @@ test.describe("with the device set to light", () => {
 test.describe("with the device set to dark", () => {
   test.use({ colorScheme: "dark" });
 
-  test("follows the device by default", async ({ page }) => {
+  test("follows the device on Match device", async ({ page }) => {
     await page.goto("/");
     await page.waitForSelector("[data-testid=theme-select]");
+    await chooseTheme(page, "Match device");
     await expect.poll(() => paletteIsDark(page)).toBe(true);
   });
 
@@ -85,6 +99,7 @@ test.describe("with the device set to dark", () => {
     // the answer, so it never noticed a change. This is that bug.
     await page.goto("/");
     await page.waitForSelector("[data-testid=theme-select]");
+    await chooseTheme(page, "Match device");
     await expect.poll(() => paletteIsDark(page)).toBe(true);
 
     await page.emulateMedia({ colorScheme: "light" });

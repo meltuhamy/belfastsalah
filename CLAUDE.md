@@ -433,8 +433,10 @@ and there is the test day (`/settings/notifications/test`).
 
 ## Theming
 
-One setting, `theme`, with five values: `system` (default), `light`, `dark`,
-`maghrib`, `sky`. `src/lib/theme.ts` decides; `useTheme` in `App.tsx` is the only
+One setting, `theme`, with five values: `system`, `light`, `dark`, `maghrib`,
+`sky`. `sky` is a new install's default (`getDefaultSettings`); settings saved
+without a theme migrate to `system`, which was the default when they were
+written, so an upgrade does not change the look. `src/lib/theme.ts` decides; `useTheme` in `App.tsx` is the only
 thing that touches the palette class, and it puts Ionic's `.ion-palette-dark`
 on `<html>`.
 

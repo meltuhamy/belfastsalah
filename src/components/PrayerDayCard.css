@@ -202,8 +202,8 @@
 .PrayerDayCard__dot {
   position: relative;
   justify-self: center;
-  width: 7px;
-  height: 7px;
+  width: 5px;
+  height: 5px;
   box-sizing: border-box;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.6);
@@ -233,7 +233,7 @@
     box-shadow: 0 0 4px 0 rgba(255, 255, 255, 0.45);
   }
   50% {
-    box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.75);
+    box-shadow: 0 0 8px 3px rgba(255, 255, 255, 0.75);
   }
 }
 

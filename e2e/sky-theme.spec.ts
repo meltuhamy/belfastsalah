@@ -152,9 +152,13 @@ test("shows the sun on the card during the day", async ({ page }) => {
 
 test("previews on the setup screen before it is saved", async ({ page }) => {
   // Setup has no location stored yet, so this is London's day standing in.
+  // Sky is a new install's default, so setup opens on it.
   await pinDate(page, "2026-01-15T12:15:00Z");
   await openSetup(page);
-  expect(await htmlHas(page, "sky-theme")).toBe(false);
+  await expect.poll(() => htmlHas(page, "sky-theme")).toBe(true);
+
+  await chooseTheme(page, "Light");
+  await expect.poll(() => htmlHas(page, "sky-theme")).toBe(false);
 
   await chooseTheme(page, "Sky");
 

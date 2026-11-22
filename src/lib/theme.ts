@@ -1,11 +1,11 @@
 /**
  * What the app looks like, and what decides it.
  *
- * One setting with four values rather than the pair of coupled booleans this
- * replaces. "System" is the default and the reason for the rewrite: it used to
- * be sampled once, at first launch, and frozen into a stored boolean, so the
- * app never followed the device again - not on the device's own light/dark
- * schedule, and not when the user changed it by hand.
+ * One setting rather than the pair of coupled booleans this replaces. "System"
+ * was the reason for the rewrite: it used to be sampled once, at first launch,
+ * and frozen into a stored boolean, so the app never followed the device again
+ * - not on the device's own light/dark schedule, and not when the user changed
+ * it by hand. "Sky" is the default for a new install (getDefaultSettings).
  */
 
 import { Prayer } from "./PrayerTimes";

@@ -69,7 +69,11 @@ import {
 import { syncAndroidReminders } from "./lib/nativeReminders";
 import { iosSoundName } from "./lib/reminderSound";
 import { prayerKey, reminderBody, soundForPrayer } from "./lib/prayerReminders";
-import { addSaveListener, removeSaveListener } from "./lib/settings";
+import {
+  addSaveListener,
+  getDefaultSettings,
+  removeSaveListener,
+} from "./lib/settings";
 import { refreshWidgets } from "./lib/widgets";
 import FullPageSpinner from "./components/FullPageSpinner";
 import SetupPage from "./pages/SetupPage";
@@ -93,7 +97,9 @@ const App: React.FC = () => {
   // One owner of the palette. Before setup completes there are no stored
   // settings to read, so the setup screen reports its choice up here rather
   // than applying it itself - two components toggling the class would fight.
-  const [setupTheme, setSetupTheme] = useState<Theme>("system");
+  const [setupTheme, setSetupTheme] = useState<Theme>(
+    getDefaultSettings().theme
+  );
   useTheme(
     settings?.theme ?? setupTheme,
     next === null ? null : next.prayer,
