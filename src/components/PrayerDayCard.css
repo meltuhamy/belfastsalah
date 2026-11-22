@@ -359,4 +359,24 @@
   position: absolute;
   inset: 0;
   opacity: var(--sky-night);
+  /*
+    Thinned over the lower part of the card, where the timeline's dots and
+    the times are, like haze near the horizon: the faint stars disappear and
+    only the odd bright one shows, so few sit beside the dots. The stars turn,
+    so this is done on the still layer rather than by where they are sown.
+  */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 48%,
+    rgba(0, 0, 0, 0.3) 62%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 48%,
+    rgba(0, 0, 0, 0.3) 62%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
 }
