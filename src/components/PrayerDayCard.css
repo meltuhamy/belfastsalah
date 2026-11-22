@@ -133,7 +133,8 @@
   border-radius: 10px;
   transition:
     background-color 320ms cubic-bezier(0.32, 0.72, 0.3, 1),
-    border-color 320ms cubic-bezier(0.32, 0.72, 0.3, 1);
+    border-color 320ms cubic-bezier(0.32, 0.72, 0.3, 1),
+    opacity 320ms cubic-bezier(0.32, 0.72, 0.3, 1);
 }
 
 .PrayerDayCard__cell-name {
@@ -239,6 +240,15 @@
 
 .PrayerDayCard__cell[data-next="true"] .PrayerDayCard__cell-name {
   opacity: 1;
+}
+
+/*
+  Every other prayer is faded back, so the eye lands on the next one first.
+  Faded as a whole cell, so its name and time keep their weight against each
+  other - on any theme, the Sky's included.
+*/
+.PrayerDayCard__cell:not([data-next="true"]) {
+  opacity: 0.6;
 }
 
 @media (max-width: 359px) {
