@@ -301,6 +301,10 @@ on render, or the once-a-second tick would reshuffle them. They sit at three
 depths, each its own layer; tipping the phone (`tilt.ts`) moves each layer by a
 different amount (`STAR_LAYERS`), written onto the elements and eased in CSS.
 Springs, with overshoot, were tried and taken out: plain easing felt better.
+By day there is a faint lens flare (`LensFlare`): ghosts on the line from the
+sun through the card's middle, which the tilt shifts, so the line swings about
+the sun. It fades with `--sky-sun-on`. The stars and the flare share one tilt
+listener's logic, `useTilt`, which also asks iOS for the readings.
 
 Two Ionic details to know, both handled in `PrayerDayCard.css`:
 

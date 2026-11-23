@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 import {
   DepthStar,
   fieldSide,
@@ -6,7 +6,7 @@ import {
   STAR_LAYERS,
   Starfield,
 } from "../lib/starfield";
-import { createTiltFollower } from "../lib/tilt";
+import { useTilt } from "../lib/useTilt";
 import "./StarField.css";
 
 /**
@@ -32,54 +32,16 @@ const StarField: React.FC = () => {
   const layers = useRef<Array<HTMLSpanElement | null>>([]);
   const [sky, setSky] = useState<Starfield | null>(null);
 
-  useEffect(() => {
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-      return;
-    }
-    const follow = createTiltFollower(1);
-    let frame = 0;
-    const onOrientation = (event: DeviceOrientationEvent) => {
-      const { x, y } = follow(event.beta, event.gamma, event.timeStamp);
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        STAR_LAYERS.forEach((layer, i) => {
-          layers.current[i]?.style.setProperty(
-            "transform",
-            `translate3d(${(x * layer.shift).toFixed(2)}px, ${(
-              y * layer.shift
-            ).toFixed(2)}px, 0)`
-          );
-        });
-      });
-    };
-    window.addEventListener("deviceorientation", onOrientation);
-
-    // iOS sends no readings until the page asks, and only lets it ask after a
-    // tap. Capacitor's web view grants the request itself, so nobody is shown
-    // a prompt: ask now, and if that is refused for want of a tap, again on
-    // the first one.
-    const ask =
-      typeof DeviceOrientationEvent === "undefined"
-        ? undefined
-        : (
-            DeviceOrientationEvent as unknown as {
-              requestPermission?: () => Promise<string>;
-            }
-          ).requestPermission?.bind(DeviceOrientationEvent);
-    const askOnTap = () => {
-      ask?.().catch(() => undefined);
-    };
-    if (ask != null) {
-      ask().catch(() =>
-        window.addEventListener("pointerup", askOnTap, { once: true })
+  useTilt(({ x, y }) => {
+    STAR_LAYERS.forEach((layer, i) => {
+      layers.current[i]?.style.setProperty(
+        "transform",
+        `translate3d(${(x * layer.shift).toFixed(2)}px, ${(
+          y * layer.shift
+        ).toFixed(2)}px, 0)`
       );
-    }
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener("deviceorientation", onOrientation);
-      window.removeEventListener("pointerup", askOnTap);
-    };
-  }, []);
+    });
+  });
 
   // A new sky for the card's size, and again if that size grows past what
   // the field covers - a phone turned on its side.

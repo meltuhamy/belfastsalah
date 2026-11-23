@@ -17,6 +17,7 @@ import { locationNames } from "../lib/PrayerTimeData";
 import { usePrayerStrip } from "../lib/usePrayerStrip";
 import { isLaterDay } from "../lib/prayerStrip";
 import StarField from "./StarField";
+import LensFlare from "./LensFlare";
 import "./PrayerDayCard.css";
 
 type Props = {
@@ -85,14 +86,15 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   return (
     <IonCard color="primary" className="PrayerDayCard">
       {/*
-        The Sky theme's sun and stars, drawn behind everything else. Only shown
-        in that theme.
+        The Sky theme's sun, stars and daytime lens flare, drawn behind
+        everything else. Only shown in that theme.
       */}
       <span className="PrayerDayCard__sky" aria-hidden="true">
         <span className="PrayerDayCard__stars">
           <StarField />
         </span>
         <span className="PrayerDayCard__sun" />
+        <LensFlare />
       </span>
       <IonCardContent className="PrayerDayCard__content">
         {/*

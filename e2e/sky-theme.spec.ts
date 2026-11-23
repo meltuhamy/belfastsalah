@@ -169,6 +169,45 @@ test("shifts the stars by depth as the phone is tipped", async ({ page }) => {
   expect(Math.abs(near.x)).toBeLessThanOrEqual(10);
 });
 
+test("shows a faint lens flare by day that swings with the phone's tilt", async ({
+  page,
+}) => {
+  await pinDate(page, "2026-01-15T14:50:00Z");
+  await setUpWithSky(page);
+  const flare = page.getByTestId("lens-flare");
+  await expect(flare).toHaveCSS("opacity", "1");
+
+  // The farthest ghost, which swings the most.
+  const ghost = flare.locator(".LensFlare__ghost").last();
+  const centre = () =>
+    ghost.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    });
+  const tip = (beta: number, gamma: number) =>
+    page.evaluate(
+      ([b, g]) =>
+        window.dispatchEvent(
+          new DeviceOrientationEvent("deviceorientation", { beta: b, gamma: g })
+        ),
+      [beta, gamma]
+    );
+
+  await tip(40, 0);
+  await page.waitForTimeout(400);
+  const before = await centre();
+  await tip(40, 15);
+  await page.waitForTimeout(500);
+  const after = await centre();
+  expect(Math.abs(after.x - before.x)).toBeGreaterThan(5);
+});
+
+test("puts the lens flare away at night", async ({ page }) => {
+  await pinDate(page, "2026-01-15T21:30:00Z");
+  await setUpWithSky(page);
+  await expect(page.getByTestId("lens-flare")).toHaveCSS("opacity", "0");
+});
+
 test("shows the sun on the card during the day", async ({ page }) => {
   await pinDate(page, "2026-01-15T12:15:00Z");
   await setUpWithSky(page);

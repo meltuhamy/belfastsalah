@@ -352,6 +352,9 @@
 }
 
 .sky-theme .PrayerDayCard__sky {
+  /* The sun's centre, shared by the sun and the lens flare (see below). */
+  --sun-left: var(--sky-sun-x);
+  --sun-top: calc(var(--sky-sun-y) * 0.545 + 14.9%);
   display: block;
   position: absolute;
   inset: 0;
@@ -371,8 +374,8 @@
 */
 .PrayerDayCard__sun {
   position: absolute;
-  left: var(--sky-sun-x);
-  top: calc(var(--sky-sun-y) * 0.545 + 14.9%);
+  left: var(--sun-left);
+  top: var(--sun-top);
   width: 30px;
   height: 30px;
   transform: translate(-50%, -50%);

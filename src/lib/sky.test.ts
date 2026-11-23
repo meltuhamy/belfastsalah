@@ -291,6 +291,20 @@ describe("skyProperties", () => {
     expect(properties["--sky-glass"]).toBe("rgba(255, 255, 255, 0.55)");
   });
 
+  it("Should say whether the sun is up, for the lens flare", async () => {
+    const day = await london.getDay(new Date("2026-01-15T12:00:00Z"));
+    expect(
+      skyProperties(new Date("2026-01-15T12:00:00Z"), day, "Europe/London", false)[
+        "--sky-sun-on"
+      ]
+    ).toBe("1");
+    expect(
+      skyProperties(new Date("2026-01-15T21:00:00Z"), day, "Europe/London", true)[
+        "--sky-sun-on"
+      ]
+    ).toBe("0");
+  });
+
   it("Should frost the highlight more faintly under white text", async () => {
     const day = await london.getDay(new Date("2026-01-15T12:00:00Z"));
     const now = new Date("2026-01-15T21:00:00Z");

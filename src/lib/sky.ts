@@ -384,6 +384,8 @@ export function skyProperties(
     "--sky-sun-x": `${((sky.sun?.x ?? 0.5) * 100).toFixed(2)}%`,
     "--sky-sun-y": `${((sky.sun?.y ?? 1.5) * 100).toFixed(2)}%`,
     "--sky-sun-colour": sky.sun?.colour ?? "transparent",
+    // 1 while the sun is up, 0 otherwise: what the card's lens flare fades by.
+    "--sky-sun-on": sky.sun ? "1" : "0",
     "--sky-sun-glow": sky.sun ? `rgba(${rgbList(sky.sun.colour)}, 0.5)` : "transparent",
     "--sky-night": sky.night.toFixed(3),
     "--sky-page": tints.page,
