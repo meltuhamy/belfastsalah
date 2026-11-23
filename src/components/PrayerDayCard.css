@@ -378,7 +378,30 @@
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background: var(--sky-sun-colour);
-  box-shadow: 0 0 28px 10px var(--sky-sun-glow);
+}
+
+/*
+  The halo, drawn as the widgets draw it (SkyPainter.kt): the sun's colour at
+  half strength out to the disc's edge, fading evenly to nothing at 2.4 times
+  its radius. A wide, soft glow, where a blurred box-shadow made only a thin
+  fuzzy rim. Behind the disc, which covers its solid middle.
+*/
+.PrayerDayCard__sun::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 240%;
+  height: 240%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle closest-side,
+    var(--sky-sun-glow) 0%,
+    var(--sky-sun-glow) calc(100% / 2.4),
+    transparent 100%
+  );
+  z-index: -1;
 }
 
 /*
