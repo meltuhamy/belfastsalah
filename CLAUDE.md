@@ -314,9 +314,9 @@ Two Ionic details to know, both handled in `PrayerDayCard.css`:
   Ionic styles it as `.card-content-md p`, which outweighs a single class of
   ours and flattens every line to the same size.
 
-For ten minutes after a prayer comes in its adhan is being called, and the
-card says "It's time for Asr" with the adhan icon calling (its waves move for
-the first five), then "Maghrib is in …"; Asr stays highlighted, and the strip
+For five minutes after a prayer comes in its adhan is being called, and the
+card says "It's time for Asr" with the adhan icon calling, then "Maghrib is
+in …"; Asr stays highlighted, and the strip
 stays on that prayer's day. `src/lib/adhanMoment.ts` decides, never for
 Shuruq. It also covers the moment after a prayer's time when `next` is still
 that prayer, before the app has fetched the one after - the card used to go

@@ -10,9 +10,12 @@
 import { Prayer, PrayerTime } from "./PrayerTimes";
 
 /** How long a prayer counts as "now" after it comes in. */
-export const ADHAN_WINDOW_MS = 10 * 60 * 1000;
+export const ADHAN_WINDOW_MS = 5 * 60 * 1000;
 
-/** How long of that the icon shows the call going out; it is still after. */
+/**
+ * How long of that the icon shows the call going out; it is still after. The
+ * whole window, now it is five minutes - about as long as an adhan.
+ */
 export const CALLING_MS = 5 * 60 * 1000;
 
 /**

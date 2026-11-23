@@ -100,19 +100,19 @@ test("fills a dot on the timeline for each prayer that has passed", async ({
   await expect(page.locator(".PrayerDayCard__timeline-fill")).toHaveCount(0);
 });
 
-test("pulses a prayer's dot for its first ten minutes", async ({ page }) => {
+test("pulses a prayer's dot while its adhan is called", async ({ page }) => {
   const recent = () =>
     page
       .locator("[data-testid=timeline] .PrayerDayCard__dot")
       .evaluateAll((all) => all.map((d) => d.dataset.recent));
 
   // Duhr came in at 12:20.
-  await page.clock.setFixedTime(new Date("2026-02-15T12:25:00Z"));
+  await page.clock.setFixedTime(new Date("2026-02-15T12:23:00Z"));
   await expect
     .poll(recent)
     .toEqual(["false", "false", "true", "false", "false", "false"]);
 
-  await page.clock.setFixedTime(new Date("2026-02-15T12:31:00Z"));
+  await page.clock.setFixedTime(new Date("2026-02-15T12:26:00Z"));
   await expect
     .poll(recent)
     .toEqual(["false", "false", "false", "false", "false", "false"]);
@@ -144,12 +144,12 @@ test("says it's time for a prayer while its adhan is called, then moves on", asy
   await expect(now.getByTestId("adhan-icon")).toBeVisible();
   await expect.poll(() => highlightedPrayer(page)).toBe("Asr");
 
-  // Still Asr nine minutes on.
-  await page.clock.setFixedTime(new Date("2026-02-15T14:55:00Z"));
+  // Still Asr four minutes on.
+  await page.clock.setFixedTime(new Date("2026-02-15T14:50:00Z"));
   await expect(page.getByTestId("countdown")).toHaveText("Asr");
 
-  // Ten minutes on, the card counts down to Maghrib and the highlight moves.
-  await page.clock.setFixedTime(new Date("2026-02-15T14:56:00Z"));
+  // Five minutes on, the card counts down to Maghrib and the highlight moves.
+  await page.clock.setFixedTime(new Date("2026-02-15T14:51:00Z"));
   await expect(page.getByText("Maghrib in")).toBeVisible();
   await expect(page.getByTestId("adhan-now")).toHaveCount(0);
   await expect.poll(() => highlightedPrayer(page)).toBe("Maghrib");

@@ -18,7 +18,12 @@ import { usePrayerStrip } from "../lib/usePrayerStrip";
 import { isLaterDay } from "../lib/prayerStrip";
 import StarField from "./StarField";
 import AdhanIcon from "./AdhanIcon";
-import { isCalling, prayerNow, upcomingPrayer } from "../lib/adhanMoment";
+import {
+  ADHAN_WINDOW_MS,
+  isCalling,
+  prayerNow,
+  upcomingPrayer,
+} from "../lib/adhanMoment";
 import LensFlare from "./LensFlare";
 import "./PrayerDayCard.css";
 
@@ -36,16 +41,13 @@ type Props = {
  * is tall on purpose, so in the Sky theme the sun has an arc to travel and the
  * stars room to be seen.
  */
-/** How long a prayer's dot pulses after it comes in. */
-const RECENT_MS = 10 * 60 * 1000;
-
 const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   const timeZone = useDisplayTimeZone();
   const [settings] = useSettings();
   const uses24 = useUses24Hour(settings);
-  // For ten minutes after a prayer comes in its adhan is being called: the
+  // For five minutes after a prayer comes in its adhan is being called: the
   // card says "It's time for Asr" and keeps Asr highlighted (adhanMoment.ts).
-  // That prayer also decides which day the strip shows, so Isha's ten minutes
+  // That prayer also decides which day the strip shows, so Isha's five minutes
   // stay on today's strip rather than rolling to tomorrow's straight away.
   const current = prayerNow(prev, next, now, today);
   const strip = usePrayerStrip(today, current ?? next);
@@ -75,11 +77,11 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   // Isha's, and in between by time. Null before Fajr, which is also all
   // night once the strip has rolled on to tomorrow.
   const passed = strip?.map((p) => p.time.getTime() <= now.getTime()) ?? [];
-  // A prayer that came in under ten minutes ago: its dot pulses.
+  // A prayer whose adhan is being called: its dot pulses.
   const recent =
     strip?.map((p) => {
       const since = now.getTime() - p.time.getTime();
-      return since >= 0 && since < RECENT_MS;
+      return since >= 0 && since < ADHAN_WINDOW_MS;
     }) ?? [];
   const lastPassed = passed.lastIndexOf(true);
   let progress: number | null = null;
@@ -222,7 +224,7 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
           <div className="PrayerDayCard__day">
             {/*
             A hairline through the day, a dot above each prayer: filled once
-            its time has passed, pulsing for its first ten minutes, and a
+            its time has passed, pulsing while its adhan is called, and a
             faint line drawn as far as now. No line ahead of now.
           */}
             <div

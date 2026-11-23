@@ -11,13 +11,13 @@ const SHURUQ = prayer(Prayer.Shuruq, "2026-01-15T07:57:00Z");
 const DUHR = prayer(Prayer.Duhr, "2026-01-15T12:15:00Z");
 
 describe("prayerNow", () => {
-  it("Should be the prayer that came in under ten minutes ago", () => {
+  it("Should be the prayer that came in under five minutes ago", () => {
     expect(prayerNow(ASR, MAGHRIB, at("2026-01-15T14:02:00Z"))).toBe(ASR);
-    expect(prayerNow(ASR, MAGHRIB, at("2026-01-15T14:11:59Z"))).toBe(ASR);
+    expect(prayerNow(ASR, MAGHRIB, at("2026-01-15T14:06:59Z"))).toBe(ASR);
   });
 
-  it("Should let go after ten minutes", () => {
-    expect(prayerNow(ASR, MAGHRIB, at("2026-01-15T14:12:00Z"))).toBeNull();
+  it("Should let go after five minutes", () => {
+    expect(prayerNow(ASR, MAGHRIB, at("2026-01-15T14:07:00Z"))).toBeNull();
   });
 
   it("Should be nothing before the prayer comes in", () => {
@@ -41,7 +41,7 @@ describe("prayerNow", () => {
 });
 
 describe("isCalling", () => {
-  it("Should show the call going out for the first five minutes only", () => {
+  it("Should show the call going out for the whole five minutes", () => {
     expect(isCalling(ASR, at("2026-01-15T14:04:59Z"))).toBe(true);
     expect(isCalling(ASR, at("2026-01-15T14:07:00Z"))).toBe(false);
     expect(isCalling(null, at("2026-01-15T14:03:00Z"))).toBe(false);
