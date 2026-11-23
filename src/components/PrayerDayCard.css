@@ -361,18 +361,18 @@
 }
 
 /*
-  Moved along its arc by --sky-sun-x/y; parked below the card at night.
-  sky.ts's arc spans the whole card, which here would put the noon sun on the
-  countdown. So the noon sun is brought down into the open sky between the
-  countdown and the times, 24% of the card becoming 37%, and the horizon is
-  lowered past the card's bottom edge, so the sun sinks out of the card as
-  Maghrib comes rather than settling behind the times. The widgets draw
-  sky.ts's arc as it is.
+  Moved along its arc by --sky-sun-x/y; parked below the card at night, where
+  it is transparent anyway. sky.ts's arc spans the whole card, which here would
+  put the noon sun on the countdown and the early-morning sun behind the times.
+  So it is fitted to the open sky: it rises from the timeline's dots (64% of
+  the card) at Shuruq, climbs to 30% at noon - beside the countdown - and sets
+  back onto the dots at Maghrib, sinking behind them before sunrise and after
+  sunset. The widgets draw sky.ts's arc as it is.
 */
 .PrayerDayCard__sun {
   position: absolute;
   left: var(--sky-sun-x);
-  top: calc(var(--sky-sun-y) * 1.05 + 12%);
+  top: calc(var(--sky-sun-y) * 0.545 + 14.9%);
   width: 30px;
   height: 30px;
   transform: translate(-50%, -50%);
