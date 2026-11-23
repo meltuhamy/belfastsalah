@@ -65,14 +65,14 @@ test("paints the card as the midday sky at Duhr, with dark text", async ({
   expect((await cardStyle(page)).colour).toBe("rgb(0, 0, 0)");
   expect(await htmlHas(page, "ion-palette-dark")).toBe(false);
 
-  // Asr's highlight is the widgets' frosted pane, the bright one under black
-  // text, and is still painted above the sky.
-  const highlight = page.locator("[data-testid=strip-cell][data-next=true]");
-  await expect(highlight).toHaveCSS(
+  // The highlight is the widgets' frosted pane, the bright one under black
+  // text, and is still painted above the sky. At Duhr's own minute it is on
+  // Duhr, whose adhan is being called.
+  await expect(page.getByTestId("highlight-pane")).toHaveCSS(
     "background-color",
     "rgba(255, 255, 255, 0.55)"
   );
-  expect(await paintedHighlight(page)).toBe("Asr");
+  expect(await paintedHighlight(page)).toBe("Duhr");
 
   // The card is the sky on the home screen; the day bar is for settings only.
   await expect(page.getByTestId("sky-day-bar")).toHaveCount(0);
@@ -88,7 +88,8 @@ test("goes dark at Maghrib, with light text on the sunset", async ({ page }) => 
     .toContain("rgb(43, 47, 102) 0%");
   expect((await cardStyle(page)).colour).toBe("rgb(255, 255, 255)");
   await expect.poll(() => htmlHas(page, "ion-palette-dark")).toBe(true);
-  expect(await paintedHighlight(page)).toBe("Isha");
+  // Maghrib's adhan is being called, so its column is the highlighted one.
+  expect(await paintedHighlight(page)).toBe("Maghrib");
 });
 
 test("brings the stars out at night and puts the sun away", async ({ page }) => {

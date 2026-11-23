@@ -131,6 +131,38 @@ test("rolls the countdown onto the next prayer once one passes", async ({
   await expect.poll(() => paintedHighlight(page)).toBe("Asr");
 });
 
+test("says it's time for a prayer while its adhan is called, then moves on", async ({
+  page,
+}) => {
+  // 15 February: Asr 14:46, Maghrib 17:19. At the very second Asr comes in,
+  // the card used to go blank until the app had found the next prayer.
+  await page.clock.setFixedTime(new Date("2026-02-15T14:46:00Z"));
+  const now = page.getByTestId("adhan-now");
+  await expect(now).toContainText("It's time for");
+  await expect(page.getByTestId("countdown")).toHaveText("Asr");
+  await expect(page.getByText("Maghrib is in 2h 33m")).toBeVisible();
+  await expect(now.getByTestId("adhan-icon")).toBeVisible();
+  await expect.poll(() => highlightedPrayer(page)).toBe("Asr");
+
+  // Still Asr nine minutes on.
+  await page.clock.setFixedTime(new Date("2026-02-15T14:55:00Z"));
+  await expect(page.getByTestId("countdown")).toHaveText("Asr");
+
+  // Ten minutes on, the card counts down to Maghrib and the highlight moves.
+  await page.clock.setFixedTime(new Date("2026-02-15T14:56:00Z"));
+  await expect(page.getByText("Maghrib in")).toBeVisible();
+  await expect(page.getByTestId("adhan-now")).toHaveCount(0);
+  await expect.poll(() => highlightedPrayer(page)).toBe("Maghrib");
+  await expect.poll(() => paintedHighlight(page)).toBe("Maghrib");
+});
+
+test("never calls Shuruq a prayer time", async ({ page }) => {
+  // Shuruq 07:12 on 15 February: sunrise, with no adhan.
+  await page.clock.setFixedTime(new Date("2026-02-15T07:13:00Z"));
+  await expect(page.getByText("Duhr in")).toBeVisible();
+  await expect(page.getByTestId("adhan-now")).toHaveCount(0);
+});
+
 test("moves the strip onto tomorrow once the last prayer has passed", async ({
   page,
 }) => {

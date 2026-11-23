@@ -118,6 +118,7 @@
 }
 
 .PrayerDayCard__strip {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 2px;
@@ -164,9 +165,28 @@
 }
 
 /* The next prayer: a frosted pane, as on the widget. */
-.PrayerDayCard__cell[data-next="true"] {
+/*
+  The next prayer's frosted pane, as on the widget: one element behind the
+  cells, placed by column, so when the next prayer changes it glides across
+  rather than one cell going out and another lighting up. Six equal columns
+  with 2px between them, as the grid has.
+*/
+.PrayerDayCard__pane {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--column) * (100% + 2px) / 6);
+  width: calc((100% - 10px) / 6);
+  box-sizing: border-box;
+  border-radius: 12px;
   background: var(--pane);
-  border-color: var(--pane-edge);
+  border: 1px solid var(--pane-edge);
+  transition: left 700ms cubic-bezier(0.32, 0.72, 0.3, 1);
+}
+
+/* The cells sit above the pane. */
+.PrayerDayCard__cell {
+  position: relative;
 }
 
 /*
@@ -280,6 +300,37 @@
   opacity: 0.6;
 }
 
+/*
+  Each new headline - a new countdown, or "It's time for Asr" - fades in, so
+  the change at a prayer's time reads as a moment rather than a jump.
+*/
+.PrayerDayCard__headline {
+  animation: PrayerDayCard-headline 600ms ease both;
+}
+
+@keyframes PrayerDayCard-headline {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* "It's time for", with the adhan icon calling beside it. */
+.PrayerDayCard .PrayerDayCard__label--calling {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.PrayerDayCard__adhan {
+  flex: none;
+  margin: -2px 0;
+}
+
 @media (max-width: 359px) {
   .PrayerDayCard .PrayerDayCard__remaining {
     font-size: 38px;
@@ -296,8 +347,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   .PrayerDayCard__cell,
-  .PrayerDayCard__dot {
+  .PrayerDayCard__dot,
+  .PrayerDayCard__pane {
     transition: none;
+  }
+
+  .PrayerDayCard__headline {
+    animation: none;
   }
 
   .PrayerDayCard__dot[data-recent="true"] {
