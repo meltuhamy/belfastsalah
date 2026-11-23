@@ -5,9 +5,9 @@ import "./LensFlare.css";
 /**
  * How far, in px, the phone's tilt moves the lens's centre. The ghosts sit
  * on the line from the sun through that centre, so the farthest swing about
- * twice this.
+ * twice this. Kept small: the flare should drift, not slide about.
  */
-const LENS_SHIFT = 22;
+const LENS_SHIFT = 6;
 
 type Ghost = {
   /** Where on the line from the sun through the lens centre: 0 the sun, 1 the centre. */

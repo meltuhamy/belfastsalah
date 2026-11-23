@@ -199,7 +199,9 @@ test("shows a faint lens flare by day that swings with the phone's tilt", async 
   await tip(40, 15);
   await page.waitForTimeout(500);
   const after = await centre();
-  expect(Math.abs(after.x - before.x)).toBeGreaterThan(5);
+  // A drift, not a slide: it moves, but only a few px.
+  expect(Math.abs(after.x - before.x)).toBeGreaterThan(2);
+  expect(Math.abs(after.x - before.x)).toBeLessThan(15);
 });
 
 test("puts the lens flare away at night", async ({ page }) => {
