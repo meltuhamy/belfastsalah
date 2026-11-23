@@ -291,18 +291,16 @@ describe("skyProperties", () => {
     expect(properties["--sky-glass"]).toBe("rgba(255, 255, 255, 0.55)");
   });
 
-  it("Should say whether the sun is up, for the lens flare", async () => {
+  it("Should show the card's sun by day and fade it over ten minutes after Maghrib", async () => {
+    // 15 January 2026: Maghrib 16:24.
     const day = await london.getDay(new Date("2026-01-15T12:00:00Z"));
-    expect(
-      skyProperties(new Date("2026-01-15T12:00:00Z"), day, "Europe/London", false)[
-        "--sky-sun-on"
-      ]
-    ).toBe("1");
-    expect(
-      skyProperties(new Date("2026-01-15T21:00:00Z"), day, "Europe/London", true)[
-        "--sky-sun-on"
-      ]
-    ).toBe("0");
+    const sunOn = (iso: string) =>
+      skyProperties(new Date(iso), day, "Europe/London", false)["--sky-sun-on"];
+    expect(sunOn("2026-01-15T12:00:00Z")).toBe("1.000");
+    expect(sunOn("2026-01-15T16:24:00Z")).toBe("1.000");
+    expect(sunOn("2026-01-15T16:29:00Z")).toBe("0.500");
+    expect(sunOn("2026-01-15T16:34:00Z")).toBe("0.000");
+    expect(sunOn("2026-01-15T21:00:00Z")).toBe("0.000");
   });
 
   it("Should frost the highlight more faintly under white text", async () => {

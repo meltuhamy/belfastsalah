@@ -176,6 +176,7 @@ test("shows a faint lens flare by day that swings with the phone's tilt", async 
   await setUpWithSky(page);
   const flare = page.getByTestId("lens-flare");
   await expect(flare).toHaveCSS("opacity", "1");
+  // (The flare fades with the sun, which goes in the ten minutes after Maghrib.)
 
   // The farthest ghost, which swings the most.
   const ghost = flare.locator(".LensFlare__ghost").last();
@@ -202,6 +203,17 @@ test("shows a faint lens flare by day that swings with the phone's tilt", async 
   // A drift, not a slide: it moves, but only a few px.
   expect(Math.abs(after.x - before.x)).toBeGreaterThan(2);
   expect(Math.abs(after.x - before.x)).toBeLessThan(15);
+});
+
+test("puts the sun and its flare away in the ten minutes after Maghrib", async ({
+  page,
+}) => {
+  // 15 January 2026, Maghrib 16:24: half an hour on, as in the screenshot
+  // that asked for it, the sky still has a sun but the card shows none.
+  await pinDate(page, "2026-01-15T16:57:00Z");
+  await setUpWithSky(page);
+  await expect(page.locator(".PrayerDayCard__sun")).toHaveCSS("opacity", "0");
+  await expect(page.getByTestId("lens-flare")).toHaveCSS("opacity", "0");
 });
 
 test("puts the lens flare away at night", async ({ page }) => {

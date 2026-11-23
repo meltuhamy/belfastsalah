@@ -359,6 +359,16 @@ export function dayBand(day: PrayerDayTimes, timeZone: string): string {
  * <html>. Computed here rather than with color-mix() in CSS, which the oldest
  * iOS the app supports does not have.
  */
+/** The card's sun fades out over this long after Maghrib. */
+const SUNSET_FADE_MS = 10 * 60 * 1000;
+
+function sunShowing(sky: Sky, now: Date, day: PrayerDayTimes): number {
+  if (!sky.sun) return 0;
+  const since = now.getTime() - day[Prayer.Maghrib].time.getTime();
+  if (since <= 0) return 1;
+  return clamp(1 - since / SUNSET_FADE_MS, 0, 1);
+}
+
 export function skyProperties(
   now: Date,
   day: PrayerDayTimes,
@@ -384,8 +394,11 @@ export function skyProperties(
     "--sky-sun-x": `${((sky.sun?.x ?? 0.5) * 100).toFixed(2)}%`,
     "--sky-sun-y": `${((sky.sun?.y ?? 1.5) * 100).toFixed(2)}%`,
     "--sky-sun-colour": sky.sun?.colour ?? "transparent",
-    // 1 while the sun is up, 0 otherwise: what the card's lens flare fades by.
-    "--sky-sun-on": sky.sun ? "1" : "0",
+    // How much of the card's sun to show, and so its lens flare: 1 while it
+    // is up, fading to 0 over the ten minutes after Maghrib. The arc itself
+    // keeps the sun for 45 minutes past sunset (the widgets draw it so), but
+    // on the card a sun still out well into Maghrib looked wrong.
+    "--sky-sun-on": sunShowing(sky, now, day).toFixed(3),
     "--sky-sun-glow": sky.sun ? `rgba(${rgbList(sky.sun.colour)}, 0.5)` : "transparent",
     "--sky-night": sky.night.toFixed(3),
     "--sky-page": tints.page,

@@ -381,6 +381,9 @@
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background: var(--sky-sun-colour);
+  /* Fades out after Maghrib (sky.ts); the minute's step is eased over. */
+  opacity: var(--sky-sun-on, 1);
+  transition: opacity 2s ease;
 }
 
 /*
