@@ -39,7 +39,7 @@ final class WidgetFitTests: XCTestCase {
         let families = WidgetFamily.home + [.accessoryRectangular, .accessoryInline]
         for device in DeviceSizes.all {
             for family in families {
-                for typeSize in [DynamicTypeSize.large, .xLarge] {
+                for typeSize in typeSizes(for: family) {
                     for (name, entry) in entries {
                         let size = device.sizes[family]!
                         for (id, m) in measure(entry, family, size, typeSize) where m.isCutOff {
@@ -54,6 +54,17 @@ final class WidgetFitTests: XCTestCase {
             }
         }
         XCTAssertTrue(failures.isEmpty, "Cut off:\n" + failures.joined(separator: "\n"))
+    }
+
+    /**
+     * The sizes each family is checked at. The medium widget is also checked
+     * at the largest setting: it caps its Dynamic Type at .xLarge (see
+     * MediumContent), and the cap is only worth having if nothing beyond it
+     * is cut short either.
+     */
+    private func typeSizes(for family: WidgetFamily) -> [DynamicTypeSize] {
+        let common: [DynamicTypeSize] = [.large, .xLarge]
+        return family == .systemMedium ? common + [.accessibility5] : common
     }
 
     /** The probe's readings for one widget, laid out in a real window. */

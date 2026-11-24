@@ -4,6 +4,10 @@
   this file as it stands, and every string is overwritten the moment the widget
   is actually drawn. Without it the picker offers five identical white boxes,
   which is how the one-column widget became impossible to find.
+
+  Text sizes are in dp, not sp: a launcher's cell cannot grow, and at the
+  larger system text sizes sp scaled the names and times out of it, cutting
+  them short. dp is today's size at the default setting and stays there.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
@@ -20,7 +24,7 @@
         android:layout_height="wrap_content"
         android:maxLines="1"
         android:textColor="@color/widget_text_secondary"
-        android:textSize="13sp" />
+        android:textSize="13dp" />
 
     <Chronometer
         android:id="@+id/widget_countdown"
@@ -28,7 +32,7 @@
         android:layout_height="wrap_content"
         android:maxLines="1"
         android:textColor="@color/widget_text_primary"
-        android:textSize="24sp"
+        android:textSize="24dp"
         android:textStyle="bold" />
 
     <LinearLayout
@@ -44,7 +48,7 @@
             android:layout_weight="1"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="12sp" />
+            android:textSize="12dp" />
 
         <TextView
             android:id="@+id/widget_date"
@@ -53,7 +57,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="12sp" />
+            android:textSize="12dp" />
     </LinearLayout>
 
     <LinearLayout
@@ -81,7 +85,7 @@
             android:layout_weight="1"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="13sp" />
+            android:textSize="13dp" />
 
         <TextView
             android:id="@+id/prayer_time_0"
@@ -90,7 +94,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_primary"
-            android:textSize="14sp"
+            android:textSize="14dp"
             android:textStyle="bold" />
     </LinearLayout>
     <LinearLayout
@@ -111,7 +115,7 @@
             android:layout_weight="1"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="13sp" />
+            android:textSize="13dp" />
 
         <TextView
             android:id="@+id/prayer_time_1"
@@ -120,7 +124,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_primary"
-            android:textSize="14sp"
+            android:textSize="14dp"
             android:textStyle="bold" />
     </LinearLayout>
     <LinearLayout
@@ -142,7 +146,7 @@
             android:layout_weight="1"
             android:maxLines="1"
             android:textColor="@android:color/white"
-            android:textSize="13sp" />
+            android:textSize="13dp" />
 
         <TextView
             android:id="@+id/prayer_time_2"
@@ -151,7 +155,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@android:color/white"
-            android:textSize="14sp"
+            android:textSize="14dp"
             android:textStyle="bold" />
     </LinearLayout>
     <LinearLayout
@@ -172,7 +176,7 @@
             android:layout_weight="1"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="13sp" />
+            android:textSize="13dp" />
 
         <TextView
             android:id="@+id/prayer_time_3"
@@ -181,7 +185,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_primary"
-            android:textSize="14sp"
+            android:textSize="14dp"
             android:textStyle="bold" />
     </LinearLayout>
     <LinearLayout
@@ -202,7 +206,7 @@
             android:layout_weight="1"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="13sp" />
+            android:textSize="13dp" />
 
         <TextView
             android:id="@+id/prayer_time_4"
@@ -211,7 +215,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_primary"
-            android:textSize="14sp"
+            android:textSize="14dp"
             android:textStyle="bold" />
     </LinearLayout>
     <LinearLayout
@@ -232,7 +236,7 @@
             android:layout_weight="1"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="13sp" />
+            android:textSize="13dp" />
 
         <TextView
             android:id="@+id/prayer_time_5"
@@ -241,7 +245,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_primary"
-            android:textSize="14sp"
+            android:textSize="14dp"
             android:textStyle="bold" />
     </LinearLayout>
     </LinearLayout>

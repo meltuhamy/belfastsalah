@@ -7,6 +7,10 @@
   file as it stands, and every string is overwritten the moment the widget is
   actually drawn. Without it the picker offers five identical white boxes,
   which is how the one-column widget became impossible to find.
+
+  Text sizes are in dp, not sp: a launcher's cell cannot grow, and at the
+  larger system text sizes sp scaled the names and times out of it, cutting
+  them short. dp is today's size at the default setting and stays there.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/compact_root"
@@ -38,7 +42,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp" />
+            android:textSize="9dp" />
 
         <TextView
             android:id="@+id/compact_time_0"
@@ -47,7 +51,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="13dp"
             android:textStyle="bold" />
 
         <!--
@@ -61,7 +65,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
+            android:textSize="9dp"
             android:visibility="gone" />
     </LinearLayout>
 
@@ -82,7 +86,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp" />
+            android:textSize="9dp" />
 
         <TextView
             android:id="@+id/compact_time_1"
@@ -91,7 +95,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="13dp"
             android:textStyle="bold" />
 
         <!--
@@ -105,7 +109,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
+            android:textSize="9dp"
             android:visibility="gone" />
     </LinearLayout>
 
@@ -127,7 +131,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@android:color/white"
-            android:textSize="9sp" />
+            android:textSize="9dp" />
 
         <TextView
             android:id="@+id/compact_time_2"
@@ -136,7 +140,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@android:color/white"
-            android:textSize="13sp"
+            android:textSize="13dp"
             android:textStyle="bold" />
 
         <!--
@@ -150,7 +154,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
+            android:textSize="9dp"
             android:visibility="gone" />
     </LinearLayout>
 
@@ -171,7 +175,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp" />
+            android:textSize="9dp" />
 
         <TextView
             android:id="@+id/compact_time_3"
@@ -180,7 +184,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="13dp"
             android:textStyle="bold" />
 
         <!--
@@ -194,7 +198,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
+            android:textSize="9dp"
             android:visibility="gone" />
     </LinearLayout>
 
@@ -215,7 +219,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp" />
+            android:textSize="9dp" />
 
         <TextView
             android:id="@+id/compact_time_4"
@@ -224,7 +228,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="13dp"
             android:textStyle="bold" />
 
         <!--
@@ -238,7 +242,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
+            android:textSize="9dp"
             android:visibility="gone" />
     </LinearLayout>
 
@@ -259,7 +263,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp" />
+            android:textSize="9dp" />
 
         <TextView
             android:id="@+id/compact_time_5"
@@ -268,7 +272,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="13dp"
             android:textStyle="bold" />
 
         <!--
@@ -282,7 +286,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
+            android:textSize="9dp"
             android:visibility="gone" />
     </LinearLayout>
 </LinearLayout>

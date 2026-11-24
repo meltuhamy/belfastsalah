@@ -7,6 +7,7 @@ import com.meltuhamy.londonsalah.widget.WidgetHarness.draw
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -35,6 +36,9 @@ class WidgetFitTest {
      */
     private val worstCases = listOf(THREE_PM to "15:00", AFTER_ISHA to "18:01")
 
+    /** The largest size the system text setting goes to. */
+    private val largestFontScale = 2f
+
     @Test
     fun `every widget fits its text at every size, time and countdown mode`() {
         val problems = mutableListOf<String>()
@@ -51,6 +55,42 @@ class WidgetFitTest {
                     }
                 }
             }
+        }
+
+        assertTrue(report(problems), problems.isEmpty())
+    }
+
+    /**
+     * The same widgets at the largest system text size.
+     *
+     * A launcher's cell is a fixed size, so the timetable's text must not
+     * grow with the system setting - at 2.0 the names and times used to be cut
+     * short. The 1x1 tile is left out: it is sized from its cell rather than
+     * its layout, and still follows the setting.
+     */
+    @Test
+    fun `every timetable widget fits at the largest system text size`() {
+        val problems = mutableListOf<String>()
+
+        RuntimeEnvironment.setFontScale(largestFontScale)
+        try {
+            for ((kind, sizes) in WidgetHarness.SIZES) {
+                if (kind == WidgetKind.TILE) continue
+                for (size in sizes) {
+                    for ((now, clock) in worstCases) {
+                        for (mode in CountdownMode.values()) {
+                            val config = WidgetConfig(palette = WidgetPalette.LIGHT, countdown = mode)
+                            val widget = draw(kind, size, config, now)
+                            TextFit.problems(widget.root).forEach {
+                                problems +=
+                                    "$kind at ${size.first}x${size.second}dp, $clock, $mode: $it"
+                            }
+                        }
+                    }
+                }
+            }
+        } finally {
+            RuntimeEnvironment.setFontScale(1f)
         }
 
         assertTrue(report(problems), problems.isEmpty())

@@ -264,6 +264,10 @@ private struct MediumContent: View {
                 }
             }
         }
+        // Six columns across a fixed width: beyond this a larger setting
+        // shortens the names and turns the times into "05:…", so the widget
+        // stops growing where it still fits rather than where the system does.
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
     }
 }
 

@@ -20,6 +20,10 @@
   The sample text is what the widget picker shows: previewLayout renders this
   file as it stands, and every string and background in it is reassigned the
   moment the widget is actually drawn.
+
+  Text sizes are in dp, not sp: a launcher's cell cannot grow, and at the
+  larger system text sizes sp scaled the names and times out of it, cutting
+  them short. dp is today's size at the default setting and stays there.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/column_root"
@@ -51,7 +55,7 @@
             android:maxLines="1"
             android:text="Fajr"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp" />
+            android:textSize="9dp" />
 
         <TextView
             android:id="@+id/column_time_0"
@@ -60,7 +64,7 @@
             android:maxLines="1"
             android:text="03:58"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="13dp"
             android:textStyle="bold" />
 
         <!--
@@ -74,7 +78,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
+            android:textSize="9dp"
             android:visibility="gone" />
     </LinearLayout>
 
@@ -96,7 +100,7 @@
             android:maxLines="1"
             android:text="Shuruq"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp" />
+            android:textSize="9dp" />
 
         <TextView
             android:id="@+id/column_time_1"
@@ -105,7 +109,7 @@
             android:maxLines="1"
             android:text="05:36"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="13dp"
             android:textStyle="bold" />
 
         <!--
@@ -119,7 +123,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
+            android:textSize="9dp"
             android:visibility="gone" />
     </LinearLayout>
 
@@ -142,7 +146,7 @@
             android:maxLines="1"
             android:text="Duhr"
             android:textColor="@android:color/white"
-            android:textSize="9sp" />
+            android:textSize="9dp" />
 
         <TextView
             android:id="@+id/column_time_2"
@@ -151,7 +155,7 @@
             android:maxLines="1"
             android:text="13:11"
             android:textColor="@android:color/white"
-            android:textSize="13sp"
+            android:textSize="13dp"
             android:textStyle="bold" />
 
         <!--
@@ -165,7 +169,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
+            android:textSize="9dp"
             android:visibility="gone" />
     </LinearLayout>
 
@@ -187,7 +191,7 @@
             android:maxLines="1"
             android:text="Asr"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp" />
+            android:textSize="9dp" />
 
         <TextView
             android:id="@+id/column_time_3"
@@ -196,7 +200,7 @@
             android:maxLines="1"
             android:text="17:09"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="13dp"
             android:textStyle="bold" />
 
         <!--
@@ -210,7 +214,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
+            android:textSize="9dp"
             android:visibility="gone" />
     </LinearLayout>
 
@@ -232,7 +236,7 @@
             android:maxLines="1"
             android:text="Maghrib"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp" />
+            android:textSize="9dp" />
 
         <TextView
             android:id="@+id/column_time_4"
@@ -241,7 +245,7 @@
             android:maxLines="1"
             android:text="20:35"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="13dp"
             android:textStyle="bold" />
 
         <!--
@@ -255,7 +259,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
+            android:textSize="9dp"
             android:visibility="gone" />
     </LinearLayout>
 
@@ -277,7 +281,7 @@
             android:maxLines="1"
             android:text="Isha"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp" />
+            android:textSize="9dp" />
 
         <TextView
             android:id="@+id/column_time_5"
@@ -286,7 +290,7 @@
             android:maxLines="1"
             android:text="21:41"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="13dp"
             android:textStyle="bold" />
 
         <!--
@@ -300,7 +304,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp"
+            android:textSize="9dp"
             android:visibility="gone" />
     </LinearLayout>
 </LinearLayout>
