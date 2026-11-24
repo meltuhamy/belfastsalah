@@ -1,9 +1,17 @@
+/*
+  The table's columns are as wide as their text needs, so a larger system text
+  size makes it wider than the phone rather than wrapping a time onto two
+  lines or cutting a name short. That overflow scrolls sideways here.
+*/
+.MonthPrayerTable__scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .MonthPrayerTable {
-  table-layout: fixed;
   width: 100%;
   border-collapse: collapse;
-  font-size: 10px;
-  /* position: relative; */
+  font-size: 0.625rem;
 }
 
 .MonthPrayerTable thead tr:nth-child(1) th {
@@ -13,19 +21,17 @@
   background: var(--ion-card-background, #fff);
   position: sticky;
   top: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .MonthPrayerTable__col {
   text-align: center;
-  padding: 4px 0 4px 0;
-  font-size: 14px;
+  padding: 4px 6px;
+  font-size: 0.875rem;
+  white-space: nowrap;
 }
 
 .MonthPrayerTable__col--day {
-  width: 20px;
+  width: 1.75em;
 }
 
 .MonthPrayerTable__row:nth-child(even) {
@@ -49,6 +55,6 @@
 
 @media (max-width: 375px) {
   .MonthPrayerTable__col {
-    font-size: 12px;
+    font-size: 0.75rem;
   }
 }

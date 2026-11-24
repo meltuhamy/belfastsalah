@@ -97,38 +97,40 @@ const MonthPrayerTable: React.FC<Props> = ({ month, year }) => {
     </tr>
   ));
   return (
-    <table className="MonthPrayerTable">
-      <thead>
-        <tr>
-          <th className="MonthPrayerTable__col MonthPrayerTable__col--day" />
-          <th className="MonthPrayerTable__col">Fajr</th>
-          <th className="MonthPrayerTable__col">Shuruq</th>
-          <th className="MonthPrayerTable__col">Duhr</th>
-          <th className="MonthPrayerTable__col">Asr</th>
-          <th className="MonthPrayerTable__col">Maghrib</th>
-          <th className="MonthPrayerTable__col">Isha</th>
-        </tr>
-      </thead>
-      <tbody>
-        {monthData == null
-          ? monthLoading
-          : monthData.map((dayData, i) => (
-              <tr className={getClassNameForRow(i)} key={i}>
-                <td className="MonthPrayerTable__col MonthPrayerTable__col--day">
-                  {i + 1}
-                </td>
-                {dayData.map((p) => (
-                  <MonthPrayerTableCol
-                    prayer={p}
-                    timeZone={displayTimeZone}
-                    uses24={uses24}
-                    key={p.time.getTime()}
-                  />
-                ))}
-              </tr>
-            ))}
-      </tbody>
-    </table>
+    <div className="MonthPrayerTable__scroll">
+      <table className="MonthPrayerTable">
+        <thead>
+          <tr>
+            <th className="MonthPrayerTable__col MonthPrayerTable__col--day" />
+            <th className="MonthPrayerTable__col">Fajr</th>
+            <th className="MonthPrayerTable__col">Shuruq</th>
+            <th className="MonthPrayerTable__col">Duhr</th>
+            <th className="MonthPrayerTable__col">Asr</th>
+            <th className="MonthPrayerTable__col">Maghrib</th>
+            <th className="MonthPrayerTable__col">Isha</th>
+          </tr>
+        </thead>
+        <tbody>
+          {monthData == null
+            ? monthLoading
+            : monthData.map((dayData, i) => (
+                <tr className={getClassNameForRow(i)} key={i}>
+                  <td className="MonthPrayerTable__col MonthPrayerTable__col--day">
+                    {i + 1}
+                  </td>
+                  {dayData.map((p) => (
+                    <MonthPrayerTableCol
+                      prayer={p}
+                      timeZone={displayTimeZone}
+                      uses24={uses24}
+                      key={p.time.getTime()}
+                    />
+                  ))}
+                </tr>
+              ))}
+        </tbody>
+      </table>
+    </div>
   );
 };
 

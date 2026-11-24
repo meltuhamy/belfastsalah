@@ -49,6 +49,7 @@ import {
   widgetSettingsRoute,
 } from "../lib/widgets";
 import { useLongPress } from "../lib/useLongPress";
+import useLargeText from "../lib/useLargeText";
 import "./SettingsList.css";
 
 type Props = {
@@ -76,6 +77,7 @@ const SettingsList: React.FC<Props> = ({
   onTimeFormatChange,
   onShowTimesInDeviceZoneChange,
 }) => {
+  const largeText = useLargeText();
   const [testResult, setTestResult] = useState<string | null>(null);
   const [exactAlarmsOff, setExactAlarmsOff] = useState(false);
   const [batteryRestricted, setBatteryRestricted] = useState(false);
@@ -146,6 +148,19 @@ const SettingsList: React.FC<Props> = ({
     }
   }
 
+  function changeNotify() {
+    const newValue = !settings.notify;
+    if (newValue) {
+      LocalNotifications.requestPermissions().then((response) => {
+        if (response.display === "granted") {
+          onNotifyChange(newValue);
+        }
+      });
+    } else {
+      onNotifyChange(newValue);
+    }
+  }
+
   async function openBatterySettings() {
     try {
       await openBatteryOptimizationSettings();
@@ -182,7 +197,24 @@ const SettingsList: React.FC<Props> = ({
       {settings.location !== null && supportsHanafiAsr(settings.location) && (
         <IonItem>
           <IonIcon icon={sunny} slot="start" />
+          {/*
+            The name is a separate label so it can wrap at large text sizes.
+            A tap on the name still has to flip the switch.
+          */}
+          <IonLabel
+            className="ion-text-wrap"
+            onClick={() =>
+              onAsrMethodChange(
+                settings.asrMethod === AsrMethod.Hanafi
+                  ? AsrMethod.Shafi
+                  : AsrMethod.Hanafi
+              )
+            }
+          >
+            Use Hanafi Asr
+          </IonLabel>
           <IonToggle
+            slot="end"
             checked={settings.asrMethod === AsrMethod.Hanafi}
             onIonChange={(e) => {
               const nowChecked = e.detail.checked;
@@ -190,9 +222,7 @@ const SettingsList: React.FC<Props> = ({
                 nowChecked ? AsrMethod.Hanafi : AsrMethod.Shafi
               );
             }}
-          >
-            Use Hanafi Asr
-          </IonToggle>
+          />
         </IonItem>
       )}
       {showZoneChoice && settings.location !== null && (
@@ -208,6 +238,7 @@ const SettingsList: React.FC<Props> = ({
             <IonIcon icon={globeOutline} slot="start" />
             <IonSelect
               label="Show times in"
+              labelPlacement={largeText ? "stacked" : "start"}
               value={settings.showTimesInDeviceZone}
               interface="alert"
               okText="Choose"
@@ -250,23 +281,18 @@ const SettingsList: React.FC<Props> = ({
         >
           <IonIcon icon={alarm} />
         </span>
-        <IonToggle
-          checked={settings.notify}
-          onIonChange={() => {
-            const newValue = !settings.notify;
-            if (newValue) {
-              LocalNotifications.requestPermissions().then((response) => {
-                if (response.display === "granted") {
-                  onNotifyChange(newValue);
-                }
-              });
-            } else {
-              onNotifyChange(newValue);
-            }
-          }}
-        >
+        {/*
+          The name is a separate label so it can wrap at large text sizes.
+          A tap on the name still has to flip the switch.
+        */}
+        <IonLabel className="ion-text-wrap" onClick={changeNotify}>
           Prayer Notifications
-        </IonToggle>
+        </IonLabel>
+        <IonToggle
+          slot="end"
+          checked={settings.notify}
+          onIonChange={changeNotify}
+        />
       </IonItem>
       {settings.notify && notificationSettingsHref !== undefined && (
         <IonItem
@@ -277,7 +303,7 @@ const SettingsList: React.FC<Props> = ({
           <span slot="start" className="settings-list__adhan-icon">
             <AdhanIcon />
           </span>
-          <IonLabel>
+          <IonLabel className="ion-text-wrap">
             <h2>Notification Settings</h2>
             <p>When and how each prayer reminds you</p>
           </IonLabel>
@@ -335,6 +361,7 @@ const SettingsList: React.FC<Props> = ({
         <IonIcon icon={contrast} slot="start" />
         <IonSelect
           label="Theme"
+          labelPlacement={largeText ? "stacked" : "start"}
           value={settings.theme}
           interface="alert"
           okText="Choose"
@@ -353,6 +380,7 @@ const SettingsList: React.FC<Props> = ({
         <IonIcon icon={timeOutline} slot="start" />
         <IonSelect
           label="Time format"
+          labelPlacement={largeText ? "stacked" : "start"}
           value={settings.timeFormat}
           interface="alert"
           okText="Choose"
@@ -377,7 +405,7 @@ const SettingsList: React.FC<Props> = ({
           data-testid="widget-settings-link"
         >
           <IonIcon icon={gridOutline} slot="start" />
-          <IonLabel>
+          <IonLabel className="ion-text-wrap">
             <h3>Widget appearance</h3>
             <p>Colours and countdown for each home screen widget</p>
           </IonLabel>
@@ -410,7 +438,7 @@ const SettingsList: React.FC<Props> = ({
         data-testid="privacy-policy-link"
       >
         <IonIcon icon={lockClosed} slot="start" />
-        <IonLabel>
+        <IonLabel className="ion-text-wrap">
           <h3>Privacy policy</h3>
           {/*
             Accurate as written: the app makes no network requests at all, has

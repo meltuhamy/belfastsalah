@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 import { IonCard, IonCardContent, IonSkeletonText } from "@ionic/react";
 import {
   Prayer,
@@ -40,6 +40,37 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   const uses24 = useUses24Hour(settings);
   const strip = usePrayerStrip(today, next);
 
+  // The strip is six equal columns while the times fit in a sixth of it, and
+  // three columns on two rows once a larger system text size makes them too
+  // wide. Comparing the text's own width with a sixth is what makes that
+  // possible: no CSS media query can ask about text size. The tail's
+  // arithmetic only holds for a six-column row, so it goes when this does.
+  const stripRef = useRef<HTMLDivElement>(null);
+  const [stripLargeText, setStripLargeText] = useState(false);
+  useLayoutEffect(() => {
+    const element = stripRef.current;
+    if (element == null) {
+      return;
+    }
+    const measure = () => {
+      const cells = Array.from(element.children) as HTMLElement[];
+      const sixth = element.clientWidth / 6;
+      const widest = Math.max(
+        0,
+        ...cells.flatMap((cell) =>
+          Array.from(cell.querySelectorAll("span")).map(
+            (text) => text.scrollWidth
+          )
+        )
+      );
+      setStripLargeText(cells.length > 1 && widest > sixth - 2);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [strip]);
+
   // Prayer is ordered as the strip is, so the next prayer's own value is the
   // column to point at. After the last prayer of the day the strip has already
   // rolled over to tomorrow, where the next prayer is Fajr and the first
@@ -68,6 +99,7 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
         { "--next-column": nextColumn ?? 0 } as React.CSSProperties
       }
       data-points-at={nextColumn ?? undefined}
+      data-large-text={stripLargeText ? "true" : undefined}
     >
       <IonCard color="primary" className="PrayerDayCard__bubble">
         <IonCardContent className="PrayerDayCard__bubble-content">
@@ -137,7 +169,11 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
           <IonSkeletonText animated />
         </div>
       ) : (
-        <div className="PrayerDayCard__strip" data-testid="prayer-strip">
+        <div
+          className="PrayerDayCard__strip"
+          data-testid="prayer-strip"
+          ref={stripRef}
+        >
           {strip.map((prayerTime) => (
             <div
               key={prayerTime.prayer}

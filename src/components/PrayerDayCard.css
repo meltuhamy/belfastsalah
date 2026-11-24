@@ -59,19 +59,28 @@
   transition: left 320ms cubic-bezier(0.32, 0.72, 0.3, 1);
 }
 
-/* Nothing to point at until the next prayer is known. */
-.PrayerDayCard:not([data-points-at]) .PrayerDayCard__tail {
+/* Nothing to point at until the next prayer is known, and nothing to point
+   at once the strip has wrapped onto more than one row. */
+.PrayerDayCard:not([data-points-at]) .PrayerDayCard__tail,
+.PrayerDayCard[data-large-text="true"] .PrayerDayCard__tail {
   display: none;
 }
 
+/*
+  Wraps rather than squeezes: at large system text sizes the countdown and the
+  place/date block each need most of the width, so they go on separate rows
+  instead of colliding.
+*/
 .PrayerDayCard__bubble-content {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
 
 .PrayerDayCard__countdown {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -83,7 +92,7 @@
 */
 .PrayerDayCard .PrayerDayCard__label {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.35;
   opacity: 0.85;
 }
@@ -96,7 +105,7 @@
   a 320dp screen.
 */
 .PrayerDayCard .PrayerDayCard__line .PrayerDayCard__label {
-  font-size: 22px;
+  font-size: 1.375rem;
   line-height: 1.1;
   letter-spacing: -0.01em;
   opacity: 0.8;
@@ -116,7 +125,7 @@
 }
 
 .PrayerDayCard .PrayerDayCard__remaining {
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.02em;
@@ -125,14 +134,17 @@
 
 .PrayerDayCard .PrayerDayCard__meta {
   display: flex;
+  flex: 0 1 auto;
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
+  min-width: 0;
+  /* On its own wrapped row, keep the block against the card's right edge. */
+  margin-left: auto;
   text-align: right;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.35;
   opacity: 0.85;
-  white-space: nowrap;
 }
 
 .PrayerDayCard .PrayerDayCard__meta p {
@@ -151,7 +163,7 @@
   padding: 1px 8px;
   border-radius: 999px;
   background: rgba(var(--ion-color-primary-contrast-rgb), 0.22);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   opacity: 1;
@@ -161,11 +173,19 @@
   No card behind the times, and no horizontal padding: the columns have to be
   sixths of the wrapper's full width for the tail above to line up with them,
   so the breathing room goes inside the cells instead.
+
+  Three columns on two rows when the text no longer fits a sixth - the flag
+  comes from PrayerDayCard measuring the text, since CSS has no way to ask
+  about the system text size.
 */
 .PrayerDayCard__strip {
   display: grid;
   grid-template-columns: repeat(var(--strip-columns), 1fr);
   margin-top: 13px;
+}
+
+.PrayerDayCard[data-large-text="true"] .PrayerDayCard__strip {
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .PrayerDayCard__strip-loading {
@@ -183,13 +203,13 @@
 }
 
 .PrayerDayCard__cell-name {
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: -0.01em;
   color: var(--ion-color-medium);
 }
 
 .PrayerDayCard__cell-time {
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -205,11 +225,11 @@
 
 @media (max-width: 359px) {
   .PrayerDayCard__cell-name {
-    font-size: 10px;
+    font-size: 0.625rem;
   }
 
   .PrayerDayCard__cell-time {
-    font-size: 12px;
+    font-size: 0.75rem;
   }
 }
 
