@@ -386,16 +386,17 @@ function sunShowing(sky: Sky, now: Date, day: PrayerDayTimes): number {
 
 /**
  * The glow on the horizon where the sun is about to come up, 0 to 1: building
- * over the 45 minutes before Shuruq, eased so it creeps in, and going over the
- * 20 after, while the sun rises in. Something to show the sun is coming
- * without showing the sun.
+ * over the 45 minutes before Shuruq, and going over the 20 after, while the
+ * sun rises in. Something to show the sun is coming without showing the sun.
+ * Front-loaded rather than eased in, so it is already there to see half an
+ * hour out: eased in, it was a twentieth of its strength 39 minutes before.
  */
 function dawnGlow(now: Date, day: PrayerDayTimes): number {
   const t = now.getTime();
   const shuruq = day[Prayer.Shuruq].time.getTime();
   if (t < shuruq) {
     const x = clamp(1 - (shuruq - t) / DAWN_BEFORE_MS, 0, 1);
-    return x * x * (3 - 2 * x);
+    return Math.pow(x, 0.6);
   }
   return clamp(1 - (t - shuruq) / DAWN_AFTER_MS, 0, 1);
 }

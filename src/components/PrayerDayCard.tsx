@@ -27,6 +27,16 @@ import {
 import LensFlare from "./LensFlare";
 import "./PrayerDayCard.css";
 
+/**
+ * "1h 5m", for a line of the card. Trimmed, and the line it goes in is built
+ * as one string: timeDurationString ends minutes with a space, and as text
+ * nodes of their own beside a " ago", Chrome collapsed that space into the
+ * one after it and kept it collapsed when the duration became "30s" - the
+ * card read "Shuruq was 30sago".
+ */
+const duration = (seconds: number) =>
+  timeDurationString(seconds, "short").trim();
+
 /** How long the outgoing headline takes to leave, in ms; PrayerDayCard.css. */
 const HEADLINE_LEAVE_MS = 450;
 
@@ -279,22 +289,17 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
           {current != null
             ? upcoming != null && (
                 <p className="PrayerDayCard__since">
-                  {prayerToString(upcoming.prayer)} is in{" "}
-                  {timeDurationString(
-                    (upcoming.time.getTime() - now.getTime()) / 1000,
-                    "short"
-                  )}
+                  {`${prayerToString(upcoming.prayer)} is in ${duration(
+                    (upcoming.time.getTime() - now.getTime()) / 1000
+                  )}`}
                 </p>
               )
             : upcoming != null &&
               prev != null && (
                 <p className="PrayerDayCard__since">
-                  {prayerToString(prev.prayer)} was{" "}
-                  {timeDurationString(
-                    (now.getTime() - prev.time.getTime()) / 1000,
-                    "short"
-                  )}{" "}
-                  ago
+                  {`${prayerToString(prev.prayer)} was ${duration(
+                    (now.getTime() - prev.time.getTime()) / 1000
+                  )} ago`}
                 </p>
               )}
         </div>

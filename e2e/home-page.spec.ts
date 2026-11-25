@@ -172,6 +172,25 @@ test("counts the last second down rather than going blank", async ({
   await expect(page.getByTestId("headline-leaving")).toHaveCount(0);
 });
 
+test('keeps the space before "ago" when the time since drops to seconds', async ({
+  page,
+}) => {
+  // The next morning: Fajr 05:33, Shuruq 07:10 on 16 February. Going from
+  // minutes to "30s ago", Chrome dropped the space it had collapsed into the
+  // minutes' trailing one: the card read "Shuruq was 30sago". Only what is
+  // drawn shows it - the DOM's text still had the space - so this reads
+  // innerText.
+  await page.clock.setFixedTime(new Date("2026-02-16T07:05:00Z"));
+  const since = page.locator(".PrayerDayCard__since");
+  await expect
+    .poll(() => since.evaluate((el) => (el as HTMLElement).innerText))
+    .toBe("Fajr was 1h 32m ago");
+  await page.clock.setFixedTime(new Date("2026-02-16T07:10:30Z"));
+  await expect
+    .poll(() => since.evaluate((el) => (el as HTMLElement).innerText))
+    .toBe("Shuruq was 30s ago");
+});
+
 test("never calls Shuruq a prayer time", async ({ page }) => {
   // Shuruq 07:12 on 15 February: sunrise, with no adhan.
   await page.clock.setFixedTime(new Date("2026-02-15T07:13:00Z"));

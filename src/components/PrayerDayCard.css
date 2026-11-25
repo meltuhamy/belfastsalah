@@ -509,24 +509,25 @@
   Dawn: before Shuruq the card shows no sun, but the horizon warms where it
   will come up - over the timeline's dots at the left, where the sun rises at
   Shuruq - building over the 45 minutes before and going as the sun takes over
-  (--sky-dawn, sky.ts). Wide and low, as first light is, and faint: the times
-  sit on it.
+  (--sky-dawn, sky.ts). Wide and low, as first light is: brightest at the
+  card's left edge, level with the dots, where there is open sky rather than
+  text, and spreading thinly along the horizon.
 */
 .PrayerDayCard__dawn {
   position: absolute;
-  left: 8%;
-  top: 64%;
-  width: 90%;
-  height: 46%;
+  left: 0;
+  top: 63%;
+  width: 130%;
+  height: 60%;
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background: radial-gradient(
     closest-side,
-    rgba(255, 168, 96, 0.42) 0%,
-    rgba(255, 140, 90, 0.2) 45%,
+    rgba(255, 196, 120, 0.9) 0%,
+    rgba(255, 160, 90, 0.6) 30%,
+    rgba(255, 130, 90, 0.22) 65%,
     rgba(255, 120, 90, 0) 100%
   );
-  mix-blend-mode: screen;
   opacity: var(--sky-dawn, 0);
   transition: opacity 2s ease;
 }
