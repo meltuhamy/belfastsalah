@@ -100,6 +100,12 @@ object PayloadFixture {
      */
     private const val SPARE = 500L
 
+    /** 06:05 - Fajr is next at 06:20: the Sky widget's haze, with the thread in it. */
+    val BEFORE_FAJR = on15th("06:05") - SPARE
+
+    /** 07:35 - Shuruq is next at 07:57: no sun yet, only the dawn glow. */
+    val BEFORE_SUNRISE = on15th("07:35") - SPARE
+
     /** 13:00 - Duhr has gone, Asr is next at 14:01, "1:01:00" away. */
     val ONE_PM = on15th("13:00") - SPARE
 

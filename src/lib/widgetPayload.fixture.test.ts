@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { buildWidgetPayload } from "./widgetPayload";
 import { AsrMethod, PrayerLocation } from "./PrayerTimes";
 import { AppSettings, getDefaultSettings } from "./settings";
-import { skyAt, skyAtDays } from "./sky";
+import { skyAt, skyAtDays, skyLightAtDays } from "./sky";
 
 /**
  * The payloads the native widgets are tested against, written by the real
@@ -69,7 +69,10 @@ describe("widget payload fixtures", () => {
  * The native code repeats skyAtDays from the payload's `sky` and
  * `skyColours`, so this holds it to the same answer: every ten minutes, and
  * every minute through dawn and golden hour into sunset, where the colours
- * move fastest and the text colour flips. Also written with UPDATE_FIXTURES=1.
+ * move fastest and the text colour flips - and the light on the sky that is
+ * not its colour: the sun's strength, the dawn glow and Fajr's thread, which
+ * the minute-by-minute dawn covers from before the thread starts until after
+ * the dawn glow has gone. Also written with UPDATE_FIXTURES=1.
  */
 describe("sky samples fixture", () => {
   const FILE = "sky-london-2026-01-15.json";
@@ -109,6 +112,8 @@ describe("sky samples fixture", () => {
         text: sky.text,
         sun: sky.sun,
         night: sky.night,
+        // The sun's strength, the dawn glow and Fajr's thread (skyLightAtDays).
+        light: skyLightAtDays(at, days),
       };
     });
     const json =

@@ -184,7 +184,8 @@ extension PrayerEntry {
         top: "#4f9ae4", mid: "#7dbbef", horizon: "#b9def8",
         lightText: false,
         sun: SkySun(x: 0.45, y: 0.26, colour: "#fff7dc"),
-        night: 0
+        night: 0,
+        light: SkyLight(sunOn: 1, dawn: 0, thread: .none)
     )
 
     static func sample(settings: WidgetSettings = WidgetSettings(), date: Date = Date()) -> PrayerEntry {

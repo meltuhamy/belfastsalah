@@ -312,8 +312,8 @@ the sun. It fades with `--sky-sun-on`. The stars and the flare share one tilt
 listener's logic, `useTilt`, which also asks iOS for the readings.
 
 The card's sun is strictly from Shuruq (`--sky-sun-on`, rising in over three
-minutes) to ten minutes after Maghrib, though sky.ts's arc - which the widgets
-draw as it is - has it up 45 minutes either side. Before Shuruq the card shows
+minutes) to ten minutes after Maghrib, though sky.ts's arc has it up 45
+minutes either side; the widgets draw their sun at the same strength. Before Shuruq the card shows
 first light instead: a warm glow on the horizon at the left, where the sun
 will come up (`--sky-dawn`, `PrayerDayCard__dawn`).
 
@@ -327,7 +327,7 @@ peach, drifts left and hands over to the dawn glow, and by Shuruq it has
 gone. sky.ts writes whole `radial-gradient`s (`--sky-fajr-haze-bg`,
 `--sky-fajr-line-bg`) since old iOS cannot mix colours in CSS. The line is a
 blurred glow a few px tall, never a 1px stroke, which read as a cut across
-the card. Card only for now: the widgets do not draw it.
+the card. The widgets draw it too, still (see Sky widgets).
 
 Two Ionic details to know, both handled in `PrayerDayCard.css`:
 
@@ -564,6 +564,14 @@ the one calculation the native side does itself:
   own `PrayerEntry.sky`. Sixty entries is about fifteen hours.
 - On the sky, text is black or white at full strength and the next prayer's
   highlight is frosted glass, whatever highlight colour was chosen.
+- **The light on the sky is ported too**: the sun's strength, the dawn glow
+  and Fajr's thread (`skyLightAtTimes` in sky.ts, `SkyState.light` in
+  `WidgetSky.kt` and `WidgetPayload.swift`), worked out from the same point
+  times. The samples fixture carries `light` at every sample and both native
+  sky tests check it. `SkyPainter` and `SkyBackground` draw it as still
+  pictures - a widget cannot animate, so the card's breathing line is just
+  a line there - with the haze shallower on short widgets. The screenshot
+  tests have a Sky frame before Fajr and one before sunrise.
 
 ## Prayer data
 

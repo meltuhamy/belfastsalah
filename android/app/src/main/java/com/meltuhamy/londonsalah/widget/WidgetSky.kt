@@ -25,7 +25,33 @@ data class SkyState(
     /** Null while the sun is well below the horizon. */
     val sun: SkySun?,
     /** 0 by day, 1 once the stars are fully out. */
-    val night: Double
+    val night: Double,
+    /** The sun's strength, the dawn glow and Fajr's thread. */
+    val light: SkyLight
+)
+
+/**
+ * Fajr's white thread in a haze, as fajrThread in src/lib/sky.ts gives it:
+ * sizes for a card 380 wide (widths as fractions of the width, the haze's
+ * height in px of that card), strengths 0 to 1, the colour as "r, g, b".
+ */
+data class FajrThread(
+    val x: Double,
+    val hazeWidth: Double,
+    val hazeHeight: Double,
+    val haze: Double,
+    val lineWidth: Double,
+    val line: Double,
+    val rgb: String
+)
+
+/** skyLightAtTimes in src/lib/sky.ts: the light on the sky that is not its colour. */
+data class SkyLight(
+    /** How much of the sun to draw: none before Shuruq, fading after Maghrib. */
+    val sunOn: Double,
+    /** The glow on the horizon before sunrise, 0 to 1. */
+    val dawn: Double,
+    val thread: FajrThread
 )
 
 /**
@@ -95,9 +121,90 @@ object WidgetSky {
                 y = 0.9 - elevation * 0.66,
                 colour = mixOklab("#ff9e4a", "#fff7dc", clamp(elevation * 1.6, 0.0, 1.0))
             ) else null,
-            night = night
+            night = night,
+            light = lightAtTimes(t, times)
         )
     }
+
+    // --- The light, as skyLightAtTimes in sky.ts ------------------------------
+
+    private const val SUNRISE_FADE = 3 * MINUTE
+    private const val SUNSET_FADE = 10 * MINUTE
+    private const val DAWN_BEFORE = 45 * MINUTE
+    private const val DAWN_AFTER = 20 * MINUTE
+    private const val THREAD_BEFORE = 60 * MINUTE
+    private const val THREAD_FADE_IN = 10 * MINUTE
+    private const val THREAD_LINE = 25 * MINUTE
+    private const val CARD = 380.0
+
+    /** From Fajr to Shuruq, as THREAD_AFTER in sky.ts. */
+    private val THREAD_AFTER: List<Pair<Double, DoubleArray>> = listOf(
+        0.0 to doubleArrayOf(50.0, 480.0, 60.0, 228.0, 220.0, 255.0, 0.32, 0.95),
+        0.05 to doubleArrayOf(50.0, 480.0, 60.0, 228.0, 220.0, 255.0, 0.3, 0.7),
+        0.22 to doubleArrayOf(44.0, 440.0, 58.0, 238.0, 218.0, 240.0, 0.26, 0.35),
+        0.56 to doubleArrayOf(32.0, 380.0, 56.0, 255.0, 212.0, 200.0, 0.22, 0.12),
+        0.83 to doubleArrayOf(18.0, 300.0, 54.0, 255.0, 200.0, 170.0, 0.14, 0.0),
+        1.0 to doubleArrayOf(10.0, 260.0, 52.0, 255.0, 196.0, 160.0, 0.0, 0.0)
+    )
+
+    private val NO_THREAD = FajrThread(0.5, 0.0, 0.0, 0.0, 0.0, 0.0, "228, 220, 255")
+
+    fun lightAtTimes(t: Long, times: LongArray): SkyLight {
+        val now = t.toDouble()
+        val fajr = times[1].toDouble()
+        val shuruq = times[2].toDouble()
+        val maghrib = times[7].toDouble()
+        return SkyLight(
+            sunOn = sunShowing(now, shuruq, maghrib),
+            dawn = dawnGlow(now, shuruq),
+            thread = fajrThread(now, fajr, shuruq)
+        )
+    }
+
+    private fun sunShowing(t: Double, shuruq: Double, maghrib: Double): Double = when {
+        t < shuruq -> 0.0
+        t <= maghrib -> clamp((t - shuruq) / SUNRISE_FADE, 0.0, 1.0)
+        else -> clamp(1 - (t - maghrib) / SUNSET_FADE, 0.0, 1.0)
+    }
+
+    private fun dawnGlow(t: Double, shuruq: Double): Double =
+        if (t < shuruq) clamp(1 - (shuruq - t) / DAWN_BEFORE, 0.0, 1.0).pow(0.6)
+        else clamp(1 - (t - shuruq) / DAWN_AFTER, 0.0, 1.0)
+
+    private fun fajrThread(t: Double, fajr: Double, shuruq: Double): FajrThread {
+        val v: DoubleArray
+        if (t < fajr) {
+            val before = fajr - t
+            if (before > THREAD_BEFORE) return NO_THREAD
+            val k = 1 - before / THREAD_BEFORE
+            val a = (0.1 + 0.22 * k) * clamp((THREAD_BEFORE - before) / THREAD_FADE_IN, 0.0, 1.0)
+            val line = 0.6 * clamp(1 - before / THREAD_LINE, 0.0, 1.0)
+            v = doubleArrayOf(50.0, 260 + 220 * k, 34 + 26 * k, 228.0, 220.0, 255.0, a, line)
+        } else {
+            if (t >= shuruq) return NO_THREAD
+            val f = (t - fajr) / (shuruq - fajr)
+            val i = THREAD_AFTER.indices.first { n ->
+                f >= THREAD_AFTER[n].first &&
+                    f < (THREAD_AFTER.getOrNull(n + 1)?.first ?: Double.POSITIVE_INFINITY)
+            }
+            val (from, fromValues) = THREAD_AFTER[i]
+            val (to, toValues) = THREAD_AFTER[min(i + 1, THREAD_AFTER.size - 1)]
+            val s = if (to == from) 0.0 else (f - from) / (to - from)
+            v = DoubleArray(8) { fromValues[it] + (toValues[it] - fromValues[it]) * s }
+        }
+        return FajrThread(
+            x = v[0] / 100,
+            hazeWidth = (v[1] * 1.1) / CARD,
+            hazeHeight = v[2] * 1.7,
+            haze = v[6] * 1.15,
+            lineWidth = (v[1] * 0.65) / CARD,
+            line = v[7],
+            rgb = "${jsRound(v[3])}, ${jsRound(v[4])}, ${jsRound(v[5])}"
+        )
+    }
+
+    /** JavaScript's Math.round, for the colour's channels. */
+    private fun jsRound(x: Double): Long = kotlin.math.floor(x + 0.5).toLong()
 
     // --- The blend, as in sky.ts ---------------------------------------------
 

@@ -109,6 +109,37 @@ struct SkyState: Equatable {
     let sun: SkySun?
     /** 0 by day, 1 once the stars are fully out. */
     let night: Double
+    /** The sun's strength, the dawn glow and Fajr's thread. */
+    let light: SkyLight
+}
+
+/**
+ * Fajr's white thread in a haze, as fajrThread in src/lib/sky.ts gives it:
+ * sizes for a card 380 wide (widths as fractions of the width, the haze's
+ * height in points of that card), strengths 0 to 1, the colour as "r, g, b".
+ */
+struct FajrThread: Equatable {
+    /** No thread: before the hour before Fajr, and from Shuruq. */
+    static let none = FajrThread(
+        x: 0.5, hazeWidth: 0, hazeHeight: 0, haze: 0, lineWidth: 0, line: 0, rgb: "228, 220, 255"
+    )
+
+    let x: Double
+    let hazeWidth: Double
+    let hazeHeight: Double
+    let haze: Double
+    let lineWidth: Double
+    let line: Double
+    let rgb: String
+}
+
+/** skyLightAtTimes in src/lib/sky.ts: the light on the sky that is not its colour. */
+struct SkyLight: Equatable {
+    /** How much of the sun to draw: none before Shuruq, fading after Maghrib. */
+    let sunOn: Double
+    /** The glow on the horizon before sunrise, 0 to 1. */
+    let dawn: Double
+    let thread: FajrThread
 }
 
 /**
@@ -173,7 +204,87 @@ enum WidgetSky {
                 y: 0.9 - elevation * 0.66,
                 colour: mixOklab("#ff9e4a", "#fff7dc", clamp(elevation * 1.6, 0, 1))
             ) : nil,
-            night: night
+            night: night,
+            light: lightAtTimes(t, times)
+        )
+    }
+
+    // MARK: The light, as skyLightAtTimes in sky.ts
+
+    private static let sunriseFade = 3 * minute
+    private static let sunsetFade = 10 * minute
+    private static let dawnBefore = 45 * minute
+    private static let dawnAfter = 20 * minute
+    private static let threadBefore = 60 * minute
+    private static let threadFadeIn = 10 * minute
+    private static let threadLine = 25 * minute
+    private static let card = 380.0
+
+    /** From Fajr to Shuruq, as THREAD_AFTER in sky.ts. */
+    private static let threadAfter: [(Double, [Double])] = [
+        (0, [50, 480, 60, 228, 220, 255, 0.32, 0.95]),
+        (0.05, [50, 480, 60, 228, 220, 255, 0.3, 0.7]),
+        (0.22, [44, 440, 58, 238, 218, 240, 0.26, 0.35]),
+        (0.56, [32, 380, 56, 255, 212, 200, 0.22, 0.12]),
+        (0.83, [18, 300, 54, 255, 200, 170, 0.14, 0]),
+        (1, [10, 260, 52, 255, 196, 160, 0, 0]),
+    ]
+
+    private static let noThread = FajrThread.none
+
+    static func lightAtTimes(_ t: Int64, _ times: [Int64]) -> SkyLight {
+        let now = Double(t)
+        let fajr = Double(times[1])
+        let shuruq = Double(times[2])
+        let maghrib = Double(times[7])
+        return SkyLight(
+            sunOn: sunShowing(now, shuruq, maghrib),
+            dawn: dawnGlow(now, shuruq),
+            thread: fajrThread(now, fajr, shuruq)
+        )
+    }
+
+    private static func sunShowing(_ t: Double, _ shuruq: Double, _ maghrib: Double) -> Double {
+        if t < shuruq { return 0 }
+        if t <= maghrib { return clamp((t - shuruq) / sunriseFade, 0, 1) }
+        return clamp(1 - (t - maghrib) / sunsetFade, 0, 1)
+    }
+
+    private static func dawnGlow(_ t: Double, _ shuruq: Double) -> Double {
+        if t < shuruq { return pow(clamp(1 - (shuruq - t) / dawnBefore, 0, 1), 0.6) }
+        return clamp(1 - (t - shuruq) / dawnAfter, 0, 1)
+    }
+
+    private static func fajrThread(_ t: Double, _ fajr: Double, _ shuruq: Double) -> FajrThread {
+        let v: [Double]
+        if t < fajr {
+            let before = fajr - t
+            if before > threadBefore { return noThread }
+            let k = 1 - before / threadBefore
+            let a = (0.1 + 0.22 * k) * clamp((threadBefore - before) / threadFadeIn, 0, 1)
+            let line = 0.6 * clamp(1 - before / threadLine, 0, 1)
+            v = [50, 260 + 220 * k, 34 + 26 * k, 228, 220, 255, a, line]
+        } else {
+            if t >= shuruq { return noThread }
+            let f = (t - fajr) / (shuruq - fajr)
+            let i = threadAfter.indices.first { n in
+                f >= threadAfter[n].0 && f < (n + 1 < threadAfter.count ? threadAfter[n + 1].0 : .infinity)
+            } ?? threadAfter.count - 1
+            let (from, fromValues) = threadAfter[i]
+            let (to, toValues) = threadAfter[min(i + 1, threadAfter.count - 1)]
+            let s = to == from ? 0 : (f - from) / (to - from)
+            v = (0..<8).map { fromValues[$0] + (toValues[$0] - fromValues[$0]) * s }
+        }
+        // JavaScript's Math.round, for the colour's channels.
+        func round(_ x: Double) -> Int { Int((x + 0.5).rounded(.down)) }
+        return FajrThread(
+            x: v[0] / 100,
+            hazeWidth: (v[1] * 1.1) / card,
+            hazeHeight: v[2] * 1.7,
+            haze: v[6] * 1.15,
+            lineWidth: (v[1] * 0.65) / card,
+            line: v[7],
+            rgb: "\(round(v[3])), \(round(v[4])), \(round(v[5]))"
         )
     }
 

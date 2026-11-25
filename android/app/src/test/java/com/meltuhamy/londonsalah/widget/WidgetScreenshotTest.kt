@@ -67,9 +67,16 @@ class WidgetScreenshotTest(private val kind: WidgetKind) {
     @Test
     fun noTimes() = shoot("no_times", light, payload = null)
 
-    // The Sky palette through the day: a midday sky with the sun high, the
-    // sun setting into the horizon, and stars after Isha.
+    // The Sky palette through the day: Fajr's thread in its haze, the dawn
+    // glow before sunrise, a midday sky with the sun high, the sun setting
+    // into the horizon, and stars after Isha.
     private val sky = WidgetConfig(palette = WidgetPalette.SKY)
+
+    @Test
+    fun skyBeforeFajr() = shoot("sky_before_fajr", sky, nowMillis = PayloadFixture.BEFORE_FAJR)
+
+    @Test
+    fun skyBeforeSunrise() = shoot("sky_before_sunrise", sky, nowMillis = PayloadFixture.BEFORE_SUNRISE)
 
     @Test
     fun skyMidday() = shoot("sky_midday", sky)

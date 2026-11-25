@@ -371,14 +371,10 @@ const DAWN_AFTER_MS = 20 * 60 * 1000;
 /**
  * How much of the card's sun to show: none before Shuruq, rising in over the
  * three minutes from it, and fading over the ten after Maghrib. sky.ts's arc
- * has the sun up from 45 minutes before Shuruq (the widgets draw it so), but
- * on the card a sun before sunrise read as wrong (MEL-349).
+ * has the sun up from 45 minutes before Shuruq, but a sun before sunrise read
+ * as wrong (MEL-349). The widgets draw their sun at this strength too.
  */
-function sunShowing(sky: Sky, now: Date, day: PrayerDayTimes): number {
-  if (!sky.sun) return 0;
-  const t = now.getTime();
-  const shuruq = day[Prayer.Shuruq].time.getTime();
-  const maghrib = day[Prayer.Maghrib].time.getTime();
+function sunShowingAt(t: number, shuruq: number, maghrib: number): number {
   if (t < shuruq) return 0;
   if (t <= maghrib) return clamp((t - shuruq) / SUNRISE_FADE_MS, 0, 1);
   return clamp(1 - (t - maghrib) / SUNSET_FADE_MS, 0, 1);
@@ -391,9 +387,7 @@ function sunShowing(sky: Sky, now: Date, day: PrayerDayTimes): number {
  * Front-loaded rather than eased in, so it is already there to see half an
  * hour out: eased in, it was a twentieth of its strength 39 minutes before.
  */
-function dawnGlow(now: Date, day: PrayerDayTimes): number {
-  const t = now.getTime();
-  const shuruq = day[Prayer.Shuruq].time.getTime();
+function dawnGlowAt(t: number, shuruq: number): number {
   if (t < shuruq) {
     const x = clamp(1 - (shuruq - t) / DAWN_BEFORE_MS, 0, 1);
     return Math.pow(x, 0.6);
@@ -464,9 +458,14 @@ const NO_THREAD: FajrThread = {
 };
 
 export function fajrThread(now: Date, day: PrayerDayTimes): FajrThread {
-  const t = now.getTime();
-  const fajr = day[Prayer.Fajr].time.getTime();
-  const shuruq = day[Prayer.Shuruq].time.getTime();
+  return fajrThreadAt(
+    now.getTime(),
+    day[Prayer.Fajr].time.getTime(),
+    day[Prayer.Shuruq].time.getTime()
+  );
+}
+
+function fajrThreadAt(t: number, fajr: number, shuruq: number): FajrThread {
   const CARD = 380;
 
   let x: number, w: number, h: number, r: number, g: number, b: number, a: number, line: number;
@@ -500,9 +499,37 @@ export function fajrThread(now: Date, day: PrayerDayTimes): FajrThread {
   };
 }
 
+/**
+ * The light on the sky that is not its colour - how strong the sun is, the
+ * dawn glow and Fajr's thread - from a day's ten point times, as skyAtTimes
+ * takes them. The widgets draw from this (WidgetSky.kt and WidgetPayload.swift
+ * port it), and the card from the same functions.
+ */
+export type SkyLight = { sunOn: number; dawn: number; thread: FajrThread };
+
+export function skyLightAtTimes(t: number, times: ReadonlyArray<number>): SkyLight {
+  const [, fajr, shuruq, , , , , maghrib] = times;
+  return {
+    sunOn: sunShowingAt(t, shuruq, maghrib),
+    dawn: dawnGlowAt(t, shuruq),
+    thread: fajrThreadAt(t, fajr, shuruq),
+  };
+}
+
+/** skyLightAtTimes for a run of days, choosing the day as skyAtDays does. */
+export function skyLightAtDays(
+  t: number,
+  days: ReadonlyArray<ReadonlyArray<number>>
+): SkyLight {
+  let chosen = days[0];
+  for (const times of days) {
+    if (times[0] <= t) chosen = times;
+  }
+  return skyLightAtTimes(t, chosen);
+}
+
 /** The Fajr thread as the card's custom properties. */
-function fajrThreadProperties(now: Date, day: PrayerDayTimes): Record<string, string> {
-  const thread = fajrThread(now, day);
+function fajrThreadProperties(thread: FajrThread): Record<string, string> {
   const c = (alpha: number) => `rgba(${thread.rgb}, ${alpha.toFixed(3)})`;
   const percent = (n: number) => `${(n * 100).toFixed(2)}%`;
   return {
@@ -525,6 +552,10 @@ export function skyProperties(
 ): Record<string, string> {
   const sky = skyAt(now, day);
   const tints = skyTints(sky, dark);
+  const light = skyLightAtTimes(
+    now.getTime(),
+    skyPoints(day).map((p) => p.at)
+  );
   return {
     "--sky-top": sky.top,
     "--sky-mid": sky.mid,
@@ -546,11 +577,11 @@ export function skyProperties(
     // Shuruq, 1 while it is up, fading to 0 over the ten minutes after
     // Maghrib. The arc itself keeps the sun for 45 minutes either side (the
     // widgets draw it so), but on the card that looked wrong.
-    "--sky-sun-on": sunShowing(sky, now, day).toFixed(3),
+    "--sky-sun-on": (sky.sun ? light.sunOn : 0).toFixed(3),
     // The card's dawn: a glow on the horizon below where the sun will rise.
-    "--sky-dawn": dawnGlow(now, day).toFixed(3),
+    "--sky-dawn": light.dawn.toFixed(3),
     // The card's Fajr: the white thread in a haze (fajrThread).
-    ...fajrThreadProperties(now, day),
+    ...fajrThreadProperties(light.thread),
     "--sky-sun-glow": sky.sun ? `rgba(${rgbList(sky.sun.colour)}, 0.5)` : "transparent",
     "--sky-night": sky.night.toFixed(3),
     "--sky-page": tints.page,

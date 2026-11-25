@@ -47,6 +47,8 @@ enum Fixture {
      * it reads the clock when drawn - aim at the second exactly and the text
      * flickers between runs.
      */
+    static let beforeFajr = on15th("06:05", seconds: -0.5) // Fajr's thread in its haze
+    static let beforeSunrise = on15th("07:35", seconds: -0.5) // the dawn glow, no sun yet
     static let onePM = on15th("13:00", seconds: -0.5) // Asr next, 1:02:00 away
     static let threePM = on15th("15:00", seconds: -0.5) // Maghrib: the longest name
     static let afterIsha = on15th("18:02", seconds: -0.5) // tomorrow's Fajr

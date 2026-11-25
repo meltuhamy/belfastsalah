@@ -57,6 +57,10 @@ struct SkyBackground: View {
         (0.36, 0.46, 0.75, 0.4), (0.84, 0.52, 0.75, 0.4),
     ]
 
+    private static func rgb(_ r: Double, _ g: Double, _ b: Double, _ alpha: Double) -> Color {
+        Color(red: r / 255, green: g / 255, blue: b / 255).opacity(min(1, max(0, alpha)))
+    }
+
     var body: some View {
         GeometryReader { geometry in
             let size = geometry.size
@@ -78,12 +82,62 @@ struct SkyBackground: View {
                             .position(x: star.x * size.width, y: star.y * size.height)
                     }
                 }
-                if let sun = sky.sun {
+                // Before sunrise, a warm glow on the horizon at the left,
+                // where the sun will come up, as the app's card draws it.
+                if sky.light.dawn > 0 {
+                    let d = sky.light.dawn
+                    Ellipse()
+                        .fill(EllipticalGradient(stops: [
+                            .init(color: Self.rgb(255, 196, 120, 0.9 * d), location: 0),
+                            .init(color: Self.rgb(255, 160, 90, 0.6 * d), location: 0.3),
+                            .init(color: Self.rgb(255, 130, 90, 0.22 * d), location: 0.65),
+                            .init(color: Self.rgb(255, 120, 90, 0), location: 1),
+                        ]))
+                        .frame(width: size.width * 1.3, height: size.height * 0.7)
+                        .position(x: 0, y: size.height * 0.6)
+                }
+                // Fajr's white thread in a haze. The sizes are the card's,
+                // 252 points tall; a shorter widget gets a shallower haze,
+                // never less than about half. Still, where the card's line
+                // breathes: nothing on a widget can move.
+                let thread = sky.light.thread
+                if thread.haze > 0 || thread.line > 0 {
+                    let c = thread.rgb.split(separator: ",").map {
+                        Double($0.trimmingCharacters(in: .whitespaces)) ?? 255
+                    }
+                    let depth = min(1, max(0.55, size.height / 252))
+                    let centre = CGPoint(x: thread.x * size.width, y: size.height * 0.5)
+                    if thread.haze > 0 {
+                        Ellipse()
+                            .fill(EllipticalGradient(stops: [
+                                .init(color: Self.rgb(c[0], c[1], c[2], thread.haze), location: 0),
+                                .init(color: Self.rgb(c[0], c[1], c[2], thread.haze * 0.62), location: 0.35),
+                                .init(color: Self.rgb(c[0], c[1], c[2], thread.haze * 0.25), location: 0.65),
+                                .init(color: Self.rgb(c[0], c[1], c[2], 0), location: 1),
+                            ]))
+                            .frame(width: thread.hazeWidth * size.width, height: thread.hazeHeight * depth)
+                            .position(centre)
+                    }
+                    if thread.line > 0 {
+                        Ellipse()
+                            .fill(EllipticalGradient(stops: [
+                                .init(color: Self.rgb(c[0], c[1], c[2], thread.line), location: 0),
+                                .init(color: Self.rgb(c[0], c[1], c[2], thread.line * 0.5), location: 0.45),
+                                .init(color: Self.rgb(c[0], c[1], c[2], 0), location: 1),
+                            ]))
+                            .frame(width: thread.lineWidth * size.width, height: 4)
+                            .position(centre)
+                    }
+                }
+                // The sun at the card's strength: none before Shuruq, fading
+                // after Maghrib, though the arc keeps it 45 minutes either side.
+                if let sun = sky.sun, sky.light.sunOn > 0 {
                     Circle()
                         .fill(Color(hex: sun.colour))
                         .frame(width: 26, height: 26)
                         .shadow(color: Color(hex: sun.colour).opacity(0.5), radius: 14)
                         .position(x: sun.x * size.width, y: sun.y * size.height)
+                        .opacity(sky.light.sunOn)
                 }
             }
         }

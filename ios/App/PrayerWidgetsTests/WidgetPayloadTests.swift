@@ -81,6 +81,22 @@ final class SkyTests: XCTestCase {
             let colour: String
         }
 
+        struct Thread: Decodable {
+            let x: Double
+            let hazeWidth: Double
+            let hazeHeight: Double
+            let haze: Double
+            let lineWidth: Double
+            let line: Double
+            let rgb: String
+        }
+
+        struct Light: Decodable {
+            let sunOn: Double
+            let dawn: Double
+            let thread: Thread
+        }
+
         struct Sample: Decodable {
             let at: Int64
             let top: String
@@ -89,6 +105,7 @@ final class SkyTests: XCTestCase {
             let text: String
             let sun: Sun?
             let night: Double
+            let light: Light
         }
 
         let samples: [Sample]
@@ -127,6 +144,19 @@ final class SkyTests: XCTestCase {
             } else {
                 XCTAssertNil(sky.sun, "\(label) sun")
             }
+
+            // The sun's strength, the dawn glow and Fajr's thread.
+            XCTAssertEqual(sky.light.sunOn, expected.light.sunOn, accuracy: 1e-9, "\(label) sunOn")
+            XCTAssertEqual(sky.light.dawn, expected.light.dawn, accuracy: 1e-9, "\(label) dawn")
+            let thread = sky.light.thread
+            let wanted = expected.light.thread
+            XCTAssertEqual(thread.x, wanted.x, accuracy: 1e-9, "\(label) thread x")
+            XCTAssertEqual(thread.hazeWidth, wanted.hazeWidth, accuracy: 1e-9, "\(label) thread hazeWidth")
+            XCTAssertEqual(thread.hazeHeight, wanted.hazeHeight, accuracy: 1e-9, "\(label) thread hazeHeight")
+            XCTAssertEqual(thread.haze, wanted.haze, accuracy: 1e-9, "\(label) thread haze")
+            XCTAssertEqual(thread.lineWidth, wanted.lineWidth, accuracy: 1e-9, "\(label) thread lineWidth")
+            XCTAssertEqual(thread.line, wanted.line, accuracy: 1e-9, "\(label) thread line")
+            XCTAssertEqual(thread.rgb, wanted.rgb, "\(label) thread rgb")
         }
     }
 

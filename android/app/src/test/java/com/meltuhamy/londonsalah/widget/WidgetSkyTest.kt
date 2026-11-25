@@ -65,7 +65,43 @@ class WidgetSkyTest {
                 assertEquals("$label sun y", sun.getDouble("y"), sky.sun!!.y, 1e-9)
                 assertTrue(distance(sky.sun!!.colour, sun.getString("colour")) <= 1)
             }
+
+            // The sun's strength, the dawn glow and Fajr's thread.
+            val light = expected.getJSONObject("light")
+            assertEquals("$label sunOn", light.getDouble("sunOn"), sky.light.sunOn, 1e-9)
+            assertEquals("$label dawn", light.getDouble("dawn"), sky.light.dawn, 1e-9)
+            val thread = light.getJSONObject("thread")
+            val actual = sky.light.thread
+            for ((field, value) in listOf(
+                "x" to actual.x,
+                "hazeWidth" to actual.hazeWidth,
+                "hazeHeight" to actual.hazeHeight,
+                "haze" to actual.haze,
+                "lineWidth" to actual.lineWidth,
+                "line" to actual.line
+            )) {
+                assertEquals("$label thread $field", thread.getDouble(field), value, 1e-9)
+            }
+            assertEquals("$label thread rgb", thread.getString("rgb"), actual.rgb)
         }
+    }
+
+    @Test
+    fun `has no sun before Shuruq, and a dawn glow and Fajr's thread instead`() {
+        // 15 January 2026, London: Fajr 06:20, Shuruq 07:57.
+        val before = payload.skyAt(java.time.Instant.parse("2026-01-15T07:30:00Z").toEpochMilli())!!
+        assertTrue("the arc has a sun", before.sun != null)
+        assertEquals(0.0, before.light.sunOn, 0.0)
+        assertTrue(before.light.dawn > 0.2)
+        assertTrue(before.light.thread.haze > 0)
+
+        val atFajr = payload.skyAt(java.time.Instant.parse("2026-01-15T06:20:00Z").toEpochMilli())!!
+        assertEquals(0.95, atFajr.light.thread.line, 1e-9)
+
+        val noon = payload.skyAt(java.time.Instant.parse("2026-01-15T12:00:00Z").toEpochMilli())!!
+        assertEquals(1.0, noon.light.sunOn, 0.0)
+        assertEquals(0.0, noon.light.dawn, 0.0)
+        assertEquals(0.0, noon.light.thread.haze, 0.0)
     }
 
     @Test
