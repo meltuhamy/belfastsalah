@@ -74,6 +74,15 @@ describe("widget payload fixtures", () => {
  * the minute-by-minute dawn covers from before the thread starts until after
  * the dawn glow has gone. Also written with UPDATE_FIXTURES=1.
  */
+/** Every number in `value`, to twelve decimal places. */
+function roundNumbers<T>(value: T): T {
+  return JSON.parse(
+    JSON.stringify(value, (_key, v) =>
+      typeof v === "number" ? Number(v.toFixed(12)) : v
+    )
+  );
+}
+
 describe("sky samples fixture", () => {
   const FILE = "sky-london-2026-01-15.json";
   const MINUTE = 60_000;
@@ -112,8 +121,11 @@ describe("sky samples fixture", () => {
         text: sky.text,
         sun: sky.sun,
         night: sky.night,
-        // The sun's strength, the dawn glow and Fajr's thread (skyLightAtDays).
-        light: skyLightAtDays(at, days),
+        // The sun's strength, the dawn glow and Fajr's thread (skyLightAtDays),
+        // to twelve places: Math.pow can round its last bit differently from
+        // one machine to another, and this file is compared exactly. The
+        // native tests allow 1e-9.
+        light: roundNumbers(skyLightAtDays(at, days)),
       };
     });
     const json =
