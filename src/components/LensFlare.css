@@ -33,7 +33,7 @@
   A ghost: on the line from the sun through the lens's centre (the card's
   middle, shifted by the tilt), `--at` of the way along. Brightest just inside
   its edge and tinted there, with a soft middle, as a reflection off a curved
-  surface is; eased so the tilt's readings slide it rather than jolt it.
+  surface is. The tilt is eased frame by frame in useTilt.
 */
 .LensFlare__ghost {
   position: absolute;
@@ -53,9 +53,6 @@
     rgba(var(--tint), 0) 100%
   );
   filter: blur(0.6px);
-  transition:
-    left 300ms ease-out,
-    top 300ms ease-out;
 }
 
 /* The camera's iris: a hexagon, its corners softened by the blur. */
@@ -63,10 +60,4 @@
   border-radius: 0;
   clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0% 50%);
   filter: blur(0.8px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .LensFlare__ghost {
-    transition: none;
-  }
 }

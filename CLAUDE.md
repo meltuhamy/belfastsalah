@@ -299,12 +299,23 @@ sky.ts's arc as it is. The stars are `StarField`: a new random scatter
 and turned slowly about the middle of the card's top edge - made on mount, not
 on render, or the once-a-second tick would reshuffle them. They sit at three
 depths, each its own layer; tipping the phone (`tilt.ts`) moves each layer by a
-different amount (`STAR_LAYERS`), written onto the elements and eased in CSS.
-Springs, with overshoot, were tried and taken out: plain easing felt better.
+different amount (`STAR_LAYERS`), written onto the elements and eased a
+frame at a time by `createTiltEaser`, with a top speed - not by a CSS
+transition, which every reading restarted at full speed. The tilt is measured
+on which way is up (`upFor`), never on `beta`/`gamma` directly: those Euler
+angles flip by up to 180 degrees as a phone passes upright, which threw the
+stars across the card now and then (MEL-352). Springs, with overshoot, were
+tried and taken out: plain easing felt better.
 By day there is a faint lens flare (`LensFlare`): ghosts on the line from the
 sun through the card's middle, which the tilt shifts a little, so the line drifts about
 the sun. It fades with `--sky-sun-on`. The stars and the flare share one tilt
 listener's logic, `useTilt`, which also asks iOS for the readings.
+
+The card's sun is strictly from Shuruq (`--sky-sun-on`, rising in over three
+minutes) to ten minutes after Maghrib, though sky.ts's arc - which the widgets
+draw as it is - has it up 45 minutes either side. Before Shuruq the card shows
+first light instead: a warm glow on the horizon at the left, where the sun
+will come up (`--sky-dawn`, `PrayerDayCard__dawn`).
 
 Two Ionic details to know, both handled in `PrayerDayCard.css`:
 
@@ -322,7 +333,11 @@ Shuruq. It also covers the moment after a prayer's time when `next` is still
 that prayer, before the app has fetched the one after - the card used to go
 blank there - and a prayer's exact second, which the `prev`/`next` lookups
 count as neither. The highlight is one pane behind the cells that glides from
-column to column, and each new headline fades in.
+column to column, and each new headline rises in as the old one drifts out
+(`HeadlineSlot`); the outgoing copy has its test ids stripped. The countdown
+rounds its seconds up, as a countdown does: rounded down, the last
+part-second was "0s", which prints nothing, and the card said only "Fajr in"
+(MEL-351).
 
 `e2e/support/app.ts`'s `paintedHighlight` asks the page what is actually drawn
 at the highlighted cell, via `elementFromPoint`, so a cell clipped by the
@@ -365,6 +380,13 @@ and there is the test day (`/settings/notifications/test`).
   passed is still ahead. Both sort by time, since offsets can cross. The
   body is `reminderBody(offset)`: "In 10 minutes", "Prayer time now",
   "10 minutes ago".
+- **Android never posts a reminder early, or twice.** A Xiaomi delivered
+  exact alarms a minute or two early, and a reminder posted early was still
+  ahead of the clock, so the next replan armed it again and it came a second
+  time. A broadcast more than `EARLY_TOLERANCE_MILLIS` (5s) early is not
+  posted and the reminder is armed again for its time; `PostedReminders`
+  remembers the last few posted so a re-armed one is skipped
+  (`ReminderAlarmsTest`).
 - **`PrayerReminderEditor`** is the one editor, used on a prayer's screen and
   in the test day's sheet: switch, slider, and a sound list where tapping a
   row chooses it and only its speaker button plays it (`soundPreview.ts`).

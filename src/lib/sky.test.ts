@@ -303,6 +303,33 @@ describe("skyProperties", () => {
     expect(sunOn("2026-01-15T21:00:00Z")).toBe("0.000");
   });
 
+  it("Should show no sun on the card before Shuruq, and raise it from Shuruq", async () => {
+    // 15 January 2026: Shuruq 07:57. The arc has the sun up from 07:12.
+    const day = await london.getDay(new Date("2026-01-15T12:00:00Z"));
+    const sunOn = (iso: string) =>
+      skyProperties(new Date(iso), day, "Europe/London", false)["--sky-sun-on"];
+    expect(skyAt(new Date("2026-01-15T07:30:00Z"), day).sun).not.toBeNull();
+    expect(sunOn("2026-01-15T07:30:00Z")).toBe("0.000");
+    expect(sunOn("2026-01-15T07:56:59Z")).toBe("0.000");
+    expect(sunOn("2026-01-15T07:58:30Z")).toBe("0.500");
+    expect(sunOn("2026-01-15T08:00:00Z")).toBe("1.000");
+  });
+
+  it("Should glow on the horizon as Shuruq comes, and let the sun take over", async () => {
+    const day = await london.getDay(new Date("2026-01-15T12:00:00Z"));
+    const dawn = (iso: string) =>
+      Number(
+        skyProperties(new Date(iso), day, "Europe/London", false)["--sky-dawn"]
+      );
+    expect(dawn("2026-01-15T07:00:00Z")).toBe(0);
+    expect(dawn("2026-01-15T07:30:00Z")).toBeGreaterThan(0.2);
+    expect(dawn("2026-01-15T07:30:00Z")).toBeLessThan(dawn("2026-01-15T07:50:00Z"));
+    expect(dawn("2026-01-15T07:57:00Z")).toBe(1);
+    expect(dawn("2026-01-15T08:07:00Z")).toBe(0.5);
+    expect(dawn("2026-01-15T08:17:00Z")).toBe(0);
+    expect(dawn("2026-01-15T12:00:00Z")).toBe(0);
+  });
+
   it("Should frost the highlight more faintly under white text", async () => {
     const day = await london.getDay(new Date("2026-01-15T12:00:00Z"));
     const now = new Date("2026-01-15T21:00:00Z");

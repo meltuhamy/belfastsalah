@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createTiltFollower } from "./tilt";
+import { createTiltEaser, createTiltFollower, MAX_SPEED, upFor } from "./tilt";
 
 /** Feeds `follow` the same reading at 60 a second for `seconds`, from `start` ms. */
 function hold(
@@ -19,7 +19,9 @@ function hold(
 describe("createTiltFollower", () => {
   it("Should start at the centre, whatever angle the phone is held at", () => {
     const follow = createTiltFollower(8);
-    expect(follow(40, -10, 0)).toEqual({ x: -0, y: -0 });
+    const offset = follow(40, -10, 0);
+    expect(offset.x).toBeCloseTo(0);
+    expect(offset.y).toBeCloseTo(0);
   });
 
   it("Should move the stars against the tilt, a few px at most", () => {
@@ -31,7 +33,7 @@ describe("createTiltFollower", () => {
 
     const far = createTiltFollower(8);
     far(0, 0, 0);
-    const tipped = far(90, 90, 16);
+    const tipped = far(60, 60, 16);
     expect(tipped.x).toBe(-8);
     expect(tipped.y).toBe(-8);
   });
@@ -57,8 +59,70 @@ describe("createTiltFollower", () => {
     expect(Math.abs(a.x - b.x)).toBeLessThan(0.5);
   });
 
+  it("Should not jump when the angles flip as the phone passes upright", () => {
+    // Held just short of upright and then just past it, a phone's readings
+    // jump: gamma swings by 180 and beta folds back, though the phone has
+    // barely moved. The offset must barely move either.
+    const follow = createTiltFollower(10);
+    follow(88, 5, 0);
+    const before = follow(89, 5, 16);
+    const after = follow(89, -175, 32);
+    expect(Math.abs(after.x - before.x)).toBeLessThan(0.5);
+    expect(Math.abs(after.y - before.y)).toBeLessThan(0.5);
+  });
+
   it("Should stay still without readings", () => {
     const follow = createTiltFollower(8);
     expect(follow(null, null, 0)).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe("upFor", () => {
+  it("Should point out of the screen when the phone lies flat", () => {
+    const up = upFor(0, 0);
+    expect(up.z).toBeCloseTo(1);
+  });
+
+  it("Should point to the top of the screen when the phone stands upright", () => {
+    const up = upFor(90, 0);
+    expect(up.y).toBeCloseTo(1);
+  });
+
+  it("Should be the same direction either side of an angle flip", () => {
+    // beta 100, gamma 0 and beta 80, gamma 180 are the same way up.
+    const a = upFor(100, 0);
+    const b = upFor(80, 180);
+    expect(a.x).toBeCloseTo(b.x);
+    expect(a.y).toBeCloseTo(b.y);
+    expect(a.z).toBeCloseTo(b.z);
+  });
+});
+
+describe("createTiltEaser", () => {
+  it("Should glide, never faster than its top speed, even after a flick", () => {
+    const ease = createTiltEaser();
+    let previous = 0;
+    for (let t = 0; t <= 1000; t += 1000 / 60) {
+      const { tilt } = ease({ x: 1, y: 0 }, t);
+      expect(tilt.x - previous).toBeLessThanOrEqual(MAX_SPEED / 60 + 1e-9);
+      previous = tilt.x;
+    }
+  });
+
+  it("Should arrive, and say so, when held still", () => {
+    const ease = createTiltEaser();
+    let result = ease({ x: 0.3, y: -0.2 }, 0);
+    for (let t = 0; t <= 3000 && !result.settled; t += 1000 / 60) {
+      result = ease({ x: 0.3, y: -0.2 }, t);
+    }
+    expect(result.settled).toBe(true);
+    expect(result.tilt).toEqual({ x: 0.3, y: -0.2 });
+  });
+
+  it("Should not jump after a pause between frames", () => {
+    const ease = createTiltEaser();
+    ease({ x: 0, y: 0 }, 0);
+    const { tilt } = ease({ x: 1, y: 0 }, 5000);
+    expect(tilt.x).toBeLessThanOrEqual(MAX_SPEED * 0.1 + 1e-9);
   });
 });

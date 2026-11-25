@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 import { IonCard, IonCardContent, IonSkeletonText } from "@ionic/react";
 import {
   Prayer,
@@ -26,6 +26,75 @@ import {
 } from "../lib/adhanMoment";
 import LensFlare from "./LensFlare";
 import "./PrayerDayCard.css";
+
+/** How long the outgoing headline takes to leave, in ms; PrayerDayCard.css. */
+const HEADLINE_LEAVE_MS = 450;
+
+/**
+ * The headline's slot. When what it says changes - "Fajr in 1s" to "It's
+ * time for Fajr", or Fajr's five minutes ending - the old one stays a moment,
+ * drifting up and out, while the new one rises in beneath it in the same
+ * place, so the change reads as one movement rather than a swap. `id` names
+ * the headline; anything else, the countdown ticking, is not a change.
+ */
+const HeadlineSlot: React.FC<{ id: string; children: React.ReactNode }> = ({
+  id,
+  children,
+}) => {
+  const shown = useRef({ id, node: children });
+  const [leaving, setLeaving] = useState<{
+    id: string;
+    node: React.ReactNode;
+  } | null>(null);
+
+  useLayoutEffect(() => {
+    if (shown.current.id !== id) {
+      setLeaving(shown.current);
+    }
+    shown.current = { id, node: children };
+  });
+
+  useLayoutEffect(() => {
+    if (leaving == null) return;
+    const timer = window.setTimeout(() => setLeaving(null), HEADLINE_LEAVE_MS);
+    return () => window.clearTimeout(timer);
+  }, [leaving]);
+
+  return (
+    <div className="PrayerDayCard__slot">
+      {leaving != null && leaving.id !== id && (
+        <div
+          key={`leaving-${leaving.id}`}
+          className="PrayerDayCard__leaving"
+          aria-hidden="true"
+          data-testid="headline-leaving"
+        >
+          {withoutTestIds(leaving.node)}
+        </div>
+      )}
+      <div key={id} className="PrayerDayCard__entering">
+        {children}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * A copy of a headline for its way out, without its test ids: for that half
+ * second there are two headlines, and only the one arriving is the card's.
+ */
+function withoutTestIds(node: React.ReactNode): React.ReactNode {
+  return React.Children.map(node, (child) => {
+    if (!React.isValidElement<{ children?: React.ReactNode }>(child)) {
+      return child;
+    }
+    const props: Record<string, unknown> = {
+      children: withoutTestIds(child.props.children),
+    };
+    if (typeof child.type === "string") props["data-testid"] = undefined;
+    return React.cloneElement(child, props);
+  });
+}
 
 type Props = {
   today: PrayerDayTimes | null;
@@ -99,13 +168,14 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   return (
     <IonCard color="primary" className="PrayerDayCard">
       {/*
-        The Sky theme's sun, stars and daytime lens flare, drawn behind
+        The Sky theme's sun, dawn, stars and daytime lens flare, drawn behind
         everything else. Only shown in that theme.
       */}
       <span className="PrayerDayCard__sky" aria-hidden="true">
         <span className="PrayerDayCard__stars">
           <StarField />
         </span>
+        <span className="PrayerDayCard__dawn" data-testid="dawn-glow" />
         <span className="PrayerDayCard__sun" />
         <LensFlare />
       </span>
@@ -118,56 +188,69 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
         <div className="PrayerDayCard__head">
           <div className="PrayerDayCard__top">
             <div className="PrayerDayCard__countdown">
-              {current != null ? (
-                // Keyed on the state, so each change fades in afresh.
-                <div
-                  key={`now-${current.prayer}`}
-                  className="PrayerDayCard__headline"
-                  data-testid="adhan-now"
-                >
-                  <p className="PrayerDayCard__label PrayerDayCard__label--calling">
-                    <AdhanIcon
-                      size={18}
-                      calling={isCalling(current, now)}
-                      className="PrayerDayCard__adhan"
+              <HeadlineSlot
+                id={
+                  current != null
+                    ? `now-${current.prayer}`
+                    : upcoming == null || prev == null
+                    ? "loading"
+                    : `in-${upcoming.prayer}`
+                }
+              >
+                {current != null ? (
+                  <div
+                    className="PrayerDayCard__headline"
+                    data-testid="adhan-now"
+                  >
+                    <p className="PrayerDayCard__label PrayerDayCard__label--calling">
+                      <AdhanIcon
+                        size={18}
+                        calling={isCalling(current, now)}
+                        className="PrayerDayCard__adhan"
+                      />
+                      It's time for
+                    </p>
+                    <p
+                      className="PrayerDayCard__remaining"
+                      data-testid="countdown"
+                    >
+                      {prayerToString(current.prayer)}
+                    </p>
+                  </div>
+                ) : upcoming == null || prev == null ? (
+                  <>
+                    <IonSkeletonText animated style={{ width: "30%" }} />
+                    <IonSkeletonText
+                      animated
+                      className="PrayerDayCard__skeleton"
+                      style={{ width: "60%" }}
                     />
-                    It's time for
-                  </p>
-                  <p
-                    className="PrayerDayCard__remaining"
-                    data-testid="countdown"
-                  >
-                    {prayerToString(current.prayer)}
-                  </p>
-                </div>
-              ) : upcoming == null || prev == null ? (
-                <>
-                  <IonSkeletonText animated style={{ width: "30%" }} />
-                  <IonSkeletonText
-                    animated
-                    className="PrayerDayCard__skeleton"
-                    style={{ width: "60%" }}
-                  />
-                </>
-              ) : (
-                <div
-                  key={`in-${upcoming.prayer}`}
-                  className="PrayerDayCard__headline"
-                >
-                  <p className="PrayerDayCard__label">
-                    {prayerToString(upcoming.prayer)} in
-                  </p>
-                  <p
-                    className="PrayerDayCard__remaining"
-                    data-testid="countdown"
-                  >
-                    {timeDurationString(
-                      (upcoming.time.getTime() - now.getTime()) / 1000,
-                      "short"
-                    )}
-                  </p>
-                </div>
-              )}
+                  </>
+                ) : (
+                  <div className="PrayerDayCard__headline">
+                    <p className="PrayerDayCard__label">
+                      {prayerToString(upcoming.prayer)} in
+                    </p>
+                    <p
+                      className="PrayerDayCard__remaining"
+                      data-testid="countdown"
+                    >
+                      {/*
+                      Rounded up, as a countdown is: "1s" until the prayer's
+                      second itself. Rounded down, the last part-second read
+                      "0s", which is no text at all, and the card said just
+                      "Fajr in" until the moment came (MEL-351).
+                    */}
+                      {timeDurationString(
+                        Math.ceil(
+                          (upcoming.time.getTime() - now.getTime()) / 1000
+                        ),
+                        "short"
+                      )}
+                    </p>
+                  </div>
+                )}
+              </HeadlineSlot>
             </div>
 
             <div className="PrayerDayCard__meta">

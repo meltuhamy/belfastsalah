@@ -301,21 +301,53 @@
 }
 
 /*
-  Each new headline - a new countdown, or "It's time for Asr" - fades in, so
-  the change at a prayer's time reads as a moment rather than a jump.
+  Each new headline - a new countdown, or "It's time for Asr" - rises in as
+  the old one drifts up and away (HeadlineSlot), so the change at a prayer's
+  time reads as one movement rather than a jump. Both sit in the same grid
+  cell, so the card keeps its height while they cross.
 */
-.PrayerDayCard__headline {
-  animation: PrayerDayCard-headline 600ms ease both;
+.PrayerDayCard__slot {
+  display: grid;
 }
 
-@keyframes PrayerDayCard-headline {
+.PrayerDayCard__slot > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.PrayerDayCard__entering {
+  animation: PrayerDayCard-headline-in 650ms cubic-bezier(0.2, 0.7, 0.2, 1)
+    120ms both;
+}
+
+.PrayerDayCard__leaving {
+  pointer-events: none;
+  animation: PrayerDayCard-headline-out 450ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@keyframes PrayerDayCard-headline-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(10px);
+    filter: blur(3px);
   }
   to {
     opacity: 1;
     transform: none;
+    filter: none;
+  }
+}
+
+@keyframes PrayerDayCard-headline-out {
+  from {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+    filter: blur(3px);
   }
 }
 
@@ -352,8 +384,12 @@
     transition: none;
   }
 
-  .PrayerDayCard__headline {
+  .PrayerDayCard__entering {
     animation: none;
+  }
+
+  .PrayerDayCard__leaving {
+    display: none;
   }
 
   .PrayerDayCard__dot[data-recent="true"] {
@@ -437,7 +473,10 @@
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background: var(--sky-sun-colour);
-  /* Fades out after Maghrib (sky.ts); the minute's step is eased over. */
+  /*
+    None before Shuruq, rising in from it, and fading out after Maghrib
+    (sky.ts); the minute's step is eased over.
+  */
   opacity: var(--sky-sun-on, 1);
   transition: opacity 2s ease;
 }
@@ -464,6 +503,32 @@
     transparent 100%
   );
   z-index: -1;
+}
+
+/*
+  Dawn: before Shuruq the card shows no sun, but the horizon warms where it
+  will come up - over the timeline's dots at the left, where the sun rises at
+  Shuruq - building over the 45 minutes before and going as the sun takes over
+  (--sky-dawn, sky.ts). Wide and low, as first light is, and faint: the times
+  sit on it.
+*/
+.PrayerDayCard__dawn {
+  position: absolute;
+  left: 8%;
+  top: 64%;
+  width: 90%;
+  height: 46%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 168, 96, 0.42) 0%,
+    rgba(255, 140, 90, 0.2) 45%,
+    rgba(255, 120, 90, 0) 100%
+  );
+  mix-blend-mode: screen;
+  opacity: var(--sky-dawn, 0);
+  transition: opacity 2s ease;
 }
 
 /*

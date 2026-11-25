@@ -1,10 +1,11 @@
 import { useEffect, useRef } from "react";
-import { createTiltFollower, Tilt } from "./tilt";
+import { createTiltEaser, createTiltFollower, Tilt } from "./tilt";
 
 /**
  * Calls `onTilt` with the phone's tilt, as an offset from -1 to 1 on each axis
- * measured from a resting angle that soon catches up (tilt.ts), at most once a
- * frame. For the Sky theme's decorations - the stars and the lens flare - which
+ * measured from a resting angle that soon catches up (tilt.ts). Readings set
+ * where it is going; a frame loop eases it there (`createTiltEaser`), and
+ * stops once it has arrived. For the Sky theme's decorations - the stars and the lens flare - which
  * write it straight onto their elements rather than through state, since the
  * app re-renders every second.
  *
@@ -22,11 +23,17 @@ export function useTilt(onTilt: (tilt: Tilt) => void): void {
       return;
     }
     const follow = createTiltFollower(1);
+    const ease = createTiltEaser();
+    let target: Tilt = { x: 0, y: 0 };
     let frame = 0;
+    const draw = (now: number) => {
+      const { tilt, settled } = ease(target, now);
+      latest.current(tilt);
+      frame = settled ? 0 : requestAnimationFrame(draw);
+    };
     const onOrientation = (event: DeviceOrientationEvent) => {
-      const tilt = follow(event.beta, event.gamma, event.timeStamp);
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => latest.current(tilt));
+      target = follow(event.beta, event.gamma, event.timeStamp);
+      if (frame === 0) frame = requestAnimationFrame(draw);
     };
     window.addEventListener("deviceorientation", onOrientation);
 

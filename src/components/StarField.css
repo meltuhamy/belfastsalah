@@ -5,13 +5,13 @@
 }
 
 /*
-  One per depth, shifted a few px by the phone's tilt (StarField.tsx); eased
-  so readings do not judder.
+  One per depth, shifted a few px by the phone's tilt (StarField.tsx). Eased
+  frame by frame in useTilt, not by a transition: one restarted on every
+  reading lurched.
 */
 .StarField__tilt {
   position: absolute;
   inset: 0;
-  transition: transform 300ms ease-out;
   will-change: transform;
 }
 

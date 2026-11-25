@@ -28,6 +28,9 @@ object ReminderNotifications {
         if (at == Long.MIN_VALUE) return
 
         val entry = payload.reminders.find { it.at == at && it.title == title } ?: return
+        // Once only. A replan in the few seconds before a reminder's time
+        // arms it again, even if it has just been posted.
+        if (!PostedReminders.markPosted(context, entry)) return
 
         val notifications =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

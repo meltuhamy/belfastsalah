@@ -156,6 +156,22 @@ test("says it's time for a prayer while its adhan is called, then moves on", asy
   await expect.poll(() => paintedHighlight(page)).toBe("Maghrib");
 });
 
+test("counts the last second down rather than going blank", async ({
+  page,
+}) => {
+  // Half a second before Asr (14:46). Rounded down, that was "0s", which
+  // printed nothing, so the card said only "Asr in" until Asr came.
+  await page.clock.setFixedTime(new Date("2026-02-15T14:45:59.500Z"));
+  await expect(page.getByText("Asr in")).toBeVisible();
+  await expect(page.getByTestId("countdown")).toHaveText("1s");
+
+  // Then straight to the adhan, the old headline leaving as the new arrives.
+  await page.clock.setFixedTime(new Date("2026-02-15T14:46:00Z"));
+  await expect(page.getByTestId("countdown")).toHaveText("Asr");
+  await expect(page.getByTestId("headline-leaving")).toContainText("Asr in");
+  await expect(page.getByTestId("headline-leaving")).toHaveCount(0);
+});
+
 test("never calls Shuruq a prayer time", async ({ page }) => {
   // Shuruq 07:12 on 15 February: sunrise, with no adhan.
   await page.clock.setFixedTime(new Date("2026-02-15T07:13:00Z"));

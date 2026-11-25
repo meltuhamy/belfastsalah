@@ -23,8 +23,8 @@ import "./StarField.css";
  *
  * Tipping the phone shifts each layer a few px the other way, the near ones
  * furthest (STAR_LAYERS), so they slide past each other and the sky has
- * depth. That is written straight onto the elements, once a frame at most and
- * eased in CSS - not through state, for the same once-a-second reason.
+ * depth. That is written straight onto the elements, eased a frame at a time
+ * by useTilt - not through state, for the same once-a-second reason.
  */
 const StarField: React.FC = () => {
   const box = useRef<HTMLSpanElement>(null);

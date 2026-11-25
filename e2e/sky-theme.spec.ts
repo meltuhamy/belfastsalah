@@ -217,6 +217,32 @@ test("puts the sun and its flare away in the ten minutes after Maghrib", async (
   await expect(page.getByTestId("lens-flare")).toHaveCSS("opacity", "0");
 });
 
+test("shows no sun before Shuruq, only the horizon warming", async ({
+  page,
+}) => {
+  // 15 January 2026, Shuruq 07:57. Half an hour before, the sky's arc
+  // already has a sun, low at the left, as in the screenshot that asked for
+  // this to go; the card shows first light instead.
+  await pinDate(page, "2026-01-15T07:30:00Z");
+  await setUpWithSky(page);
+  await expect(page.locator(".PrayerDayCard__sun")).toHaveCSS("opacity", "0");
+  await expect(page.getByTestId("lens-flare")).toHaveCSS("opacity", "0");
+  await expect
+    .poll(async () =>
+      Number(
+        await page
+          .getByTestId("dawn-glow")
+          .evaluate((el) => getComputedStyle(el).opacity)
+      )
+    )
+    .toBeGreaterThan(0.2);
+
+  // From Shuruq the sun comes up, and the glow gives way to it.
+  await page.clock.setFixedTime(new Date("2026-01-15T08:30:00Z"));
+  await expect(page.locator(".PrayerDayCard__sun")).toHaveCSS("opacity", "1");
+  await expect(page.getByTestId("dawn-glow")).toHaveCSS("opacity", "0");
+});
+
 test("puts the lens flare away at night", async ({ page }) => {
   await pinDate(page, "2026-01-15T21:30:00Z");
   await setUpWithSky(page);

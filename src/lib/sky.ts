@@ -359,14 +359,45 @@ export function dayBand(day: PrayerDayTimes, timeZone: string): string {
  * <html>. Computed here rather than with color-mix() in CSS, which the oldest
  * iOS the app supports does not have.
  */
+/** The card's sun rises in over this long from Shuruq. */
+const SUNRISE_FADE_MS = 3 * 60 * 1000;
 /** The card's sun fades out over this long after Maghrib. */
 const SUNSET_FADE_MS = 10 * 60 * 1000;
+/** The dawn glow builds over this long before Shuruq... */
+const DAWN_BEFORE_MS = 45 * 60 * 1000;
+/** ...and goes over this long after, as the sun takes over. */
+const DAWN_AFTER_MS = 20 * 60 * 1000;
 
+/**
+ * How much of the card's sun to show: none before Shuruq, rising in over the
+ * three minutes from it, and fading over the ten after Maghrib. sky.ts's arc
+ * has the sun up from 45 minutes before Shuruq (the widgets draw it so), but
+ * on the card a sun before sunrise read as wrong (MEL-349).
+ */
 function sunShowing(sky: Sky, now: Date, day: PrayerDayTimes): number {
   if (!sky.sun) return 0;
-  const since = now.getTime() - day[Prayer.Maghrib].time.getTime();
-  if (since <= 0) return 1;
-  return clamp(1 - since / SUNSET_FADE_MS, 0, 1);
+  const t = now.getTime();
+  const shuruq = day[Prayer.Shuruq].time.getTime();
+  const maghrib = day[Prayer.Maghrib].time.getTime();
+  if (t < shuruq) return 0;
+  if (t <= maghrib) return clamp((t - shuruq) / SUNRISE_FADE_MS, 0, 1);
+  return clamp(1 - (t - maghrib) / SUNSET_FADE_MS, 0, 1);
+}
+
+/**
+ * The glow on the horizon where the sun is about to come up, 0 to 1: building
+ * over the 45 minutes before Shuruq, eased so it creeps in, and going over the
+ * 20 after, while the sun rises in. Something to show the sun is coming
+ * without showing the sun.
+ */
+function dawnGlow(now: Date, day: PrayerDayTimes): number {
+  const t = now.getTime();
+  const shuruq = day[Prayer.Shuruq].time.getTime();
+  if (t < shuruq) {
+    const x = clamp(1 - (shuruq - t) / DAWN_BEFORE_MS, 0, 1);
+    return x * x * (3 - 2 * x);
+  }
+  return clamp(1 - (t - shuruq) / DAWN_AFTER_MS, 0, 1);
 }
 
 export function skyProperties(
@@ -394,11 +425,13 @@ export function skyProperties(
     "--sky-sun-x": `${((sky.sun?.x ?? 0.5) * 100).toFixed(2)}%`,
     "--sky-sun-y": `${((sky.sun?.y ?? 1.5) * 100).toFixed(2)}%`,
     "--sky-sun-colour": sky.sun?.colour ?? "transparent",
-    // How much of the card's sun to show, and so its lens flare: 1 while it
-    // is up, fading to 0 over the ten minutes after Maghrib. The arc itself
-    // keeps the sun for 45 minutes past sunset (the widgets draw it so), but
-    // on the card a sun still out well into Maghrib looked wrong.
+    // How much of the card's sun to show, and so its lens flare: none before
+    // Shuruq, 1 while it is up, fading to 0 over the ten minutes after
+    // Maghrib. The arc itself keeps the sun for 45 minutes either side (the
+    // widgets draw it so), but on the card that looked wrong.
     "--sky-sun-on": sunShowing(sky, now, day).toFixed(3),
+    // The card's dawn: a glow on the horizon below where the sun will rise.
+    "--sky-dawn": dawnGlow(now, day).toFixed(3),
     "--sky-sun-glow": sky.sun ? `rgba(${rgbList(sky.sun.colour)}, 0.5)` : "transparent",
     "--sky-night": sky.night.toFixed(3),
     "--sky-page": tints.page,
