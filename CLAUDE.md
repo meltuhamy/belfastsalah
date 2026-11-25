@@ -317,6 +317,18 @@ draw as it is - has it up 45 minutes either side. Before Shuruq the card shows
 first light instead: a warm glow on the horizon at the left, where the sun
 will come up (`--sky-dawn`, `PrayerDayCard__dawn`).
 
+Fajr has a moment of its own on the Sky card, the white thread of dawn in a
+haze (`fajrThread` in sky.ts, designed in the "Fajr moments" canvas): a soft
+band of pale light gathers on the horizon over the hour before Fajr, with a
+soft line of light inside it for the last 25 minutes. As Fajr comes in the
+line brightens once (`PrayerDayCard__fajr-line--arriving`, keyed on Fajr's
+adhan moment), then breathes; between Fajr and Shuruq the light warms to
+peach, drifts left and hands over to the dawn glow, and by Shuruq it has
+gone. sky.ts writes whole `radial-gradient`s (`--sky-fajr-haze-bg`,
+`--sky-fajr-line-bg`) since old iOS cannot mix colours in CSS. The line is a
+blurred glow a few px tall, never a 1px stroke, which read as a cut across
+the card. Card only for now: the widgets do not draw it.
+
 Two Ionic details to know, both handled in `PrayerDayCard.css`:
 
 - **`ion-card` is a shadow host**, so `::before`/`::after` on it are never

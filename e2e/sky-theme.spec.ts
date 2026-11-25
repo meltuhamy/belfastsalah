@@ -243,6 +243,33 @@ test("shows no sun before Shuruq, only the horizon warming", async ({
   await expect(page.getByTestId("dawn-glow")).toHaveCSS("opacity", "0");
 });
 
+test("draws Fajr's white thread in a haze, bright at Fajr, gone by Shuruq", async ({
+  page,
+}) => {
+  // 15 January 2026, London: Fajr 06:20, Shuruq 07:57.
+  const haze = page.getByTestId("fajr-haze");
+  const line = page.getByTestId("fajr-line");
+  const width = (locator: typeof haze) =>
+    locator.evaluate((el) => el.getBoundingClientRect().width);
+
+  // Fifteen minutes before: the haze, with the line inside it.
+  await pinDate(page, "2026-01-15T06:05:00Z");
+  await setUpWithSky(page);
+  await expect.poll(() => width(haze)).toBeGreaterThan(100);
+  await expect(haze).toHaveCSS("background-image", /radial-gradient/);
+  await expect.poll(() => width(line)).toBeGreaterThan(50);
+  await expect(line).not.toHaveClass(/--arriving/);
+
+  // Fajr comes in: the line brightens once.
+  await page.clock.setFixedTime(new Date("2026-01-15T06:20:00Z"));
+  await expect(line).toHaveClass(/PrayerDayCard__fajr-line--arriving/);
+
+  // From Shuruq: nothing.
+  await page.clock.setFixedTime(new Date("2026-01-15T08:10:00Z"));
+  await expect.poll(() => width(haze)).toBe(0);
+  await expect.poll(() => width(line)).toBe(0);
+});
+
 test("puts the lens flare away at night", async ({ page }) => {
   await pinDate(page, "2026-01-15T21:30:00Z");
   await setUpWithSky(page);

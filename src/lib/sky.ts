@@ -401,6 +401,122 @@ function dawnGlow(now: Date, day: PrayerDayTimes): number {
   return clamp(1 - (t - shuruq) / DAWN_AFTER_MS, 0, 1);
 }
 
+/**
+ * The white thread of dawn, in a haze: the Sky card's Fajr.
+ *
+ * A soft band of pale light on the horizon gathers over the hour before
+ * Fajr, and a soft line of light - the white thread - shows inside it for the
+ * last twenty-five minutes. At Fajr both are at their brightest (the card
+ * also brightens the line once as the moment begins). Between Fajr and
+ * Shuruq the light warms to peach, drifts left to where the sun will rise and
+ * hands over to the dawn glow; by Shuruq it has gone.
+ *
+ * Sizes are for a card 380px wide (the widths are fractions of the card's);
+ * the colours are worked out here because the oldest iOS the app runs on has
+ * no color-mix().
+ */
+export type FajrThread = {
+  /** The middle of the light, as a fraction of the card's width. */
+  x: number;
+  /** The haze's width, as a fraction of the card's width, and its height in px. */
+  hazeWidth: number;
+  hazeHeight: number;
+  /** The haze's strength at its middle, 0 to 1. */
+  haze: number;
+  /** The line's width, as a fraction of the card's width, and its strength. */
+  lineWidth: number;
+  line: number;
+  /** The light's colour, "r, g, b". */
+  rgb: string;
+};
+
+/** The haze gathers over this long before Fajr... */
+const THREAD_BEFORE_MS = 60 * 60 * 1000;
+/** ...fading in over the first part of that, so it never just appears... */
+const THREAD_FADE_IN_MS = 10 * 60 * 1000;
+/** ...and the line shows inside it for this long before Fajr. */
+const THREAD_LINE_MS = 25 * 60 * 1000;
+
+/**
+ * From Fajr to Shuruq, as a fraction of the time between them: where the
+ * light is, how big, its colour, the haze's strength and the line's. Drawn
+ * in the Fajr moments design and eased linearly between.
+ */
+const THREAD_AFTER: ReadonlyArray<
+  [number, [number, number, number, number, number, number, number, number]]
+> = [
+  [0, [50, 480, 60, 228, 220, 255, 0.32, 0.95]],
+  [0.05, [50, 480, 60, 228, 220, 255, 0.3, 0.7]],
+  [0.22, [44, 440, 58, 238, 218, 240, 0.26, 0.35]],
+  [0.56, [32, 380, 56, 255, 212, 200, 0.22, 0.12]],
+  [0.83, [18, 300, 54, 255, 200, 170, 0.14, 0]],
+  [1, [10, 260, 52, 255, 196, 160, 0, 0]],
+];
+
+const NO_THREAD: FajrThread = {
+  x: 0.5,
+  hazeWidth: 0,
+  hazeHeight: 0,
+  haze: 0,
+  lineWidth: 0,
+  line: 0,
+  rgb: "228, 220, 255",
+};
+
+export function fajrThread(now: Date, day: PrayerDayTimes): FajrThread {
+  const t = now.getTime();
+  const fajr = day[Prayer.Fajr].time.getTime();
+  const shuruq = day[Prayer.Shuruq].time.getTime();
+  const CARD = 380;
+
+  let x: number, w: number, h: number, r: number, g: number, b: number, a: number, line: number;
+  if (t < fajr) {
+    const before = fajr - t;
+    if (before > THREAD_BEFORE_MS) return NO_THREAD;
+    const k = 1 - before / THREAD_BEFORE_MS;
+    [x, w, h, r, g, b] = [50, 260 + 220 * k, 34 + 26 * k, 228, 220, 255];
+    a = (0.1 + 0.22 * k) * clamp((THREAD_BEFORE_MS - before) / THREAD_FADE_IN_MS, 0, 1);
+    line = 0.6 * clamp(1 - before / THREAD_LINE_MS, 0, 1);
+  } else {
+    if (t >= shuruq) return NO_THREAD;
+    const f = (t - fajr) / (shuruq - fajr);
+    const i = THREAD_AFTER.findIndex(([at], n) => f >= at && f < (THREAD_AFTER[n + 1]?.[0] ?? Infinity));
+    const [from, fromValues] = THREAD_AFTER[i];
+    const [to, toValues] = THREAD_AFTER[Math.min(i + 1, THREAD_AFTER.length - 1)];
+    const s = to === from ? 0 : (f - from) / (to - from);
+    [x, w, h, r, g, b, a, line] = fromValues.map((v, n) => v + (toValues[n] - v) * s) as typeof fromValues;
+  }
+
+  return {
+    x: x / 100,
+    // The haze is drawn wider, taller and more blurred than the band it
+    // stands for, so its edges melt into the sky.
+    hazeWidth: (w * 1.1) / CARD,
+    hazeHeight: h * 1.7,
+    haze: a * 1.15,
+    lineWidth: (w * 0.65) / CARD,
+    line,
+    rgb: `${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)}`,
+  };
+}
+
+/** The Fajr thread as the card's custom properties. */
+function fajrThreadProperties(now: Date, day: PrayerDayTimes): Record<string, string> {
+  const thread = fajrThread(now, day);
+  const c = (alpha: number) => `rgba(${thread.rgb}, ${alpha.toFixed(3)})`;
+  const percent = (n: number) => `${(n * 100).toFixed(2)}%`;
+  return {
+    "--sky-fajr-x": percent(thread.x),
+    "--sky-fajr-haze-w": percent(thread.hazeWidth),
+    "--sky-fajr-haze-h": `${thread.hazeHeight.toFixed(1)}px`,
+    "--sky-fajr-haze": thread.haze.toFixed(3),
+    "--sky-fajr-haze-bg": `radial-gradient(closest-side, ${c(thread.haze)} 0%, ${c(thread.haze * 0.62)} 35%, ${c(thread.haze * 0.25)} 65%, ${c(0)} 100%)`,
+    "--sky-fajr-line-w": percent(thread.lineWidth),
+    "--sky-fajr-line": thread.line.toFixed(3),
+    "--sky-fajr-line-bg": `radial-gradient(closest-side, ${c(thread.line)} 0%, ${c(thread.line * 0.5)} 45%, ${c(0)} 100%)`,
+  };
+}
+
 export function skyProperties(
   now: Date,
   day: PrayerDayTimes,
@@ -433,6 +549,8 @@ export function skyProperties(
     "--sky-sun-on": sunShowing(sky, now, day).toFixed(3),
     // The card's dawn: a glow on the horizon below where the sun will rise.
     "--sky-dawn": dawnGlow(now, day).toFixed(3),
+    // The card's Fajr: the white thread in a haze (fajrThread).
+    ...fajrThreadProperties(now, day),
     "--sky-sun-glow": sky.sun ? `rgba(${rgbList(sky.sun.colour)}, 0.5)` : "transparent",
     "--sky-night": sky.night.toFixed(3),
     "--sky-page": tints.page,

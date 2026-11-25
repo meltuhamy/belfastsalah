@@ -130,6 +130,7 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   // stay on today's strip rather than rolling to tomorrow's straight away.
   const current = prayerNow(prev, next, now, today);
   const strip = usePrayerStrip(today, current ?? next);
+  const fajrArriving = current?.prayer === Prayer.Fajr;
   // The prayer still to come, which `next` is not for a moment after its time,
   // before the app has worked out the one after - the card used to go blank.
   const upcoming = upcomingPrayer(next, strip, now);
@@ -178,7 +179,8 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   return (
     <IonCard color="primary" className="PrayerDayCard">
       {/*
-        The Sky theme's sun, dawn, stars and daytime lens flare, drawn behind
+        The Sky theme's sun, dawn, Fajr's thread, stars and daytime lens
+        flare, drawn behind
         everything else. Only shown in that theme.
       */}
       <span className="PrayerDayCard__sky" aria-hidden="true">
@@ -186,6 +188,19 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
           <StarField />
         </span>
         <span className="PrayerDayCard__dawn" data-testid="dawn-glow" />
+        {/*
+          Fajr: the white thread of dawn in a haze (fajrThread in sky.ts).
+          Keyed on Fajr's adhan moment, so the line brightens once as it
+          comes in, then breathes.
+        */}
+        <span className="PrayerDayCard__fajr-haze" data-testid="fajr-haze" />
+        <span
+          key={fajrArriving ? "arriving" : "waiting"}
+          className={`PrayerDayCard__fajr-line${
+            fajrArriving ? " PrayerDayCard__fajr-line--arriving" : ""
+          }`}
+          data-testid="fajr-line"
+        />
         <span className="PrayerDayCard__sun" />
         <LensFlare />
       </span>

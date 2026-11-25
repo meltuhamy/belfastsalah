@@ -533,6 +533,76 @@
 }
 
 /*
+  Fajr: the white thread of dawn in a haze. A soft band of pale light gathers
+  on the horizon over the hour before Fajr, with a soft line of light inside
+  it for the last twenty-five minutes; after Fajr the light warms, drifts left
+  and hands over to the dawn glow. Where, how big and how strong all come from
+  sky.ts (fajrThread), as whole backgrounds, since the oldest iOS the app runs
+  on cannot mix colours in CSS. In the open sky between the countdown and the
+  dots, so it is never behind text. The line is a glow, not a stroke: a few
+  px tall and blurred, so it never reads as a cut across the card.
+*/
+.PrayerDayCard__fajr-haze,
+.PrayerDayCard__fajr-line {
+  position: absolute;
+  left: var(--sky-fajr-x, 50%);
+  top: 55.5%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+
+.PrayerDayCard__fajr-haze {
+  width: var(--sky-fajr-haze-w, 0);
+  height: var(--sky-fajr-haze-h, 0);
+  background: var(--sky-fajr-haze-bg, none);
+  filter: blur(10px);
+}
+
+.PrayerDayCard__fajr-line {
+  width: var(--sky-fajr-line-w, 0);
+  height: 5px;
+  background: var(--sky-fajr-line-bg, none);
+  filter: blur(0.8px);
+  animation: PrayerDayCard-thread-breathe 7s ease-in-out infinite;
+}
+
+/* As Fajr comes in, the thread brightens once, then breathes again. */
+.PrayerDayCard__fajr-line--arriving {
+  animation:
+    PrayerDayCard-thread-arrive 2.5s ease-out both,
+    PrayerDayCard-thread-breathe 7s ease-in-out 2.5s infinite;
+}
+
+@keyframes PrayerDayCard-thread-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes PrayerDayCard-thread-arrive {
+  0% {
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.75;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .PrayerDayCard__fajr-line,
+  .PrayerDayCard__fajr-line--arriving {
+    animation: none;
+  }
+}
+
+/*
   Faded in after Isha by --sky-night. The stars themselves are StarField's.
 */
 .PrayerDayCard__stars {

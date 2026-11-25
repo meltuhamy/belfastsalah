@@ -14,6 +14,7 @@ import {
   skyAt,
   skyPoints,
   skyProperties,
+  fajrThread,
   skyTints,
 } from "./sky";
 
@@ -330,12 +331,77 @@ describe("skyProperties", () => {
     expect(dawn("2026-01-15T12:00:00Z")).toBe(0);
   });
 
+  it("Should give the card Fajr's thread as whole backgrounds", async () => {
+    const day = await london.getDay(new Date("2026-01-15T12:00:00Z"));
+    const properties = skyProperties(new Date("2026-01-15T06:20:00Z"), day, "Europe/London", false);
+    expect(properties["--sky-fajr-x"]).toBe("50.00%");
+    expect(properties["--sky-fajr-line"]).toBe("0.950");
+    expect(properties["--sky-fajr-haze-bg"]).toMatch(/^radial-gradient\(closest-side, rgba\(228, 220, 255, 0\.368\) 0%/);
+    // Gone by day.
+    const noon = skyProperties(new Date("2026-01-15T12:00:00Z"), day, "Europe/London", false);
+    expect(noon["--sky-fajr-haze"]).toBe("0.000");
+    expect(noon["--sky-fajr-line"]).toBe("0.000");
+  });
+
   it("Should frost the highlight more faintly under white text", async () => {
     const day = await london.getDay(new Date("2026-01-15T12:00:00Z"));
     const now = new Date("2026-01-15T21:00:00Z");
     const properties = skyProperties(now, day, "Europe/London", true);
     expect(properties["--sky-lower-text"]).toBe("#ffffff");
     expect(properties["--sky-glass"]).toBe("rgba(255, 255, 255, 0.18)");
+  });
+});
+
+describe("fajrThread", () => {
+  // 15 January 2026, London: Fajr 06:20, Shuruq 07:57.
+  const at = async (iso: string) =>
+    fajrThread(new Date(iso), await london.getDay(new Date("2026-01-15T12:00:00Z")));
+
+  it("Should show nothing more than an hour before Fajr, or from Shuruq", async () => {
+    for (const iso of ["2026-01-15T05:10:00Z", "2026-01-15T07:57:00Z", "2026-01-15T12:00:00Z", "2026-01-15T23:00:00Z"]) {
+      const thread = await at(iso);
+      expect(thread.haze).toBe(0);
+      expect(thread.line).toBe(0);
+    }
+  });
+
+  it("Should gather the haze over the hour before Fajr, never just appearing", async () => {
+    const early = await at("2026-01-15T05:21:00Z");
+    const later = await at("2026-01-15T05:40:00Z");
+    const close = await at("2026-01-15T06:05:00Z");
+    expect(early.haze).toBeGreaterThan(0);
+    expect(early.haze).toBeLessThan(0.05);
+    expect(later.haze).toBeGreaterThan(early.haze);
+    expect(close.haze).toBeGreaterThan(later.haze);
+    expect(close.hazeWidth).toBeGreaterThan(later.hazeWidth);
+    expect(close.x).toBe(0.5);
+  });
+
+  it("Should show the line only in the last 25 minutes before Fajr, brightest at Fajr", async () => {
+    expect((await at("2026-01-15T05:50:00Z")).line).toBe(0);
+    const before = (await at("2026-01-15T06:05:00Z")).line;
+    expect(before).toBeGreaterThan(0.2);
+    expect(before).toBeLessThan(0.3);
+    const fajr = await at("2026-01-15T06:20:00Z");
+    expect(fajr.line).toBeCloseTo(0.95);
+    expect(fajr.haze).toBeCloseTo(0.32 * 1.15);
+    expect(fajr.rgb).toBe("228, 220, 255");
+  });
+
+  it("Should warm, drift left and fade between Fajr and Shuruq", async () => {
+    const fajr = await at("2026-01-15T06:20:00Z");
+    const mid = await at("2026-01-15T07:00:00Z");
+    const late = await at("2026-01-15T07:45:00Z");
+    expect(mid.x).toBeLessThan(fajr.x);
+    expect(late.x).toBeLessThan(mid.x);
+    expect(mid.line).toBeLessThan(0.35);
+    expect(late.line).toBe(0);
+    expect(late.haze).toBeLessThan(mid.haze);
+    expect(late.haze).toBeGreaterThan(0);
+    // Warmer: less blue, more red than at Fajr.
+    const [r, , b] = mid.rgb.split(", ").map(Number);
+    expect(r).toBeGreaterThan(228);
+    expect(b).toBeLessThan(255);
   });
 });
 
