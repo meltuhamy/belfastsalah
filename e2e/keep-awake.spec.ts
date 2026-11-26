@@ -47,11 +47,37 @@ const wakeLock = (page: Page) =>
 const button = (page: Page) =>
   page.getByRole("button", { name: "Keep screen on" });
 
+/**
+ * The animated pill loads on its own once the app is idle (KeepAwakeButton),
+ * standing in for the still one. The tests start once it has, so a tap never
+ * lands on the swap; "taps keep working while the animation arrives" covers
+ * that on purpose.
+ */
+async function waitForAnimation(page: Page) {
+  await expect(page.getByTestId("keep-awake")).toHaveAttribute(
+    "data-animated",
+    "true",
+    { timeout: 8000 }
+  );
+}
+
 test.beforeEach(async ({ page }) => {
   await pinDate(page, NOON_ISH);
   await stubWakeLock(page);
   await completeSetup(page);
+  await waitForAnimation(page);
 });
+
+/** The toolbar title's box, to show the pill never moves it. */
+async function titleBox(page: Page) {
+  return page
+    .locator(".PageTitle")
+    .first()
+    .evaluate((el) => {
+      const { left, top, width, height } = el.getBoundingClientRect();
+      return { left, top, width, height };
+    });
+}
 
 /**
  * What the pill shows, as painted: the words count as showing only when they
@@ -63,7 +89,8 @@ async function pillState(page: Page) {
     const words = pill.querySelector("[data-testid=keep-awake-words]")!;
     const box = pill.getBoundingClientRect();
     const wordsBox = words.getBoundingClientRect();
-    const style = getComputedStyle(pill);
+    // The tint is drawn by a layer behind the contents (KeepAwakeButton.css).
+    const style = getComputedStyle(pill, "::after");
     return {
       words: words.textContent,
       showing:
@@ -170,6 +197,7 @@ test("turning it off says Screen normal, then folds to the plain icon", async ({
 });
 
 test("the lantern holds still and the words never cover it", async ({ page }) => {
+  await waitForAnimation(page);
   const opening = sampleFrames(page, 700);
   await button(page).click();
   const open = await opening;
@@ -193,7 +221,7 @@ test("with reduce motion, it changes size at once", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.waitForTimeout(700);
   await page.reload();
-  await expect(button(page)).toBeVisible();
+  await waitForAnimation(page);
   const opening = sampleFrames(page, 500);
   await button(page).click();
   const widths = (await opening).map((f) => Math.round(f.width));
@@ -218,7 +246,11 @@ test("is remembered, and takes effect again on the next launch", async ({
   await expect.poll(async () => (await wakeLock(page)).held).toBe(1);
 });
 
-test("the open pill fits beside the title and the cog", async ({ page }) => {
+test("the open pill fits beside the cog, and never moves the title", async ({
+  page,
+}) => {
+  await waitForAnimation(page);
+  const before = await titleBox(page);
   await button(page).click();
   await expect.poll(async () => (await pillState(page)).showing).toBe(true);
   // Let the pill finish growing before measuring it.
@@ -231,6 +263,7 @@ test("the open pill fits beside the title and the cog", async ({ page }) => {
   expect(pillBox!.x + pillBox!.width).toBeLessThanOrEqual(cogBox!.x + 1);
   expect(cogBox!.x + cogBox!.width).toBeLessThanOrEqual(viewport!.width);
   await expect(page.getByText("Prayer Times").first()).toBeVisible();
+  expect(await titleBox(page)).toEqual(before);
   // Tapping the words, not just the lantern, turns it off again.
   await page.getByTestId("keep-awake-words").click();
   await expect(button(page)).toHaveAttribute("aria-pressed", "false");
@@ -278,19 +311,84 @@ test("the words grow with a larger text size, and fit", async ({ page }) => {
   expect(await titleIsWhole(page)).toBe(true);
 });
 
-test("at a large text size it says nothing, leaving the title room", async ({
+test("at a large text size the open pill lies over the title, never squeezing it", async ({
   page,
 }) => {
   await setTextSize(page, 2);
+  await waitForAnimation(page);
+  const before = await titleBox(page);
   await button(page).click();
   await expect(button(page)).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(async () => (await pillState(page)).showing).toBe(true);
   await page.waitForTimeout(600);
+  // The title is exactly where it was, whole, under the pill.
+  expect(await titleBox(page)).toEqual(before);
+  expect(await titleIsWhole(page)).toBe(true);
+  const pillBox = (await button(page).boundingBox())!;
+  const cogBox = (await page
+    .locator("ion-button[router-link='/settings']")
+    .boundingBox())!;
+  expect(pillBox.x).toBeGreaterThanOrEqual(0);
+  expect(pillBox.x + pillBox.width).toBeLessThanOrEqual(cogBox.x + 1);
+  // The words are not cut off by the toolbar, and the pill is solid over the
+  // title: what is painted at the words' middle is the pill.
+  const painted = await page.getByTestId("keep-awake-words").evaluate((el) => {
+    const box = el.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.left + 4, box.top + box.height / 2);
+    return hit != null && el.closest("button")!.contains(hit);
+  });
+  expect(painted).toBe(true);
+  // It folds to its circle, which grows with the lantern and the cog.
+  await waitForFold(page);
   const state = await pillState(page);
-  expect(state.showing).toBe(false);
   expect(state.tinted).toBe(true);
-  // The circle grows with the lantern, which grows with the cog.
   expect(state.width).toBeCloseTo(state.height, 0);
   expect(state.width).toBeGreaterThan(50);
   await expect.poll(async () => (await wakeLock(page)).held).toBe(1);
-  expect(await titleIsWhole(page)).toBe(true);
+});
+
+test.describe("before the animation has loaded", () => {
+  test.beforeEach(async ({ page }) => {
+    // Hold the animated pill back, as on a slow first start.
+    await page.route("**/KeepAwakeMotion*", (route) => route.abort());
+    // Setup's answers are written through a 500ms debounce.
+    await page.waitForTimeout(700);
+    await page.reload();
+    await expect(button(page)).toBeVisible();
+  });
+
+  test("taps keep working while the animation arrives", async ({ page }) => {
+    await page.unroute("**/KeepAwakeMotion*");
+    // Turned on by the still pill. The touch starts loading the animated
+    // one, which arrives while the words are showing.
+    await expect(button(page)).not.toHaveAttribute("data-animated", "true");
+    await button(page).click();
+    await expect(button(page)).toHaveAttribute("aria-pressed", "true");
+    await waitForAnimation(page);
+    expect((await pillState(page)).words).toBe("Screen always on");
+    await button(page).click();
+    await expect(button(page)).toHaveAttribute("aria-pressed", "false");
+    await expect.poll(async () => (await wakeLock(page)).held).toBe(0);
+  });
+
+  test("the still pill does everything but move", async ({ page }) => {
+    await expect(button(page)).not.toHaveAttribute("data-animated", "true");
+    await button(page).click();
+    await expect(button(page)).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(async () => (await pillState(page)).showing).toBe(true);
+    expect((await pillState(page)).words).toBe("Screen always on");
+    await expect.poll(async () => (await wakeLock(page)).held).toBe(1);
+    await waitForFold(page);
+    let state = await pillState(page);
+    expect(Math.round(state.width)).toBe(36);
+    expect(state.tinted).toBe(true);
+    await button(page).click();
+    await expect(button(page)).toHaveAttribute("aria-pressed", "false");
+    expect((await pillState(page)).words).toBe("Screen normal");
+    await expect.poll(async () => (await wakeLock(page)).held).toBe(0);
+    await waitForFold(page);
+    state = await pillState(page);
+    expect(Math.round(state.width)).toBe(36);
+    expect(state.tinted).toBe(false);
+  });
 });

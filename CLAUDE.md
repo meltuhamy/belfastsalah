@@ -324,21 +324,33 @@ Screen Wake Lock API on the web (`src/lib/keepAwake.ts`).
 
 - **A tap says what happened, then settles.** The button opens into a pill
   reading "Screen always on" or "Screen normal", and after `SAY_MILLIS`
-  folds to the lit lantern on its tinted circle, or the plain icon. At a
-  large text size (`useLargeText`) it never says anything: the words would
-  squeeze the title until it broke mid-word.
-- **Animated with Motion** (`motion/react`, motion.dev), through `LazyMotion`
-  and `domAnimation` to keep it small. Only the pill's width moves: the
-  lantern is pinned to its right edge and the words are always laid out
-  beside it, clipped by the pill. Motion's `layout` animation, which moves
-  the children instead, was tried first and let the words sit on the
-  lantern while the pill opened. The widths are measured, never guessed;
-  animating CSS `max-width` to a round number spent the start of the curve
-  on width nobody could see.
+  folds to the lit lantern on its tinted circle, or the plain icon.
+- **The pill floats.** Its slot in the toolbar is only ever the circle; the
+  pill is pinned to the slot's right edge and opens leftwards over the title
+  when there is not room, on a solid layer of the toolbar's own colour. So the
+  title never moves or wraps, at any text size.
+- **Animated with Motion** (`motion/react`, motion.dev), loaded lazily:
+  `KeepAwakeMotion.tsx` is its own chunk, imported once the app is idle after
+  its first paint or at the first touch, so Motion (about 33KB gzipped) is
+  not in the main bundle. Until it arrives `KeepAwakeButton` draws the same
+  pill without animation, and it holds all the state, so the swap changes
+  nothing but the motion. Only the pill's width moves: the lantern is pinned
+  to its right edge and the words are always laid out beside it, clipped by
+  the pill. Motion's `layout` animation, which moves the children instead,
+  was tried first and let the words sit on the lantern while the pill
+  opened. The widths are measured, never guessed; animating CSS `max-width`
+  to a round number spent the start of the curve on width nobody could see.
 - **Transitions and keyframes are module constants**, so the once-a-second
   re-render hands Motion the same objects and nothing restarts.
 - `e2e/keep-awake.spec.ts` samples every frame of the animation and fails if
-  the lantern moves or the words reach it, and checks reduce motion.
+  the lantern moves or the words reach it, checks reduce motion, the still
+  pill with the chunk blocked, and the pill over the title at 2x text.
+- **Screenshots and `pinDate` do not mix with Motion.** Playwright's clock
+  moves `performance.now()` ahead of `document.timeline` after a reload, and
+  Motion starts its opacity animations at `performance.now()`, so they sit
+  at their first frame: the open pill shows no words. Phones are not
+  affected. Take screenshots of the animation without pinning the clock; the
+  specs read computed styles, which are right either way.
 
 ## The day card
 

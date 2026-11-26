@@ -1,41 +1,52 @@
 /*
-  The keep-awake toggle (KeepAwakeButton.tsx). Motion animates the pill's
-  width; everything here holds still inside it. The lantern is pinned to the
-  right edge, the words sit just left of it, and the pill clips whatever is
-  outside its edges, so its moving left edge reveals and covers the words.
+  The keep-awake toggle (KeepAwakeButton.tsx, animated by KeepAwakeMotion.tsx).
+
+  The pill floats. Its slot in the toolbar is a 44px tap target - the size
+  of the circle once the text is large - and the pill is pinned to the
+  slot's right edge and opens leftwards out of it, over the title if it has
+  to. So the title never moves or wraps, whatever the text size.
+
+  Inside the pill everything holds still: the lantern is pinned to its right
+  edge, the words sit just left of it, and the pill clips whatever is outside
+  its edges, so its moving left edge reveals and covers the words. Motion
+  animates only its width; until Motion has loaded, CSS sizes it instead.
 */
 
-/* A 44px tap target, like the cog's, with the pill anchored to its right
-   so the lantern does not drift as the pill gets narrower than 44px. */
-.KeepAwakeButton__target {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  min-width: 44px;
-  min-height: 44px;
+.KeepAwakeButton__slot {
+  position: relative;
+  flex-shrink: 0;
+  width: max(44px, calc(1.5rem + 12px));
+  height: max(44px, calc(1.5rem + 12px));
   margin: 0 2px;
 }
 
 .KeepAwakeButton {
+  /* Centred in its slot by its margins. The z-index makes it a stacking
+     context, so the backing layers below sit behind the words and the
+     lantern but in front of the title. */
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 1;
+  margin: auto 0;
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
   overflow: hidden;
   box-sizing: border-box;
-  /* The circle: the lantern and 6px around it. The width is Motion's. */
+  /* The circle: the lantern and 6px around it. */
+  width: calc(1.5rem + 12px);
   height: calc(1.5rem + 12px);
-  min-width: calc(1.5rem + 12px);
   padding: 0 6px;
   border: 0;
   border-radius: 999px;
   background: transparent;
-  box-shadow: inset 0 0 0 1px transparent;
   color: var(--ion-toolbar-color, var(--ion-text-color, currentColor));
   font: inherit;
   white-space: nowrap;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background-color 0.3s, box-shadow 0.3s;
 }
 
 .KeepAwakeButton:focus-visible {
@@ -43,25 +54,55 @@
   outline-offset: 2px;
 }
 
+/*
+  Two layers behind the contents. The first is the toolbar's own colour,
+  solid, so the title does not show through where the pill lies over it; the
+  second is the tint and its edge.
+*/
+.KeepAwakeButton::before,
+.KeepAwakeButton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+}
+
+.KeepAwakeButton::before {
+  background: var(--ion-toolbar-background, var(--ion-background-color, #fff));
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.KeepAwakeButton::after {
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px transparent;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.KeepAwakeButton--saying::before,
+.KeepAwakeButton--on::before {
+  opacity: 1;
+}
+
 /* Saying "Screen normal": a quiet neutral pill. */
-.KeepAwakeButton--saying {
-  background: rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.06);
+.KeepAwakeButton--saying::after {
+  background-color: rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.06);
   box-shadow: inset 0 0 0 1px rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.18);
 }
 
 /* On, saying so or not: tinted with the palette's accent, which in the Sky
-   theme is the sky's own colour, where a frosted pane would vanish against
-   the near-white toolbar. */
-.KeepAwakeButton--on {
-  background: rgba(var(--ion-color-primary-rgb), 0.14);
+   theme is the sky's own colour. */
+.KeepAwakeButton--on::after {
+  background-color: rgba(var(--ion-color-primary-rgb), 0.14);
   box-shadow: inset 0 0 0 1px rgba(var(--ion-color-primary-rgb), 0.32);
 }
 
 .KeepAwakeButton__label {
   flex-shrink: 0;
   padding: 0 8px 0 6px;
-  /* Follows the system text size (MEL-105) up to the large sizes, where the
-     words are not shown at all. */
+  /* Follows the system text size (MEL-105); past 1.3x the pill would cover
+     most of the title, and the lantern already says what it is. */
   font-size: calc(14px * min(var(--text-scale, 1), 1.3));
   font-weight: 600;
 }
@@ -99,8 +140,28 @@
   color: #f4b860;
 }
 
+/*
+  The still pill, until Motion has loaded: the same states, with no
+  movement. Its width is the content's own while it is saying something.
+*/
+.KeepAwakeButton--still.KeepAwakeButton--saying {
+  width: auto;
+}
+
+.KeepAwakeButton--still .KeepAwakeButton__label,
+.KeepAwakeButton--still .KeepAwakeButton__lit,
+.KeepAwakeButton--still.KeepAwakeButton--on .KeepAwakeButton__unlit {
+  opacity: 0;
+}
+
+.KeepAwakeButton--still.KeepAwakeButton--saying .KeepAwakeButton__label,
+.KeepAwakeButton--still.KeepAwakeButton--on .KeepAwakeButton__lit {
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .KeepAwakeButton {
+  .KeepAwakeButton::before,
+  .KeepAwakeButton::after {
     transition: none;
   }
 }
