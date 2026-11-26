@@ -66,6 +66,21 @@ test.describe("at the default text size", () => {
     await expect(page.locator(".PrayerDayCard--rows")).toHaveCount(0);
   });
 
+  test("keeps one row on a 375px phone, the narrowest in use", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await expect(page.locator(PRAYER_STRIP)).toBeVisible();
+    const boxes = await cellBoxes(page);
+    expect(new Set(boxes.map((b) => Math.round(b.top))).size).toBe(1);
+    expect(
+      await clippedText(
+        page,
+        ".PrayerDayCard__cell-name, .PrayerDayCard__cell-time"
+      )
+    ).toEqual([]);
+  });
+
   test("does not make the month table scroll", async ({ page }) => {
     await waitForMonthTable(page);
     await expect(

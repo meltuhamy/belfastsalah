@@ -50,8 +50,11 @@ function stripFitsOneRow(strip: HTMLElement): boolean {
     .forEach((text) => {
       widest = Math.max(widest, text.getBoundingClientRect().width);
     });
-  // A few px to spare, so the next prayer's bolder time still fits.
-  return widest + 4 <= column;
+  // No room to spare is needed: the next prayer's bolder time is among the
+  // texts measured, and when the highlight moves its new size is measured
+  // again. On a 375pt phone at the default size "Maghrib" leaves about 1px,
+  // and a margin here put that phone in two rows without any need.
+  return widest <= column + 0.5;
 }
 
 /** How long the outgoing headline takes to leave, in ms; PrayerDayCard.css. */
