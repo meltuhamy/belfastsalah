@@ -7,6 +7,7 @@ import {
   createPrayerTimes,
 } from "./PrayerTimes";
 import { skyProperties } from "./sky";
+import { applyStatusBarStyle } from "./statusBar";
 import {
   DARK_PALETTE_CLASS,
   SKY_THEME_CLASS,
@@ -113,6 +114,12 @@ export function useTheme(
   // rather than flashing the wrong one for a frame.
   useLayoutEffect(() => {
     document.documentElement.classList.toggle(DARK_PALETTE_CLASS, dark);
+  }, [dark]);
+
+  // The bars are drawn over the app, so their icons follow its palette rather
+  // than the device's - including when the two disagree, and when Sky flips.
+  useLayoutEffect(() => {
+    void applyStatusBarStyle(dark);
   }, [dark]);
 
   const applied = useRef<Array<string>>([]);

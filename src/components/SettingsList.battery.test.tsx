@@ -30,6 +30,8 @@ vi.mock("@capacitor/core", () => ({
     getPlatform: () => "android",
     isNativePlatform: () => true,
   },
+  SystemBars: { setStyle: async () => {} },
+  SystemBarsStyle: { Dark: "DARK", Light: "LIGHT" },
   registerPlugin: () => ({
     update: async () => {},
     openSettings: async () => {},
