@@ -18,10 +18,14 @@ import { PrayerStrip, StripPhase, stripOffset } from "./prayerStrip";
  * `nextFajr`, which it is all through Isha's adhan moment - and the days are
  * on hand by the time the night's slide is due. Should they not be, the strip
  * keeps what it was showing until they are, rather than going blank.
+ *
+ * `phase` is null until the next prayer is known, and so is the strip: the
+ * phase cannot be told before then, and a day's strip shown in the meantime
+ * slid over to the night as the app opened in the evening.
  */
 export function usePrayerStrip(
   today: PrayerDayTimes | null,
-  phase: StripPhase,
+  phase: StripPhase | null,
   nextFajr: PrayerTime | null
 ): PrayerStrip | null {
   const [settings] = useSettings();
@@ -36,7 +40,7 @@ export function usePrayerStrip(
   // object is new on every fetch of `next`, and this should only change when
   // the night does.
   const fajrTime =
-    phase.kind !== "day"
+    phase != null && phase.kind !== "day"
       ? phase.fajr.time.getTime()
       : nextFajr?.time.getTime() ?? 0;
   // Which night, of which timetable: a change of place or Asr overnight must
@@ -62,7 +66,9 @@ export function usePrayerStrip(
   }, [fajrTime, location, asrMethod]);
 
   const shown = useRef<PrayerStrip | null>(null);
-  if (phase.kind === "day") {
+  if (phase == null) {
+    shown.current = null;
+  } else if (phase.kind === "day") {
     shown.current = today == null ? null : { days: [today], offset: 0 };
   } else if (night?.key === key) {
     shown.current = { days: night.days, offset: stripOffset(phase) };

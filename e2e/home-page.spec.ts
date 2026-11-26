@@ -247,6 +247,38 @@ test("slides tomorrow's Fajr in once Isha's moment is over", async ({
   await expect(page.getByText("Tomorrow")).toHaveCount(0);
 });
 
+test("opens on the night's strip without sliding to it", async ({ page }) => {
+  // Set up afresh in the evening: the strip is the night's from the start.
+  // It used to be drawn as the day's while the next prayer was loading, and
+  // then slid over as though Isha's moment had just ended.
+  await page.addInitScript(() => {
+    const slides: string[] = [];
+    (window as unknown as { slides: string[] }).slides = slides;
+    document.addEventListener(
+      "transitionrun",
+      (event) => {
+        const target = event.target as Element;
+        if (target.classList.contains("PrayerDayCard__row")) {
+          slides.push(event.propertyName);
+        }
+      },
+      true
+    );
+  });
+  await page.clock.setFixedTime(new Date("2026-02-15T20:00:00Z"));
+  await page.evaluate(() => localStorage.clear());
+  await completeSetup(page);
+  await expect.poll(() => todayTimes(page)).toEqual(LONDON_15_FEB_NIGHT);
+  await expect.poll(() => paintedHighlight(page)).toBe("Fajr");
+  // Long enough for a slide to have started.
+  await page.waitForTimeout(500);
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { slides: string[] }).slides
+    )
+  ).toEqual([]);
+});
+
 test("holds the night's strip past midnight, and dates it the new day", async ({
   page,
 }) => {

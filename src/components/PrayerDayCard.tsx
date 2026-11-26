@@ -186,7 +186,7 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   const phase = stripPhase(current, upcomingPrayer(next, today, now));
   const strip = usePrayerStrip(
     today,
-    phase,
+    next == null ? null : phase,
     next?.prayer === Prayer.Fajr ? next : null
   );
   const cells = strip == null ? null : stripCells(strip);
