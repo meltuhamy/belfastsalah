@@ -1,26 +1,41 @@
 /*
-  The keep-awake toggle: an icon that grows into a pill. The width comes from
-  the label's max-width, which can be transitioned where width: auto cannot;
-  the unlit and lit lanterns cross-fade half-way, and the lit one swells
-  once as it lands.
+  The keep-awake toggle (KeepAwakeButton.tsx). Motion animates the pill's
+  width; everything here holds still inside it. The lantern is pinned to the
+  right edge, the words sit just left of it, and the pill clips whatever is
+  outside its edges, so its moving left edge reveals and covers the words.
 */
+
+/* A 44px tap target, like the cog's, with the pill anchored to its right
+   so the lantern does not drift as the pill gets narrower than 44px. */
+.KeepAwakeButton__target {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0 2px;
+}
+
 .KeepAwakeButton {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
   box-sizing: border-box;
-  min-height: 40px;
-  min-width: 44px;
-  margin: 0 2px;
-  padding: 0 10px;
+  /* The circle: the lantern and 6px around it. The width is Motion's. */
+  height: calc(1.5rem + 12px);
+  min-width: calc(1.5rem + 12px);
+  padding: 0 6px;
   border: 0;
   border-radius: 999px;
   background: transparent;
+  box-shadow: inset 0 0 0 1px transparent;
   color: var(--ion-toolbar-color, var(--ion-text-color, currentColor));
   font: inherit;
+  white-space: nowrap;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background-color 0.26s, box-shadow 0.26s,
-    padding 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: background-color 0.3s, box-shadow 0.3s;
 }
 
 .KeepAwakeButton:focus-visible {
@@ -28,106 +43,64 @@
   outline-offset: 2px;
 }
 
-/* Tinted with the palette's accent: the sky's own colour in the Sky theme,
-   where a frosted pane would vanish against the near-white toolbar. */
+/* Saying "Screen normal": a quiet neutral pill. */
+.KeepAwakeButton--saying {
+  background: rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.06);
+  box-shadow: inset 0 0 0 1px rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.18);
+}
+
+/* On, saying so or not: tinted with the palette's accent, which in the Sky
+   theme is the sky's own colour, where a frosted pane would vanish against
+   the near-white toolbar. */
 .KeepAwakeButton--on {
-  padding: 0 10px 0 14px;
   background: rgba(var(--ion-color-primary-rgb), 0.14);
   box-shadow: inset 0 0 0 1px rgba(var(--ion-color-primary-rgb), 0.32);
 }
 
 .KeepAwakeButton__label {
-  max-width: 0;
-  margin-right: 0;
-  overflow: hidden;
-  opacity: 0;
-  white-space: nowrap;
-  /* Follows the system text size (MEL-105) up to the large sizes, where
-     the label is not shown at all (--compact). */
+  flex-shrink: 0;
+  padding: 0 8px 0 6px;
+  /* Follows the system text size (MEL-105) up to the large sizes, where the
+     words are not shown at all. */
   font-size: calc(14px * min(var(--text-scale, 1), 1.3));
   font-weight: 600;
-  transition: max-width 0.26s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.16s,
-    margin-right 0.26s;
-}
-
-.KeepAwakeButton--on .KeepAwakeButton__label {
-  /* Room for "Screen On" at the largest size it is shown at; the
-     transition runs over this, so it is kept close rather than generous. */
-  max-width: calc(110px * min(var(--text-scale, 1), 1.3));
-  margin-right: 8px;
-  opacity: 1;
-  transition-delay: 0s, 0.08s, 0s;
-}
-
-/* Large text: the lit lantern on its tint, no words (see the component). */
-.KeepAwakeButton--compact.KeepAwakeButton--on {
-  padding: 0 10px;
-}
-
-.KeepAwakeButton--compact.KeepAwakeButton--on .KeepAwakeButton__label {
-  max-width: 0;
-  margin-right: 0;
-  opacity: 0;
 }
 
 .KeepAwakeButton__icon {
   position: relative;
   display: block;
+  flex-shrink: 0;
   /* In rem, as the cog's ion-icon is, so the two grow together with the
      system text size: 24px at the default. */
   width: 1.5rem;
   height: 1.5rem;
-  flex-shrink: 0;
+}
+
+.KeepAwakeButton__unlit,
+.KeepAwakeButton__lit {
+  position: absolute;
+  inset: 0;
+  display: block;
 }
 
 .KeepAwakeButton__icon svg {
-  position: absolute;
-  left: 0;
-  top: 0;
+  display: block;
   width: 100%;
   height: 100%;
-  transition: opacity 0.12s 0.1s;
 }
 
 /* The lit lantern glows amber: darker on a light toolbar, lighter on a
    dark one, so it keeps its contrast in both. */
 .KeepAwakeButton__lit {
   color: #a85f00;
-  opacity: 0;
 }
 
 .ion-palette-dark .KeepAwakeButton__lit {
   color: #f4b860;
 }
 
-.KeepAwakeButton--on .KeepAwakeButton__unlit {
-  opacity: 0;
-}
-
-.KeepAwakeButton--on .KeepAwakeButton__lit {
-  opacity: 1;
-  animation: KeepAwakeButton-light 0.45s 0.1s both;
-}
-
-@keyframes KeepAwakeButton-light {
-  0% {
-    transform: scale(0.8);
-  }
-  50% {
-    transform: scale(1.18);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .KeepAwakeButton,
-  .KeepAwakeButton__label,
-  .KeepAwakeButton__icon svg {
+  .KeepAwakeButton {
     transition: none;
-  }
-  .KeepAwakeButton--on .KeepAwakeButton__lit {
-    animation: none;
   }
 }

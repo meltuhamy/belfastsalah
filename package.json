@@ -29,6 +29,7 @@
     "adhanfork": "file:vendor/adhanfork-4.4.6-fork.1.tgz",
     "date-fns": "^4.4.0",
     "ionicons": "^8.1.0",
+    "motion": "^14.12.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-intersection-observer": "^11.0.0",

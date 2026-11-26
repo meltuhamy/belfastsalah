@@ -1,4 +1,12 @@
-import React from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  AnimatePresence,
+  LazyMotion,
+  domAnimation,
+  m,
+  useReducedMotion,
+  type Transition,
+} from "motion/react";
 import "./KeepAwakeButton.css";
 import { useLargeText } from "../lib/textScale";
 
@@ -45,49 +53,191 @@ export const LanternIcon: React.FC<{ lit: boolean; className?: string }> = ({
   </svg>
 );
 
+export const COPY_ON = "Screen always on";
+export const COPY_OFF = "Screen normal";
+
+/** How long the words stay after a tap before the pill folds them away. */
+export const SAY_MILLIS = 5000;
+
+/*
+  The motion, settled in the "Lantern Pill" prototype: a spring with no
+  bounce for the width, the words fading in just behind the opening edge and
+  out ahead of the closing one, and the lit lantern swelling once as it
+  lights. Module-level, so the once-a-second re-render hands Motion the same
+  objects and nothing restarts (see CLAUDE.md, "The once-a-second re-render").
+*/
+const WIDTH: Transition = { type: "spring", bounce: 0, duration: 0.45 };
+const WORDS_IN: Transition = { duration: 0.22, delay: 0.06 };
+const WORDS_OUT: Transition = { duration: 0.16 };
+const FADE: Transition = { duration: 0.2 };
+const INSTANT: Transition = { duration: 0 };
+const LIGHT_UP = { opacity: 1, scale: [0.82, 1.14, 1] };
+const LIGHT_UP_TRANSITION: Transition = {
+  opacity: FADE,
+  scale: {
+    duration: 0.55,
+    times: [0, 0.45, 1],
+    ease: [
+      [0.05, 0.7, 0.1, 1],
+      [0.3, 0, 0.2, 1],
+    ],
+  },
+};
+
+/** Watches an element's width, which follows the system text size. */
+function useWidth(ref: React.RefObject<HTMLElement | null>, deps: unknown[]) {
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el == null) {
+      return;
+    }
+    const measure = () => setWidth(el.offsetWidth);
+    measure();
+    const observer =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(el);
+    // The words are measured in the app's font, which may still be loading.
+    void document.fonts?.ready.then(measure);
+    return () => observer?.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+  return width;
+}
+
 /**
- * The keep-awake toggle beside the settings cog (MEL-356). Off, it is an
- * icon like the cog. On, it grows leftwards into a pill that says
- * "Screen On", the lantern staying put by the cog and lighting as it goes,
- * so the state can be read across a room and needs no toast to explain it.
+ * The keep-awake toggle beside the settings cog (MEL-356).
+ *
+ * Off, it is the unlit lantern, an icon like the cog. A tap opens it into a
+ * pill that says what happened - "Screen always on", or "Screen normal" -
+ * and after five seconds the pill folds the words away again: to the lit
+ * lantern on its tinted circle while it is on, to the plain icon once off.
+ * Tapping while the words show flips it again and starts the five seconds
+ * over.
+ *
+ * The lantern is pinned to the pill's right edge, beside the cog, and never
+ * moves. The words are always laid out just left of it and the pill clips
+ * them; Motion animates only the pill's width, between the circle and the
+ * circle plus the words' measured width, so its left edge sweeps over the
+ * words to reveal or cover them. Moving the words themselves (Motion's
+ * layout animation, tried first) let them sit on the lantern while the pill
+ * opened, and nudged the lantern as they left.
  *
  * At a large system text size (MEL-105) the words would squeeze the title
- * until it broke mid-word, so there the pill keeps only the lit lantern on
- * its tint: still on at a glance, and the title keeps its room.
+ * until it broke mid-word, so there it never says anything: the lantern
+ * lights on its circle, or goes out.
  *
- * A plain <button>, not an IonButton: ion-button copies aria-* into its
- * shadow button only on its first render, so aria-pressed went stale, and
- * remounting it to fix that would cut the animation off.
+ * A plain button, not an IonButton: ion-button copies aria-* into its
+ * shadow button only on its first render, so aria-pressed went stale.
  */
 const KeepAwakeButton: React.FC<{
   on: boolean;
   onToggle: () => void;
 }> = ({ on, onToggle }) => {
-  const compact = useLargeText();
+  const largeText = useLargeText();
+  const reduceMotion = useReducedMotion();
+  const [saying, setSaying] = useState(false);
+  // Counts the times it was lit, so each lighting plays the swell afresh.
+  const [lightings, setLightings] = useState(0);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wordsRef = useRef<HTMLSpanElement>(null);
+  const iconRef = useRef<HTMLSpanElement>(null);
+
+  const words = on ? COPY_ON : COPY_OFF;
+  const wordsWidth = useWidth(wordsRef, [words]);
+  const iconWidth = useWidth(iconRef, []);
+
+  useEffect(
+    () => () => {
+      if (timer.current != null) clearTimeout(timer.current);
+    },
+    []
+  );
+
+  // Only a tap animates the width. Anything else that resizes the pill - the
+  // first measurement, a change of text size - should just be the new size.
+  const [tapped, setTapped] = useState(false);
+
+  const toggle = () => {
+    setTapped(true);
+    if (!on) setLightings((n) => n + 1);
+    onToggle();
+    if (timer.current != null) clearTimeout(timer.current);
+    if (largeText) {
+      setSaying(false);
+      return;
+    }
+    setSaying(true);
+    timer.current = setTimeout(() => setSaying(false), SAY_MILLIS);
+  };
+
+  const showWords = saying && !largeText;
+  // The circle: the lantern plus 6px each side, as the padding draws it. 36px
+  // until the lantern has been measured, which is its size at the default
+  // text size.
+  const circle = iconWidth > 0 ? iconWidth + 12 : 36;
+  const width = showWords ? circle + wordsWidth : circle;
+
   const className = [
     "KeepAwakeButton",
     on && "KeepAwakeButton--on",
-    compact && "KeepAwakeButton--compact",
+    showWords && "KeepAwakeButton--saying",
   ]
     .filter(Boolean)
     .join(" ");
+
   return (
-    <button
-      type="button"
-      className={className}
-      aria-label="Keep screen on"
-      aria-pressed={on}
-      onClick={onToggle}
-      data-testid="keep-awake"
-    >
-      <span className="KeepAwakeButton__label" aria-hidden="true">
-        Screen On
+    <LazyMotion features={domAnimation} strict>
+      <span className="KeepAwakeButton__target">
+        <m.button
+          type="button"
+          className={className}
+          aria-label="Keep screen on"
+          aria-pressed={on}
+          onClick={toggle}
+          data-testid="keep-awake"
+          initial={false}
+          animate={{ width }}
+          transition={reduceMotion || !tapped ? INSTANT : WIDTH}
+        >
+          <m.span
+            ref={wordsRef}
+            className="KeepAwakeButton__label"
+            aria-hidden="true"
+            data-testid="keep-awake-words"
+            initial={false}
+            animate={{ opacity: showWords ? 1 : 0 }}
+            transition={reduceMotion ? INSTANT : showWords ? WORDS_IN : WORDS_OUT}
+          >
+            {words}
+          </m.span>
+          <span className="KeepAwakeButton__icon" ref={iconRef}>
+            <m.span
+              className="KeepAwakeButton__unlit"
+              initial={false}
+              animate={{ opacity: on ? 0 : 1 }}
+              transition={reduceMotion ? INSTANT : FADE}
+            >
+              <LanternIcon lit={false} />
+            </m.span>
+            <AnimatePresence initial={false}>
+              {on && (
+                <m.span
+                  key={lightings}
+                  className="KeepAwakeButton__lit"
+                  initial={{ opacity: 0, scale: 0.82 }}
+                  animate={reduceMotion ? { opacity: 1, scale: 1 } : LIGHT_UP}
+                  exit={{ opacity: 0 }}
+                  transition={reduceMotion ? INSTANT : LIGHT_UP_TRANSITION}
+                >
+                  <LanternIcon lit />
+                </m.span>
+              )}
+            </AnimatePresence>
+          </span>
+        </m.button>
       </span>
-      <span className="KeepAwakeButton__icon">
-        <LanternIcon lit={false} className="KeepAwakeButton__unlit" />
-        <LanternIcon lit className="KeepAwakeButton__lit" />
-      </span>
-    </button>
+    </LazyMotion>
   );
 };
 

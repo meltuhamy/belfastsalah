@@ -315,6 +315,31 @@ Text follows the phone's text size (MEL-105) through one number,
   `WidgetFamily.largestTypeSize` on iOS (`WidgetFitTests` up to
   accessibility5). A layout change that leaves less room fails those.
 
+## Keep screen awake
+
+The lantern beside the settings cog (`KeepAwakeButton`, MEL-356) keeps the
+screen on while the app is open: `settings.keepAwake`, applied by
+`useKeepAwake` in `App` through `KeepAwakePlugin` on both phones and the
+Screen Wake Lock API on the web (`src/lib/keepAwake.ts`).
+
+- **A tap says what happened, then settles.** The button opens into a pill
+  reading "Screen always on" or "Screen normal", and after `SAY_MILLIS`
+  folds to the lit lantern on its tinted circle, or the plain icon. At a
+  large text size (`useLargeText`) it never says anything: the words would
+  squeeze the title until it broke mid-word.
+- **Animated with Motion** (`motion/react`, motion.dev), through `LazyMotion`
+  and `domAnimation` to keep it small. Only the pill's width moves: the
+  lantern is pinned to its right edge and the words are always laid out
+  beside it, clipped by the pill. Motion's `layout` animation, which moves
+  the children instead, was tried first and let the words sit on the
+  lantern while the pill opened. The widths are measured, never guessed;
+  animating CSS `max-width` to a round number spent the start of the curve
+  on width nobody could see.
+- **Transitions and keyframes are module constants**, so the once-a-second
+  re-render hands Motion the same objects and nothing restarts.
+- `e2e/keep-awake.spec.ts` samples every frame of the animation and fails if
+  the lantern moves or the words reach it, and checks reduce motion.
+
 ## The day card
 
 `PrayerDayCard` is one card, laid out like the home screen widget: the
