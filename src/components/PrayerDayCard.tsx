@@ -57,6 +57,29 @@ function stripFitsOneRow(strip: HTMLElement): boolean {
   return widest <= column + 0.5;
 }
 
+/**
+ * Whether the place and date fit beside the countdown in the card's top row,
+ * read off the hidden probe: the widest countdown and the place and date at
+ * their natural widths, neither of which depends on where they end up.
+ */
+function metaFitsBeside(top: HTMLElement): boolean {
+  const probe = top.querySelector<HTMLElement>(".PrayerDayCard__fit-probe");
+  if (probe == null || probe.children.length < 2) return true;
+  const [countdown, meta] = Array.from(probe.children);
+  const style = getComputedStyle(top);
+  const room =
+    top.clientWidth -
+    parseFloat(style.paddingLeft) -
+    parseFloat(style.paddingRight);
+  const gap = parseFloat(style.columnGap) || 0;
+  return (
+    countdown.getBoundingClientRect().width +
+      gap +
+      meta.getBoundingClientRect().width <=
+    room + 0.5
+  );
+}
+
 /** How long the outgoing headline takes to leave, in ms; PrayerDayCard.css. */
 const HEADLINE_LEAVE_MS = 450;
 
@@ -196,6 +219,37 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   const locationName =
     settings?.location != null ? locationNames[settings.location] : null;
 
+  // The place and date, with the Tomorrow badge and the zone caption. Beside
+  // the countdown when there is room; at a large system text size there is
+  // not, and they go under the card, centred, rather than stacking inside it
+  // (MEL-105).
+  const metaContent = (
+    <>
+      {showsNextDay && (
+        <span className="PrayerDayCard__badge" data-testid="tomorrow-badge">
+          Tomorrow
+        </span>
+      )}
+      {/* Place and date on one line: one quiet line rather than two. */}
+      <p>
+        {locationName !== null && <>{locationName} · </>}
+        <span data-testid="day-date">
+          {formatDateInZone(stripDay, timeZone)}
+        </span>
+      </p>
+      {showsOtherZone && locationName !== null && (
+        <p data-testid="display-zone-caption">Showing {locationName} time</p>
+      )}
+    </>
+  );
+  const topRef = useRef<HTMLDivElement>(null);
+  const metaOutside = useMeasured(topRef, (top) => !metaFitsBeside(top), [
+    locationName,
+    showsNextDay,
+    showsOtherZone,
+    formatDateInZone(stripDay, timeZone),
+  ]);
+
   const stripRef = useRef<HTMLDivElement>(null);
   const twoRows = useMeasured(stripRef, (el) => !stripFitsOneRow(el), [
     strip == null,
@@ -204,243 +258,246 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   const nextColumn = strip?.findIndex((p) => p.prayer === nextPrayer) ?? -1;
 
   return (
-    <IonCard
-      color="primary"
-      className={`PrayerDayCard${twoRows ? " PrayerDayCard--rows" : ""}`}
-    >
-      {/*
+    <>
+      <IonCard
+        color="primary"
+        className={`PrayerDayCard${twoRows ? " PrayerDayCard--rows" : ""}`}
+      >
+        {/*
         The Sky theme's sun, dawn, Fajr's thread, stars and daytime lens
         flare, drawn behind everything else. Only there in that theme: the
         stars and the flare listen to the phone's tilt and run a frame loop,
         which would be wasted work behind a card that hides them.
       */}
-      {settings?.theme === "sky" && (
-        <span className="PrayerDayCard__sky" aria-hidden="true">
-          <span className="PrayerDayCard__stars">
-            <StarField />
-          </span>
-          <span className="PrayerDayCard__dawn" data-testid="dawn-glow" />
-          {/*
+        {settings?.theme === "sky" && (
+          <span className="PrayerDayCard__sky" aria-hidden="true">
+            <span className="PrayerDayCard__stars">
+              <StarField />
+            </span>
+            <span className="PrayerDayCard__dawn" data-testid="dawn-glow" />
+            {/*
           Fajr: the white thread of dawn in a haze (fajrThread in sky.ts).
           Keyed on Fajr's adhan moment, so the line brightens once as it
           comes in, then breathes.
         */}
-          <span className="PrayerDayCard__fajr-haze" data-testid="fajr-haze" />
-          <span
-            key={fajrArriving ? "arriving" : "waiting"}
-            className={`PrayerDayCard__fajr-line${
-              fajrArriving ? " PrayerDayCard__fajr-line--arriving" : ""
-            }`}
-            data-testid="fajr-line"
-          />
-          <span className="PrayerDayCard__sun" />
-          <LensFlare />
-        </span>
-      )}
-      <IonCardContent className="PrayerDayCard__content">
-        {/*
+            <span
+              className="PrayerDayCard__fajr-haze"
+              data-testid="fajr-haze"
+            />
+            <span
+              key={fajrArriving ? "arriving" : "waiting"}
+              className={`PrayerDayCard__fajr-line${
+                fajrArriving ? " PrayerDayCard__fajr-line--arriving" : ""
+              }`}
+              data-testid="fajr-line"
+            />
+            <span className="PrayerDayCard__sun" />
+            <LensFlare />
+          </span>
+        )}
+        <IonCardContent className="PrayerDayCard__content">
+          {/*
           The line about the last prayer sits under the whole top row rather
           than in the countdown's column, so on a narrow phone it can run
           beneath the place and date instead of wrapping beside them.
         */}
-        <div className="PrayerDayCard__head">
-          <div className="PrayerDayCard__top">
-            <div className="PrayerDayCard__countdown">
-              <HeadlineSlot
-                id={
-                  current != null
-                    ? `now-${current.prayer}`
-                    : upcoming == null || prev == null
-                    ? "loading"
-                    : `in-${upcoming.prayer}`
-                }
-              >
-                {current != null ? (
-                  <div
-                    className="PrayerDayCard__headline"
-                    data-testid="adhan-now"
-                  >
-                    <p className="PrayerDayCard__label PrayerDayCard__label--calling">
-                      <AdhanIcon
-                        size={18}
-                        calling
-                        className="PrayerDayCard__adhan"
+          <div className="PrayerDayCard__head">
+            <div className="PrayerDayCard__top" ref={topRef}>
+              <div className="PrayerDayCard__countdown">
+                <HeadlineSlot
+                  id={
+                    current != null
+                      ? `now-${current.prayer}`
+                      : upcoming == null || prev == null
+                      ? "loading"
+                      : `in-${upcoming.prayer}`
+                  }
+                >
+                  {current != null ? (
+                    <div
+                      className="PrayerDayCard__headline"
+                      data-testid="adhan-now"
+                    >
+                      <p className="PrayerDayCard__label PrayerDayCard__label--calling">
+                        <AdhanIcon
+                          size={18}
+                          calling
+                          className="PrayerDayCard__adhan"
+                        />
+                        It's time for
+                      </p>
+                      <p
+                        className="PrayerDayCard__remaining"
+                        data-testid="countdown"
+                      >
+                        {prayerToString(current.prayer)}
+                      </p>
+                    </div>
+                  ) : upcoming == null || prev == null ? (
+                    <>
+                      <IonSkeletonText animated style={{ width: "30%" }} />
+                      <IonSkeletonText
+                        animated
+                        className="PrayerDayCard__skeleton"
+                        style={{ width: "60%" }}
                       />
-                      It's time for
-                    </p>
-                    <p
-                      className="PrayerDayCard__remaining"
-                      data-testid="countdown"
-                    >
-                      {prayerToString(current.prayer)}
-                    </p>
-                  </div>
-                ) : upcoming == null || prev == null ? (
-                  <>
-                    <IonSkeletonText animated style={{ width: "30%" }} />
-                    <IonSkeletonText
-                      animated
-                      className="PrayerDayCard__skeleton"
-                      style={{ width: "60%" }}
-                    />
-                  </>
-                ) : (
-                  <div className="PrayerDayCard__headline">
-                    <p className="PrayerDayCard__label">
-                      {prayerToString(upcoming.prayer)} in
-                    </p>
-                    <p
-                      className="PrayerDayCard__remaining"
-                      data-testid="countdown"
-                    >
-                      {/*
+                    </>
+                  ) : (
+                    <div className="PrayerDayCard__headline">
+                      <p className="PrayerDayCard__label">
+                        {prayerToString(upcoming.prayer)} in
+                      </p>
+                      <p
+                        className="PrayerDayCard__remaining"
+                        data-testid="countdown"
+                      >
+                        {/*
                       Rounded up, as a countdown is: "1s" until the prayer's
                       second itself. Rounded down, the last part-second read
                       "0s", which is no text at all, and the card said just
                       "Fajr in" until the moment came (MEL-351).
                     */}
-                      {timeDurationString(
-                        Math.ceil(
-                          (upcoming.time.getTime() - now.getTime()) / 1000
-                        ),
-                        "short"
-                      )}
-                    </p>
-                  </div>
+                        {timeDurationString(
+                          Math.ceil(
+                            (upcoming.time.getTime() - now.getTime()) / 1000
+                          ),
+                          "short"
+                        )}
+                      </p>
+                    </div>
+                  )}
+                </HeadlineSlot>
+              </div>
+
+              {!metaOutside && (
+                <div className="PrayerDayCard__meta">{metaContent}</div>
+              )}
+              {/*
+              A hidden copy of the widest the countdown gets beside the
+              place and date, measured to decide whether they share this row.
+              The real countdown changes width every minute; this does not,
+              so the answer cannot flip as it ticks.
+            */}
+              <div className="PrayerDayCard__fit-probe" aria-hidden="true">
+                <p className="PrayerDayCard__remaining">23h 59m</p>
+                <div className="PrayerDayCard__meta">
+                  {withoutTestIds(metaContent)}
+                </div>
+              </div>
+            </div>
+            {current != null
+              ? upcoming != null && (
+                  <p className="PrayerDayCard__since">
+                    {`${prayerToString(upcoming.prayer)} is in ${duration(
+                      (upcoming.time.getTime() - now.getTime()) / 1000
+                    )}`}
+                  </p>
+                )
+              : upcoming != null &&
+                prev != null && (
+                  <p className="PrayerDayCard__since">
+                    {`${prayerToString(prev.prayer)} was ${duration(
+                      (now.getTime() - prev.time.getTime()) / 1000
+                    )} ago`}
+                  </p>
                 )}
-              </HeadlineSlot>
-            </div>
-
-            <div className="PrayerDayCard__meta">
-              {showsNextDay && (
-                <span
-                  className="PrayerDayCard__badge"
-                  data-testid="tomorrow-badge"
-                >
-                  Tomorrow
-                </span>
-              )}
-              {/* Place and date on one line: one quiet line rather than two. */}
-              <p>
-                {locationName !== null && <>{locationName} · </>}
-                <span data-testid="day-date">
-                  {formatDateInZone(stripDay, timeZone)}
-                </span>
-              </p>
-              {showsOtherZone && locationName !== null && (
-                <p data-testid="display-zone-caption">
-                  Showing {locationName} time
-                </p>
-              )}
-            </div>
           </div>
-          {current != null
-            ? upcoming != null && (
-                <p className="PrayerDayCard__since">
-                  {`${prayerToString(upcoming.prayer)} is in ${duration(
-                    (upcoming.time.getTime() - now.getTime()) / 1000
-                  )}`}
-                </p>
-              )
-            : upcoming != null &&
-              prev != null && (
-                <p className="PrayerDayCard__since">
-                  {`${prayerToString(prev.prayer)} was ${duration(
-                    (now.getTime() - prev.time.getTime()) / 1000
-                  )} ago`}
-                </p>
-              )}
-        </div>
 
-        {strip == null ? (
-          <div className="PrayerDayCard__strip-loading">
-            <IonSkeletonText animated />
-          </div>
-        ) : (
-          <div className="PrayerDayCard__day">
-            {/*
+          {strip == null ? (
+            <div className="PrayerDayCard__strip-loading">
+              <IonSkeletonText animated />
+            </div>
+          ) : (
+            <div className="PrayerDayCard__day">
+              {/*
             A hairline through the day, a dot above each prayer: filled once
             its time has passed, pulsing while its adhan is called, and a
             faint line drawn as far as now. No line ahead of now.
           */}
-            <div
-              className="PrayerDayCard__timeline"
-              aria-hidden="true"
-              data-testid="timeline"
-              style={
-                {
-                  "--progress": (progress ?? 0) / 5,
-                  // How much of the line is between prayers that have both
-                  // come in - drawn solid - rather than the stretch since the
-                  // last one, which fades out towards now.
-                  "--solid":
-                    progress != null && progress > 0
-                      ? lastPassed / progress
-                      : 1,
-                } as React.CSSProperties
-              }
-            >
-              {progress !== null && (
-                <span className="PrayerDayCard__timeline-fill" />
-              )}
-              {strip.map((prayerTime, i) => (
-                <span
-                  key={prayerTime.prayer}
-                  className="PrayerDayCard__dot"
-                  data-passed={passed[i] ? "true" : "false"}
-                  data-recent={recent[i] ? "true" : "false"}
-                  data-next={
-                    prayerTime.prayer === nextPrayer ? "true" : "false"
-                  }
-                />
-              ))}
-            </div>
-            <div
-              className="PrayerDayCard__strip"
-              data-testid="prayer-strip"
-              ref={stripRef}
-            >
-              {/*
+              <div
+                className="PrayerDayCard__timeline"
+                aria-hidden="true"
+                data-testid="timeline"
+                style={
+                  {
+                    "--progress": (progress ?? 0) / 5,
+                    // How much of the line is between prayers that have both
+                    // come in - drawn solid - rather than the stretch since the
+                    // last one, which fades out towards now.
+                    "--solid":
+                      progress != null && progress > 0
+                        ? lastPassed / progress
+                        : 1,
+                  } as React.CSSProperties
+                }
+              >
+                {progress !== null && (
+                  <span className="PrayerDayCard__timeline-fill" />
+                )}
+                {strip.map((prayerTime, i) => (
+                  <span
+                    key={prayerTime.prayer}
+                    className="PrayerDayCard__dot"
+                    data-passed={passed[i] ? "true" : "false"}
+                    data-recent={recent[i] ? "true" : "false"}
+                    data-next={
+                      prayerTime.prayer === nextPrayer ? "true" : "false"
+                    }
+                  />
+                ))}
+              </div>
+              <div
+                className="PrayerDayCard__strip"
+                data-testid="prayer-strip"
+                ref={stripRef}
+              >
+                {/*
                 The highlight: one pane behind the cells that glides from
                 column to column, rather than each cell lighting up in turn.
               */}
-              {nextPrayer !== null && (
-                <span
-                  className="PrayerDayCard__pane"
-                  aria-hidden="true"
-                  data-testid="highlight-pane"
-                  style={
-                    {
-                      // Two rows of three when the text is too big for
-                      // one row of six.
-                      "--column": twoRows ? nextColumn % 3 : nextColumn,
-                      "--row": twoRows ? Math.floor(nextColumn / 3) : 0,
-                    } as React.CSSProperties
-                  }
-                />
-              )}
-              {strip.map((prayerTime) => (
-                <div
-                  key={prayerTime.prayer}
-                  className="PrayerDayCard__cell"
-                  data-testid="strip-cell"
-                  data-next={
-                    prayerTime.prayer === nextPrayer ? "true" : "false"
-                  }
-                >
-                  <span className="PrayerDayCard__cell-name">
-                    {prayerToString(prayerTime.prayer)}
-                  </span>
-                  <span className="PrayerDayCard__cell-time">
-                    {formatClockTime(prayerTime.time, timeZone, uses24)}
-                  </span>
-                </div>
-              ))}
+                {nextPrayer !== null && (
+                  <span
+                    className="PrayerDayCard__pane"
+                    aria-hidden="true"
+                    data-testid="highlight-pane"
+                    style={
+                      {
+                        // Two rows of three when the text is too big for
+                        // one row of six.
+                        "--column": twoRows ? nextColumn % 3 : nextColumn,
+                        "--row": twoRows ? Math.floor(nextColumn / 3) : 0,
+                      } as React.CSSProperties
+                    }
+                  />
+                )}
+                {strip.map((prayerTime) => (
+                  <div
+                    key={prayerTime.prayer}
+                    className="PrayerDayCard__cell"
+                    data-testid="strip-cell"
+                    data-next={
+                      prayerTime.prayer === nextPrayer ? "true" : "false"
+                    }
+                  >
+                    <span className="PrayerDayCard__cell-name">
+                      {prayerToString(prayerTime.prayer)}
+                    </span>
+                    <span className="PrayerDayCard__cell-time">
+                      {formatClockTime(prayerTime.time, timeZone, uses24)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-      </IonCardContent>
-    </IonCard>
+          )}
+        </IonCardContent>
+      </IonCard>
+      {metaOutside && (
+        <div className="PrayerDayCard__outside" data-testid="day-meta-outside">
+          {metaContent}
+        </div>
+      )}
+    </>
   );
 };
 

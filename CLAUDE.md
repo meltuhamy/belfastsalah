@@ -303,7 +303,9 @@ Text follows the phone's text size (MEL-105) through one number,
   font size in px wants the same calc.
 - **Layouts that cannot just grow measure whether they fit** (`useMeasured`)
   rather than switching at a scale: the day card's strip goes to two rows of
-  three, the month table scrolls sideways. Measure content widths, which the
+  three, the place and date leave the card for a centred line under it
+  (measured against the widest countdown, "23h 59m", so the minute's tick
+  cannot flip it), the month table scrolls sideways. Measure content widths, which the
   layout chosen does not change, or it flips back and forth. Settings' selects
   put their label above their value from 1.3 (`useLargeText`, `text-large` on
   `<html>`), and the toolbar titles wrap (`PageTitle`).

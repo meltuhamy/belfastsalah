@@ -81,6 +81,16 @@ test.describe("at the default text size", () => {
     ).toEqual([]);
   });
 
+  test("keeps the place and date in the card, beside the countdown", async ({
+    page,
+  }) => {
+    await expect(page.getByTestId("day-meta-outside")).toHaveCount(0);
+    const card = (await page.locator(".PrayerDayCard").boundingBox())!;
+    const date = (await page.getByTestId("day-date").boundingBox())!;
+    expect(date.y + date.height).toBeLessThanOrEqual(card.y + card.height);
+    expect(date.x).toBeGreaterThan(card.x + card.width / 2);
+  });
+
   test("does not make the month table scroll", async ({ page }) => {
     await waitForMonthTable(page);
     await expect(
@@ -134,6 +144,22 @@ test.describe("at twice the text size", () => {
         ".PrayerDayCard__cell-name, .PrayerDayCard__cell-time"
       )
     ).toEqual([]);
+  });
+
+  test("sets the place and date under the card, centred", async ({ page }) => {
+    const outside = page.getByTestId("day-meta-outside");
+    await expect(outside).toBeVisible();
+    await expect(outside).toContainText("London");
+    await expect(page.getByTestId("day-date")).toHaveCount(1);
+
+    const card = (await page.locator(".PrayerDayCard").boundingBox())!;
+    const line = (await outside.locator("p").first().boundingBox())!;
+    expect(line.y).toBeGreaterThanOrEqual(card.y + card.height);
+    const middle = line.x + line.width / 2;
+    expect(Math.abs(middle - (card.x + card.width / 2))).toBeLessThan(2);
+    expect(await clippedText(page, "[data-testid=day-meta-outside] p")).toEqual(
+      []
+    );
   });
 
   test("highlights the next prayer where it is, in the second row", async ({

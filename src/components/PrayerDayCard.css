@@ -44,6 +44,7 @@
 }
 
 .PrayerDayCard__top {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -371,21 +372,10 @@
 
 /*
   Large system text (MEL-105). When six times no longer fit across the card -
-  PrayerDayCard.tsx measures it - the strip becomes two rows of three, and the
-  place and date go under the countdown rather than beside it. The timeline's
-  dots are dropped: they mark six columns in a row, and they are decoration.
+  PrayerDayCard.tsx measures it - the strip becomes two rows of three. The
+  timeline's dots are dropped: they mark six columns in a row, and they are
+  decoration.
 */
-.PrayerDayCard--rows .PrayerDayCard__top {
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.PrayerDayCard--rows .PrayerDayCard__meta {
-  align-items: flex-start;
-  text-align: left;
-  white-space: normal;
-}
-
 .PrayerDayCard--rows .PrayerDayCard__strip {
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(2, auto);
@@ -413,6 +403,51 @@
 .PrayerDayCard__cell-name,
 .PrayerDayCard__cell-time {
   white-space: nowrap;
+}
+
+/*
+  What PrayerDayCard.tsx measures to decide whether the place and date fit
+  beside the countdown: the widest countdown and the place and date at their
+  natural widths, laid out but never seen.
+*/
+.PrayerDayCard__fit-probe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  width: max-content;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.PrayerDayCard__fit-probe > * {
+  flex: none;
+}
+
+/*
+  Where the place and date go when they do not fit beside the countdown: on
+  the page under the card, centred, in the page's own text colour, at the
+  size they have in the card.
+*/
+.PrayerDayCard__outside {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 16px 14px;
+  text-align: center;
+  font-size: calc(12px * var(--text-scale, 1));
+  line-height: 1.3;
+  color: var(--ion-text-color, #000);
+}
+
+.PrayerDayCard__outside p {
+  margin: 0;
+}
+
+.PrayerDayCard__outside .PrayerDayCard__badge,
+.sky-theme .PrayerDayCard__outside .PrayerDayCard__badge {
+  background: rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.08);
 }
 
 @media (max-width: 359px) {
