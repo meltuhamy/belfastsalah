@@ -166,17 +166,56 @@ const KeepAwakeButton: React.FC<{
       return;
     }
     let live = true;
-    const load = () =>
+    let touched = false;
+    // Never swapped in while a finger or button is down. A tap that began on
+    // the still pill and ended on the animated one had its button taken away
+    // from under it, so the browser sent the click to the slot instead and
+    // the tap did nothing. After the press, the swap waits long enough for
+    // the click to have arrived.
+    let pressing = false;
+    let ready: AnimatedPill | null = null;
+    let settle: ReturnType<typeof setTimeout> | null = null;
+    const swap = () => {
+      if (live && ready != null && !pressing && settle == null) {
+        setAnimated(() => ready);
+      }
+    };
+    const load = () => {
       void loadAnimatedPill().then((pill) => {
-        if (live && pill != null) setAnimated(() => pill);
+        ready = pill;
+        swap();
       });
+    };
     const cancel = whenIdle(load);
-    // A touch anywhere means a tap may be coming: start now.
-    window.addEventListener("pointerdown", load, { once: true });
+    const onDown = () => {
+      pressing = true;
+      if (settle != null) clearTimeout(settle);
+      settle = null;
+      // A touch anywhere means a tap may be coming: start now, or try again
+      // if loading once the app was idle failed. Only the first touch.
+      if (!touched) {
+        touched = true;
+        load();
+      }
+    };
+    const onUp = () => {
+      pressing = false;
+      if (settle != null) clearTimeout(settle);
+      settle = setTimeout(() => {
+        settle = null;
+        swap();
+      }, 250);
+    };
+    window.addEventListener("pointerdown", onDown, true);
+    window.addEventListener("pointerup", onUp, true);
+    window.addEventListener("pointercancel", onUp, true);
     return () => {
       live = false;
       cancel();
-      window.removeEventListener("pointerdown", load);
+      if (settle != null) clearTimeout(settle);
+      window.removeEventListener("pointerdown", onDown, true);
+      window.removeEventListener("pointerup", onUp, true);
+      window.removeEventListener("pointercancel", onUp, true);
     };
   }, [Animated]);
 

@@ -74,6 +74,15 @@
   transition: opacity 0.3s;
 }
 
+/* The iOS toolbar falls back to a step off the page's background, not the
+   page's background itself, as Ionic's toolbar.ios.css has it. */
+.ios .KeepAwakeButton::before {
+  background: var(
+    --ion-toolbar-background,
+    var(--ion-color-step-50, var(--ion-background-color-step-50, #f7f7f7))
+  );
+}
+
 .KeepAwakeButton::after {
   background-color: transparent;
   box-shadow: inset 0 0 0 1px transparent;

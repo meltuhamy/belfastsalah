@@ -81,15 +81,17 @@ const KeepAwakeMotion: React.FC<PillProps> = ({
   const iconRef = useRef<HTMLSpanElement>(null);
   const wordsWidth = useWidth(wordsRef, [words]);
   const iconWidth = useWidth(iconRef, []);
-  // The width springs while the words are coming or going: for as long as
-  // the spring takes after "saying" changes, which also covers the new words
-  // being measured a render later. Otherwise - arriving, a change of text
-  // size - it is just the new size. Kept here rather than counting taps, so
-  // the first fold after this swaps in for the still pill animates too.
-  const wasSaying = useRef(saying);
+  // The width springs while the words are coming, going or changing: for as
+  // long as the spring takes after "saying" or the words change, which also
+  // covers the new words being measured a render later. A tap while the
+  // words show changes only the words. Otherwise - arriving, a change of
+  // text size - it is just the new size. Kept here rather than counting
+  // taps, so the first fold after this swaps in for the still pill animates
+  // too.
+  const shown = useRef({ saying, words });
   const springUntil = useRef(0);
-  if (wasSaying.current !== saying) {
-    wasSaying.current = saying;
+  if (shown.current.saying !== saying || shown.current.words !== words) {
+    shown.current = { saying, words };
     springUntil.current = performance.now() + SPRING_WINDOW_MILLIS;
   }
   const springing = performance.now() < springUntil.current;

@@ -398,3 +398,38 @@ test.describe("before the animation has loaded", () => {
     expect(state.tinted).toBe(false);
   });
 });
+
+test("a tap that is held while the animation arrives still lands", async ({
+  page,
+}) => {
+  // The chunk is held back until the finger is down on the still pill, then
+  // arrives mid-press. Swapping the button out from under the press sent the
+  // click to the slot, and the tap did nothing.
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  let requested: () => void = () => {};
+  const asked = new Promise<void>((resolve) => (requested = resolve));
+  await page.route("**/KeepAwakeMotion*", async (route) => {
+    requested();
+    await held;
+    await route.continue();
+  });
+  // Setup's answers are written through a 500ms debounce.
+  await page.waitForTimeout(700);
+  await page.reload();
+  await expect(button(page)).toBeVisible();
+  await expect(button(page)).not.toHaveAttribute("data-animated", "true");
+  const box = (await button(page).boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await asked;
+  const arrived = page.waitForResponse(/KeepAwakeMotion/);
+  release();
+  await arrived;
+  await page.waitForTimeout(500);
+  await page.mouse.up();
+  await expect(button(page)).toHaveAttribute("aria-pressed", "true");
+  // And it does swap in once the press is over.
+  await waitForAnimation(page);
+  expect((await pillState(page)).words).toBe("Screen always on");
+});
