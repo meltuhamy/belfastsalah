@@ -1,53 +1,58 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSettings } from "./useSettings";
-import { createPrayerTimes, PrayerDayTimes, PrayerTime } from "./PrayerTimes";
-import { nextIsAfterDay } from "./prayerStrip";
+import { createPrayerTimes, PrayerDayTimes } from "./PrayerTimes";
+import { timetableZoneFor } from "./PrayerTimeData";
+import { shiftZonedDay } from "./timeZone";
+import { PrayerStrip, StripPhase, stripOffset } from "./prayerStrip";
 
 /**
- * The six times to put in the strip.
+ * The strip of times for the day card: prayerStrip.ts decides the phase, and
+ * this fetches the days it needs.
  *
- * Today's, until the last prayer of the day has passed - after that the card
- * is counting down to tomorrow's Fajr, and a strip still showing today's times
- * would have nothing left to point at.
- *
- * Null while tomorrow's times are being fetched. Today's are already in state
- * by the time this runs, so the only wait is the one at the day's end, and the
- * following day is almost always in the same already-loaded timetable file.
+ * By day that is today, already in state. Overnight it is the evening's day
+ * and the next, fetched by the Fajr the night is waiting for, which works the
+ * same before midnight and after it. Both are almost always in the timetable
+ * file already loaded, but the fetch is still a promise: until it settles the
+ * strip keeps what it was showing, so the slide at the end of Isha's moment
+ * starts from the day's own layout rather than from a blank.
  */
 export function usePrayerStrip(
   today: PrayerDayTimes | null,
-  next: PrayerTime | null
-): PrayerDayTimes | null {
+  phase: StripPhase
+): PrayerStrip | null {
   const [settings] = useSettings();
-  const [tomorrow, setTomorrow] = useState<PrayerDayTimes | null>(null);
+  const [night, setNight] = useState<{
+    key: number;
+    days: [PrayerDayTimes, PrayerDayTimes];
+  } | null>(null);
 
   const location = settings?.location ?? null;
   const asrMethod = settings?.asrMethod ?? null;
-  const rolled = nextIsAfterDay(today, next);
-
-  // Identifies the day being asked for. Depending on the instant itself would
-  // re-fetch on every one-second tick; this only changes when the day does.
-  const wantedDay = rolled && next !== null ? next.time.getTime() : 0;
+  // Identifies the night being asked for. Depending on the instant itself would
+  // re-fetch on every one-second tick; this only changes when the night does.
+  const wanted = phase.kind === "day" ? 0 : phase.fajr.time.getTime();
 
   useEffect(() => {
-    if (!rolled || next === null || location === null || asrMethod === null) {
-      setTomorrow(null);
-      return;
-    }
-
+    if (wanted === 0 || location === null || asrMethod === null) return;
     let cancelled = false;
-    createPrayerTimes(location, asrMethod)
-      .getDay(next.time)
-      .then((day) => {
-        if (!cancelled) {
-          setTomorrow(day);
-        }
-      });
+    const prayerTimes = createPrayerTimes(location, asrMethod);
+    const fajr = new Date(wanted);
+    const evening = shiftZonedDay(fajr, timetableZoneFor(location), -1);
+    Promise.all([prayerTimes.getDay(evening), prayerTimes.getDay(fajr)]).then(
+      ([first, second]) => {
+        if (!cancelled) setNight({ key: wanted, days: [first, second] });
+      }
+    );
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rolled, wantedDay, location, asrMethod]);
+  }, [wanted, location, asrMethod]);
 
-  return rolled ? tomorrow : today;
+  const shown = useRef<PrayerStrip | null>(null);
+  if (phase.kind === "day") {
+    shown.current = today == null ? null : { days: [today], offset: 0 };
+  } else if (night?.key === wanted) {
+    shown.current = { days: night.days, offset: stripOffset(phase) };
+  }
+  return shown.current;
 }
