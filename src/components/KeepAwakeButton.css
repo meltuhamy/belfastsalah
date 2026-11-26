@@ -1,0 +1,114 @@
+/*
+  The keep-awake toggle: an icon that grows into a pill. The width comes from
+  the label's max-width, which can be transitioned where width: auto cannot;
+  the unlit and lit lanterns cross-fade half-way, and the lit one swells
+  once as it lands.
+*/
+.KeepAwakeButton {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 40px;
+  min-width: 44px;
+  margin: 0 2px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 20px;
+  background: transparent;
+  color: var(--ion-toolbar-color, var(--ion-text-color, currentColor));
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.26s, box-shadow 0.26s,
+    padding 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.KeepAwakeButton:focus-visible {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: 2px;
+}
+
+/* Tinted with the palette's accent: the sky's own colour in the Sky theme,
+   where a frosted pane would vanish against the near-white toolbar. */
+.KeepAwakeButton--on {
+  padding: 0 10px 0 14px;
+  background: rgba(var(--ion-color-primary-rgb), 0.14);
+  box-shadow: inset 0 0 0 1px rgba(var(--ion-color-primary-rgb), 0.32);
+}
+
+.KeepAwakeButton__label {
+  max-width: 0;
+  margin-right: 0;
+  overflow: hidden;
+  opacity: 0;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+  transition: max-width 0.26s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.16s,
+    margin-right 0.26s;
+}
+
+.KeepAwakeButton--on .KeepAwakeButton__label {
+  max-width: 120px;
+  margin-right: 8px;
+  opacity: 1;
+  transition-delay: 0s, 0.08s, 0s;
+}
+
+.KeepAwakeButton__icon {
+  position: relative;
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.KeepAwakeButton__icon svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transition: opacity 0.12s 0.1s;
+}
+
+/* The lit lantern glows amber: darker on a light toolbar, lighter on a
+   dark one, so it keeps its contrast in both. */
+.KeepAwakeButton__lit {
+  color: #a85f00;
+  opacity: 0;
+}
+
+.ion-palette-dark .KeepAwakeButton__lit {
+  color: #f4b860;
+}
+
+.KeepAwakeButton--on .KeepAwakeButton__unlit {
+  opacity: 0;
+}
+
+.KeepAwakeButton--on .KeepAwakeButton__lit {
+  opacity: 1;
+  animation: KeepAwakeButton-light 0.45s 0.1s both;
+}
+
+@keyframes KeepAwakeButton-light {
+  0% {
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .KeepAwakeButton,
+  .KeepAwakeButton__label,
+  .KeepAwakeButton__icon svg {
+    transition: none;
+  }
+  .KeepAwakeButton--on .KeepAwakeButton__lit {
+    animation: none;
+  }
+}

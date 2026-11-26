@@ -13,13 +13,12 @@ import {
   IonIcon,
   useIonViewDidEnter,
   useIonViewDidLeave,
-  useIonToast,
 } from "@ionic/react";
 import React, { useState } from "react";
 import { usePrayerDay } from "../lib/usePrayerDay";
 import { getMonthNames } from "../lib/dateUtils";
 import MonthPrayerTable from "../components/MonthPrayerTable";
-import { cafe, cafeOutline, settings } from "ionicons/icons";
+import { settings } from "ionicons/icons";
 import { useInView } from "react-intersection-observer";
 import "./HomePage.css";
 import MonthPicker from "../components/MonthPicker";
@@ -32,6 +31,7 @@ import { shouldPromptForZone } from "../lib/displayZone";
 import { locationNames, timetableZoneFor } from "../lib/PrayerTimeData";
 import { useSettings } from "../lib/useSettings";
 import TimeZoneNotice from "../components/TimeZoneNotice";
+import KeepAwakeButton from "../components/KeepAwakeButton";
 
 let shouldExitApp = false;
 App.addListener("backButton", () => {
@@ -78,26 +78,16 @@ const HomePage: React.FC = () => {
       ? appSettings.location
       : null;
 
-  // The cup beside the cog: keeps the screen on while the app is open, for
-  // reading the times across a room or following the countdown to the adhan.
-  // The icon alone does not say what it did, so a toast does - and the save
-  // is quiet, or the usual "settings saved" toast would stack on top of it.
-  const [presentToast, dismissToast] = useIonToast();
+  // The lantern beside the cog: keeps the screen on while the app is open,
+  // for reading the times across a room or following the countdown to the
+  // adhan. It says so itself once on, so the save is quiet - the usual
+  // "settings saved" toast would only repeat it.
   const keepAwake = appSettings?.keepAwake ?? false;
   const toggleKeepAwake = () => {
     if (appSettings == null) {
       return;
     }
-    const turnOn = !keepAwake;
-    setAppSettings({ ...appSettings, keepAwake: turnOn }, { quiet: true });
-    void dismissToast().then(() =>
-      presentToast({
-        message: turnOn
-          ? "The screen will stay on while the app is open"
-          : "The screen will turn off as usual",
-        duration: 1500,
-      })
-    );
+    setAppSettings({ ...appSettings, keepAwake: !keepAwake }, { quiet: true });
   };
 
   const answerNotice = (showTimesInDeviceZone: boolean) => {
@@ -117,18 +107,7 @@ const HomePage: React.FC = () => {
         <IonToolbar>
           <IonTitle>{inView ? "Prayer Times" : monthName}</IonTitle>
           <IonButtons slot="primary">
-            {/* Keyed on the state: ion-button copies aria-* into its shadow
-                button only when it first renders, so without a fresh one
-                a screen reader would hear the first value for ever. */}
-            <IonButton
-              key={keepAwake ? "keep-awake-on" : "keep-awake-off"}
-              onClick={toggleKeepAwake}
-              aria-label="Keep screen awake"
-              aria-pressed={keepAwake ? "true" : "false"}
-              data-testid="keep-awake"
-            >
-              <IonIcon slot="icon-only" icon={keepAwake ? cafe : cafeOutline} />
-            </IonButton>
+            <KeepAwakeButton on={keepAwake} onToggle={toggleKeepAwake} />
             <IonButton routerLink="/settings" aria-label="Settings">
               <IonIcon slot="icon-only" icon={settings} />
             </IonButton>
