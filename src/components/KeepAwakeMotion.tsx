@@ -23,6 +23,7 @@ import { LanternIcon, type PillProps, pillClassName } from "./KeepAwakeButton";
   objects and nothing restarts (CLAUDE.md, "The once-a-second re-render").
 */
 const WIDTH: Transition = { type: "spring", bounce: 0, duration: 0.45 };
+const SPRING_WINDOW_MILLIS = 700;
 const WORDS_IN: Transition = { duration: 0.22, delay: 0.06 };
 const WORDS_OUT: Transition = { duration: 0.16 };
 const FADE: Transition = { duration: 0.2 };
@@ -80,9 +81,18 @@ const KeepAwakeMotion: React.FC<PillProps> = ({
   const iconRef = useRef<HTMLSpanElement>(null);
   const wordsWidth = useWidth(wordsRef, [words]);
   const iconWidth = useWidth(iconRef, []);
-  // The width animates only once it has been tapped here: arriving, being
-  // first measured or a change of text size should just be the new size.
-  const [tapped, setTapped] = useState(false);
+  // The width springs while the words are coming or going: for as long as
+  // the spring takes after "saying" changes, which also covers the new words
+  // being measured a render later. Otherwise - arriving, a change of text
+  // size - it is just the new size. Kept here rather than counting taps, so
+  // the first fold after this swaps in for the still pill animates too.
+  const wasSaying = useRef(saying);
+  const springUntil = useRef(0);
+  if (wasSaying.current !== saying) {
+    wasSaying.current = saying;
+    springUntil.current = performance.now() + SPRING_WINDOW_MILLIS;
+  }
+  const springing = performance.now() < springUntil.current;
 
   // The circle is the lantern plus 6px each side, as the padding draws it.
   const circle = iconWidth > 0 ? iconWidth + 12 : 36;
@@ -95,15 +105,12 @@ const KeepAwakeMotion: React.FC<PillProps> = ({
         className={pillClassName(on, saying)}
         aria-label="Keep screen on"
         aria-pressed={on}
-        onClick={() => {
-          setTapped(true);
-          onClick();
-        }}
+        onClick={onClick}
         data-testid="keep-awake"
         data-animated="true"
         initial={false}
         animate={{ width }}
-        transition={reduceMotion || !tapped ? INSTANT : WIDTH}
+        transition={reduceMotion || !springing ? INSTANT : WIDTH}
       >
         <m.span
           ref={wordsRef}

@@ -366,6 +366,12 @@ test.describe("before the animation has loaded", () => {
     await expect(button(page)).toHaveAttribute("aria-pressed", "true");
     await waitForAnimation(page);
     expect((await pillState(page)).words).toBe("Screen always on");
+    // The fold that follows is animated, though the animated pill never saw
+    // the tap that opened it.
+    await page.waitForTimeout(3800);
+    const fold = (await sampleFrames(page, 1800)).map((f) => Math.round(f.width));
+    const between = new Set(fold.filter((w) => w > 40 && w < Math.max(...fold) - 4));
+    expect(between.size).toBeGreaterThanOrEqual(3);
     await button(page).click();
     await expect(button(page)).toHaveAttribute("aria-pressed", "false");
     await expect.poll(async () => (await wakeLock(page)).held).toBe(0);

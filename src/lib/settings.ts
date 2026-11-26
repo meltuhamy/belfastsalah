@@ -30,7 +30,7 @@ export type AppSettings = {
   // answered. Missing in settings saved by older versions, which reads as
   // false, so the prompt appears once for anyone it applies to.
   timeZoneNoticeSeen: boolean;
-  // Keeps the screen on while the app is in front: the cup beside the
+  // Keeps the screen on while the app is in front: the lantern beside the
   // settings cog on the home screen. Missing in older settings, which reads
   // as off, the phone's own behaviour.
   keepAwake: boolean;
