@@ -251,3 +251,16 @@ test("stops growing at twice the default size", async ({ page }) => {
   expect(size).toBe(32);
   await expect(page.locator(PRAYER_STRIP)).toBeVisible();
 });
+
+test("keeps the place and date in the card on a 360px phone at the default size", async ({
+  page,
+}) => {
+  // The commonest Android width, at night: after Isha, Fajr is "11h 20m"
+  // away, as wide as the countdown gets, since its digits are tabular.
+  await page.setViewportSize({ width: 360, height: 740 });
+  await pinDate(page, "2026-01-15T19:00:00Z");
+  await completeSetup(page);
+  await expect(page.getByTestId("countdown")).toContainText("11h");
+  await expect(page.getByTestId("day-meta-outside")).toHaveCount(0);
+  await expect(page.getByTestId("day-date")).toBeVisible();
+});

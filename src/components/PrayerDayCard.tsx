@@ -71,7 +71,11 @@ function metaFitsBeside(top: HTMLElement): boolean {
     top.clientWidth -
     parseFloat(style.paddingLeft) -
     parseFloat(style.paddingRight);
-  const gap = parseFloat(style.columnGap) || 0;
+  // Half the row's gap is enough. The countdown's column has always given up
+  // part of the gap when it had to: on a 360px phone at the default size a
+  // two-digit countdown leaves 8px of the 12, and asking for all 12 took the
+  // place and date out of the card on the commonest Android width.
+  const gap = (parseFloat(style.columnGap) || 0) / 2;
   return (
     countdown.getBoundingClientRect().width +
       gap +
