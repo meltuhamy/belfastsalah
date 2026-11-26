@@ -213,7 +213,7 @@ const SettingsList: React.FC<Props> = ({
             <IonIcon icon={globeOutline} slot="start" />
             <IonSelect
               label="Show times in"
-          labelPlacement={selectLabelPlacement}
+              labelPlacement={selectLabelPlacement}
               value={settings.showTimesInDeviceZone}
               interface="alert"
               okText="Choose"
