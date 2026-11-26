@@ -19,9 +19,8 @@ import { PrayerStrip, StripPhase, stripOffset } from "./prayerStrip";
  * on hand by the time the night's slide is due. Should they not be, the strip
  * keeps what it was showing until they are, rather than going blank.
  *
- * `phase` is null until the next prayer is known, and so is the strip: the
- * phase cannot be told before then, and a day's strip shown in the meantime
- * slid over to the night as the app opened in the evening.
+ * `phase` is null while the times on hand are behind the clock, and so is
+ * the strip, rather than showing a day that is not the phase's.
  */
 export function usePrayerStrip(
   today: PrayerDayTimes | null,

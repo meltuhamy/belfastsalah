@@ -183,10 +183,18 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   // on the day's own strip, and the night's slide waits for them to end
   // (prayerStrip.ts).
   const current = prayerNow(prev, next, now, today);
-  const phase = stripPhase(current, upcomingPrayer(next, today, now));
+  const upcomingToday = upcomingPrayer(next, today, now);
+  // With neither, the times on hand have not caught up with the clock - the
+  // app has just opened, or come back after hours away - and the phase cannot
+  // be told. Taken for the day, its strip was drawn and then slid over to the
+  // night's as though Isha's moment had just ended.
+  const phase =
+    current != null || upcomingToday != null
+      ? stripPhase(current, upcomingToday)
+      : null;
   const strip = usePrayerStrip(
     today,
-    next == null ? null : phase,
+    phase,
     next?.prayer === Prayer.Fajr ? next : null
   );
   const cells = strip == null ? null : stripCells(strip);
@@ -291,7 +299,7 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
       <IonCard
         color="primary"
         className={`PrayerDayCard${twoRows ? " PrayerDayCard--rows" : ""}${
-          phase.kind === "fajr" ? " PrayerDayCard--fajr" : ""
+          phase?.kind === "fajr" ? " PrayerDayCard--fajr" : ""
         }`}
       >
         {/*

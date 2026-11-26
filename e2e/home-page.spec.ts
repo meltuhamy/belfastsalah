@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "@playwright/test";
 import {
   PRAYER_STRIP,
   completeSetup,
@@ -247,36 +247,53 @@ test("slides tomorrow's Fajr in once Isha's moment is over", async ({
   await expect(page.getByText("Tomorrow")).toHaveCount(0);
 });
 
+/** Counts the strip's slides, from now on in the page it is run in. */
+function listenForSlides() {
+  const seen: string[] = [];
+  (window as unknown as { slides: string[] }).slides = seen;
+  document.addEventListener(
+    "transitionrun",
+    (event) => {
+      const target = event.target as Element;
+      if (target.classList.contains("PrayerDayCard__row")) {
+        seen.push(event.propertyName);
+      }
+    },
+    true
+  );
+}
+
+async function slides(page: Page): Promise<string[]> {
+  // Long enough for a slide to have started.
+  await page.waitForTimeout(500);
+  return page.evaluate(
+    () => (window as unknown as { slides: string[] }).slides
+  );
+}
+
+// The strip slides when Isha's moment ends in front of the reader, not when
+// the app catches up with a night it was not open for. It used to: until the
+// next prayer had loaded the phase read as the day, so the day's strip was
+// drawn and then slid over to the night's.
 test("opens on the night's strip without sliding to it", async ({ page }) => {
-  // Set up afresh in the evening: the strip is the night's from the start.
-  // It used to be drawn as the day's while the next prayer was loading, and
-  // then slid over as though Isha's moment had just ended.
-  await page.addInitScript(() => {
-    const slides: string[] = [];
-    (window as unknown as { slides: string[] }).slides = slides;
-    document.addEventListener(
-      "transitionrun",
-      (event) => {
-        const target = event.target as Element;
-        if (target.classList.contains("PrayerDayCard__row")) {
-          slides.push(event.propertyName);
-        }
-      },
-      true
-    );
-  });
+  await page.addInitScript(listenForSlides);
   await page.clock.setFixedTime(new Date("2026-02-15T20:00:00Z"));
   await page.evaluate(() => localStorage.clear());
   await completeSetup(page);
   await expect.poll(() => todayTimes(page)).toEqual(LONDON_15_FEB_NIGHT);
   await expect.poll(() => paintedHighlight(page)).toBe("Fajr");
-  // Long enough for a slide to have started.
-  await page.waitForTimeout(500);
-  expect(
-    await page.evaluate(
-      () => (window as unknown as { slides: string[] }).slides
-    )
-  ).toEqual([]);
+  expect(await slides(page)).toEqual([]);
+});
+
+test("comes back to the night's strip without sliding to it", async ({
+  page,
+}) => {
+  await page.evaluate(listenForSlides);
+  // Away from 10:00 until 20:00, as a phone in a pocket is.
+  await page.clock.setFixedTime(new Date("2026-02-15T20:00:00Z"));
+  await expect.poll(() => todayTimes(page)).toEqual(LONDON_15_FEB_NIGHT);
+  await expect.poll(() => paintedHighlight(page)).toBe("Fajr");
+  expect(await slides(page)).toEqual([]);
 });
 
 test("holds the night's strip past midnight, and dates it the new day", async ({
