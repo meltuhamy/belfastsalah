@@ -5,7 +5,7 @@ import {
   openSettings as openSettingsScreen,
 } from "./support/app";
 
-// The theme is one setting with four values, replacing a pair of coupled
+// The theme is one setting with five values, replacing a pair of coupled
 // booleans. What matters is that choosing one actually repaints the app, so
 // these assert the palette class and the colour it produces rather than the
 // value stored - a setting that saves correctly but never reaches the DOM
@@ -21,8 +21,8 @@ const backgroundColour = (page: Page) =>
 
 /**
  * Finishes setup and opens the settings screen. Needed for anything about
- * "Dark after Maghrib": setup has no location yet, so there are no prayer
- * times for that mode to follow.
+ * Sky's night: setup has no location yet, so there are no prayer times for it
+ * to follow.
  */
 async function openSettings(page: Page) {
   await completeSetup(page);
@@ -35,7 +35,7 @@ const chooseTheme = (page: Page, label: string) =>
 test.describe("with the device set to light", () => {
   test.use({ colorScheme: "light" });
 
-  test("defaults to matching the device", async ({ page }) => {
+  test("starts a new install on Sky", async ({ page }) => {
     await page.goto("/");
     await page.waitForSelector("[data-testid=theme-select]");
     await expect
@@ -44,8 +44,21 @@ test.describe("with the device set to light", () => {
           .locator("[data-testid=theme-select]")
           .evaluate((s) => (s as unknown as { value: string }).value)
       )
-      .toBe("system");
-    expect(await paletteIsDark(page)).toBe(false);
+      .toBe("sky");
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          document.documentElement.classList.contains("sky-theme")
+        )
+      )
+      .toBe(true);
+  });
+
+  test("matches the device when asked to", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForSelector("[data-testid=theme-select]");
+    await chooseTheme(page, "Match device");
+    await expect.poll(() => paletteIsDark(page)).toBe(false);
   });
 
   test("goes dark when told to, regardless of the device", async ({ page }) => {
@@ -65,9 +78,10 @@ test.describe("with the device set to light", () => {
 test.describe("with the device set to dark", () => {
   test.use({ colorScheme: "dark" });
 
-  test("follows the device by default", async ({ page }) => {
+  test("follows the device on Match device", async ({ page }) => {
     await page.goto("/");
     await page.waitForSelector("[data-testid=theme-select]");
+    await chooseTheme(page, "Match device");
     await expect.poll(() => paletteIsDark(page)).toBe(true);
   });
 
@@ -85,6 +99,7 @@ test.describe("with the device set to dark", () => {
     // the answer, so it never noticed a change. This is that bug.
     await page.goto("/");
     await page.waitForSelector("[data-testid=theme-select]");
+    await chooseTheme(page, "Match device");
     await expect.poll(() => paletteIsDark(page)).toBe(true);
 
     await page.emulateMedia({ colorScheme: "light" });
@@ -95,21 +110,18 @@ test.describe("with the device set to dark", () => {
   });
 });
 
-test.describe("dark after Maghrib", () => {
+test.describe("Sky's night", () => {
   test.use({ colorScheme: "light" });
 
-  test("is offered alongside the standard three", async ({ page }) => {
+  test("is offered after the standard three, with no Dark after Maghrib", async ({
+    page,
+  }) => {
     await page.goto("/");
     await page.waitForSelector("[data-testid=theme-select]");
     const options = await page
       .locator("[data-testid=theme-select] ion-select-option")
       .allInnerTexts();
-    expect(options).toEqual([
-      "Match device",
-      "Light",
-      "Dark",
-      "Dark after Maghrib",
-    ]);
+    expect(options).toEqual(["Match device", "Light", "Dark", "Sky"]);
   });
 
   test("goes dark after Maghrib, though the device is light", async ({
@@ -119,7 +131,7 @@ test.describe("dark after Maghrib", () => {
     // with the device set to light - so only the timetable can explain dark.
     await page.clock.setFixedTime(new Date("2026-08-07T22:30:00Z"));
     await openSettings(page);
-    await chooseTheme(page, "Dark after Maghrib");
+    await chooseTheme(page, "Sky");
     await expect.poll(() => paletteIsDark(page)).toBe(true);
   });
 
@@ -127,7 +139,7 @@ test.describe("dark after Maghrib", () => {
     // 13:00 in London, before Duhr at 13:12 and long after sunrise.
     await page.clock.setFixedTime(new Date("2026-08-07T12:00:00Z"));
     await openSettings(page);
-    await chooseTheme(page, "Dark after Maghrib");
+    await chooseTheme(page, "Sky");
     await expect.poll(() => paletteIsDark(page)).toBe(false);
   });
 });

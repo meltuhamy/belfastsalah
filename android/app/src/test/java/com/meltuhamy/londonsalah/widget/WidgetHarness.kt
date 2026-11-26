@@ -1,12 +1,15 @@
 package com.meltuhamy.londonsalah.widget
 
 import android.app.Activity
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.os.Looper
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import com.meltuhamy.londonsalah.R
@@ -126,7 +129,7 @@ object WidgetHarness {
         // The tile sizes its text from the smaller side, as its provider does
         // from the launcher's reported size.
         val views = WidgetRenderer.render(
-            activity, kind, config, min(widthDp, heightDp), nowMillis
+            activity, kind, config, min(widthDp, heightDp), nowMillis, boxDp = size
         )
 
         val backdrop = FrameLayout(activity).apply {
@@ -188,6 +191,10 @@ class DrawnWidget(val root: View, val backdrop: FrameLayout) {
     }
 
     fun textColor(id: Int): Int = root.findViewById<TextView>(id).currentTextColor
+
+    /** The Sky palette's picture, or null when none was drawn. */
+    fun skyPicture(): Bitmap? =
+        (root.findViewById<ImageView>(R.id.sky_background).drawable as? BitmapDrawable)?.bitmap
 
     /** Which of `cells` have a highlight drawn behind them. */
     fun highlighted(cells: IntArray): List<Int> =

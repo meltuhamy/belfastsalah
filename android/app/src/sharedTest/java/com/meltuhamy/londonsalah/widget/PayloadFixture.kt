@@ -40,6 +40,13 @@ object PayloadFixture {
         listOf("6:19", "7:56", "12:15", "2:03", "4:25", "6:02")
     const val TOMORROW_DATE = "Fri 16 Jan"
 
+    /**
+     * The sky points' colours, as src/lib/sky.ts sends them - copied from
+     * fixtures/widget-payload, which TypeScript writes.
+     */
+    const val SKY_COLOURS =
+        """[{"top":"#070b1e","mid":"#0e1534","horizon":"#1a2350"},{"top":"#1b2452","mid":"#4b3f7a","horizon":"#95566e"},{"top":"#7d9bd1","mid":"#e9b8a6","horizon":"#ffd08a"},{"top":"#5aa3e8","mid":"#8cc4f0","horizon":"#cde8fa"},{"top":"#4f9ae4","mid":"#7dbbef","horizon":"#b9def8"},{"top":"#68a2da","mid":"#a9c9de","horizon":"#f2d7a2"},{"top":"#7d97cc","mid":"#e3a27a","horizon":"#f7b866"},{"top":"#2b2f66","mid":"#7e4373","horizon":"#a9492b"},{"top":"#121a3e","mid":"#26285c","horizon":"#4b3a74"},{"top":"#070b1e","mid":"#0e1534","horizon":"#1a2350"}]"""
+
     private const val MINUTE = 60_000L
     private const val HOUR = 60 * MINUTE
 
@@ -48,6 +55,32 @@ object PayloadFixture {
 
     /** Fajr on the 16th, 06:19 - the prayer after the last one on the 15th. */
     private const val JAN_16_FAJR = 1_768_544_340_000L
+
+    /** Midnight at the start of 16 January 2026, UTC. */
+    private const val JAN_16 = JAN_15 + 24 * HOUR
+
+    /**
+     * A day's ten sky points from its six prayer instants, as skyPoints in
+     * src/lib/sky.ts places them: an hour before Fajr, the prayers, ninety
+     * minutes after Shuruq, 25 minutes before Maghrib, ninety after Isha.
+     */
+    fun skyTimes(prayers: List<Long>): List<Long> {
+        val (fajr, shuruq, duhr, asr, maghrib) = prayers
+        val isha = prayers[5]
+        return listOf(
+            fajr - 60 * MINUTE, fajr, shuruq, shuruq + 90 * MINUTE, duhr, asr,
+            maghrib - 25 * MINUTE, maghrib, isha, isha + 90 * MINUTE
+        )
+    }
+
+    private fun instants(midnight: Long, clocks: List<String>): List<Long> =
+        clocks.map { clock ->
+            val (h, m) = clock.split(":").map { it.toInt() }
+            midnight + h * HOUR + m * MINUTE
+        }
+
+    private val SKY_15TH = skyTimes(instants(JAN_15, TIMES))
+    private val SKY_16TH = skyTimes(instants(JAN_16, TOMORROW_TIMES))
 
     /** The instant a "HH:mm" clock string names on the 15th. */
     fun on15th(clock: String): Long {
@@ -67,11 +100,20 @@ object PayloadFixture {
      */
     private const val SPARE = 500L
 
+    /** 06:05 - Fajr is next at 06:20: the Sky widget's haze, with the thread in it. */
+    val BEFORE_FAJR = on15th("06:05") - SPARE
+
+    /** 07:35 - Shuruq is next at 07:57: no sun yet, only the dawn glow. */
+    val BEFORE_SUNRISE = on15th("07:35") - SPARE
+
     /** 13:00 - Duhr has gone, Asr is next at 14:01, "1:01:00" away. */
     val ONE_PM = on15th("13:00") - SPARE
 
     /** 15:00 - Maghrib is next: the longest name, in "Maghrib in". */
     val THREE_PM = on15th("15:00") - SPARE
+
+    /** 16:30 - just after Maghrib at 16:23, under the sunset sky. */
+    val SUNSET = on15th("16:30") - SPARE
 
     /** 18:01 - after Isha, so the next prayer is tomorrow's Fajr, "12:18:00" away. */
     val AFTER_ISHA = on15th("18:01") - SPARE
@@ -81,7 +123,10 @@ object PayloadFixture {
         val upcoming = NAMES.indices.map { i ->
             Upcoming(NAMES[i], on15th(TIMES[i]), TIMES[i], day = 0)
         } + Upcoming("Fajr", JAN_16_FAJR, TOMORROW_TIMES[FAJR], day = 1)
-        return json(listOf(DATE to TIMES, TOMORROW_DATE to TOMORROW_TIMES), upcoming)
+        return json(
+            listOf(Day(DATE, TIMES, SKY_15TH), Day(TOMORROW_DATE, TOMORROW_TIMES, SKY_16TH)),
+            upcoming
+        )
     }
 
     /**
@@ -96,24 +141,33 @@ object PayloadFixture {
         val upcoming = NAMES.indices.map { i ->
             Upcoming(NAMES[i], on15th(TIMES[i]), TIMES_12[i], day = 0)
         } + Upcoming("Fajr", JAN_16_FAJR, TOMORROW_TIMES_12[FAJR], day = 1)
-        return json(listOf(DATE to TIMES_12, TOMORROW_DATE to TOMORROW_TIMES_12), upcoming)
+        return json(
+            listOf(
+                Day(DATE, TIMES_12, SKY_15TH),
+                Day(TOMORROW_DATE, TOMORROW_TIMES_12, SKY_16TH)
+            ),
+            upcoming
+        )
     }
 
     fun relativeTo(now: Long, next: Int, inMillis: Long = 2 * HOUR): String {
+        val instants = NAMES.indices.map { i -> now + inMillis + (i - next) * HOUR }
         val upcoming = (next until NAMES.size).map { i ->
-            Upcoming(NAMES[i], now + inMillis + (i - next) * HOUR, TIMES[i], day = 0)
+            Upcoming(NAMES[i], instants[i], TIMES[i], day = 0)
         }
-        return json(listOf(DATE to TIMES), upcoming)
+        return json(listOf(Day(DATE, TIMES, skyTimes(instants))), upcoming)
     }
 
     private data class Upcoming(val name: String, val at: Long, val time: String, val day: Int)
 
-    private fun json(days: List<Pair<String, List<String>>>, upcoming: List<Upcoming>): String {
-        val dayJson = days.joinToString(",") { (date, times) ->
+    private data class Day(val date: String, val times: List<String>, val sky: List<Long>)
+
+    private fun json(days: List<Day>, upcoming: List<Upcoming>): String {
+        val dayJson = days.joinToString(",") { (date, times, sky) ->
             val prayers = NAMES.indices.joinToString(",") { i ->
                 """{"name":"${NAMES[i]}","time":"${times[i]}"}"""
             }
-            """{"dateLabel":"$date","prayers":[$prayers]}"""
+            """{"dateLabel":"$date","prayers":[$prayers],"sky":[${sky.joinToString(",")}]}"""
         }
         val next = upcoming.joinToString(",") { (name, at, time, day) ->
             """{"name":"$name","at":$at,"time":"$time","day":$day}"""
@@ -124,7 +178,8 @@ object PayloadFixture {
               "generatedAt": 0,
               "locationLabel": "$LOCATION",
               "days": [$dayJson],
-              "upcoming": [$next]
+              "upcoming": [$next],
+              "skyColours": $SKY_COLOURS
             }
         """.trimIndent()
     }

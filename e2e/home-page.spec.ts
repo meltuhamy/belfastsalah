@@ -6,7 +6,7 @@ import {
   highlightedPrayer,
   monthRows,
   pinDate,
-  tailTarget,
+  paintedHighlight,
   todayTimes,
   waitForMonthTable,
 } from "./support/app";
@@ -54,33 +54,68 @@ test("names the next prayer and counts down to it", async ({ page }) => {
   await expect(page.getByText("Shuruq was 2h 48m ago")).toBeVisible();
 });
 
-test("points the card at the prayer it is counting down to", async ({
-  page,
-}) => {
+test("highlights the prayer it is counting down to", async ({ page }) => {
   expect(await highlightedPrayer(page)).toBe("Duhr");
-  await expect
-    .poll(() => tailTarget(page))
-    .toEqual({ painted: true, column: "Duhr" });
+  await expect.poll(() => paintedHighlight(page)).toBe("Duhr");
 });
 
-test("points at the columns on either end without losing the tail", async ({
+test("highlights the columns on either end inside the card", async ({
   page,
 }) => {
-  // The two positions where the tail sits closest to the card's own corner
-  // radius, and the ones a fractional width most easily rounds off the end of.
+  // The two cells closest to the card's rounded corners.
   // Walked forwards, because that is the only direction the app expects the
   // clock to move: it refetches when a prayer passes, not when one un-passes.
   await page.clock.setFixedTime(new Date("2026-02-15T18:00:00Z"));
   await expect.poll(() => highlightedPrayer(page)).toBe("Isha");
-  await expect
-    .poll(() => tailTarget(page))
-    .toEqual({ painted: true, column: "Isha" });
+  await expect.poll(() => paintedHighlight(page)).toBe("Isha");
 
   await page.clock.setFixedTime(new Date("2026-02-16T03:00:00Z"));
   await expect.poll(() => highlightedPrayer(page)).toBe("Fajr");
+  await expect.poll(() => paintedHighlight(page)).toBe("Fajr");
+});
+
+test("fills a dot on the timeline for each prayer that has passed", async ({
+  page,
+}) => {
+  const dots = page.locator("[data-testid=timeline] .PrayerDayCard__dot");
+  // 10:00: Fajr and Shuruq are behind us, Duhr at 12:20 is not.
+  await expect(dots).toHaveCount(6);
   await expect
-    .poll(() => tailTarget(page))
-    .toEqual({ painted: true, column: "Fajr" });
+    .poll(() => dots.evaluateAll((all) => all.map((d) => d.dataset.passed)))
+    .toEqual(["true", "true", "false", "false", "false", "false"]);
+
+  // Fajr and Shuruq, done, and Duhr, next, are at full strength; only the
+  // prayers after the next one are faded back.
+  await expect
+    .poll(() =>
+      dots.evaluateAll((all) => all.map((d) => getComputedStyle(d).opacity))
+    )
+    .toEqual(["1", "1", "1", "0.55", "0.55", "0.55"]);
+
+  // After Isha the strip is tomorrow's, none of which has happened yet.
+  await page.clock.setFixedTime(new Date("2026-02-15T20:00:00Z"));
+  await expect
+    .poll(() => dots.evaluateAll((all) => all.map((d) => d.dataset.passed)))
+    .toEqual(["false", "false", "false", "false", "false", "false"]);
+  await expect(page.locator(".PrayerDayCard__timeline-fill")).toHaveCount(0);
+});
+
+test("pulses a prayer's dot while its adhan is called", async ({ page }) => {
+  const recent = () =>
+    page
+      .locator("[data-testid=timeline] .PrayerDayCard__dot")
+      .evaluateAll((all) => all.map((d) => d.dataset.recent));
+
+  // Duhr came in at 12:20.
+  await page.clock.setFixedTime(new Date("2026-02-15T12:23:00Z"));
+  await expect
+    .poll(recent)
+    .toEqual(["false", "false", "true", "false", "false", "false"]);
+
+  await page.clock.setFixedTime(new Date("2026-02-15T12:26:00Z"));
+  await expect
+    .poll(recent)
+    .toEqual(["false", "false", "false", "false", "false", "false"]);
 });
 
 test("rolls the countdown onto the next prayer once one passes", async ({
@@ -93,9 +128,74 @@ test("rolls the countdown onto the next prayer once one passes", async ({
   await expect(page.getByText("Asr in")).toBeVisible();
   await expect(page.getByText("Duhr was 10m ago")).toBeVisible();
   await expect.poll(() => highlightedPrayer(page)).toBe("Asr");
+  await expect.poll(() => paintedHighlight(page)).toBe("Asr");
+});
+
+test("says it's time for a prayer while its adhan is called, then moves on", async ({
+  page,
+}) => {
+  // 15 February: Asr 14:46, Maghrib 17:19. At the very second Asr comes in,
+  // the card used to go blank until the app had found the next prayer.
+  await page.clock.setFixedTime(new Date("2026-02-15T14:46:00Z"));
+  const now = page.getByTestId("adhan-now");
+  await expect(now).toContainText("It's time for");
+  await expect(page.getByTestId("countdown")).toHaveText("Asr");
+  await expect(page.getByText("Maghrib is in 2h 33m")).toBeVisible();
+  await expect(now.getByTestId("adhan-icon")).toBeVisible();
+  await expect.poll(() => highlightedPrayer(page)).toBe("Asr");
+
+  // Still Asr four minutes on.
+  await page.clock.setFixedTime(new Date("2026-02-15T14:50:00Z"));
+  await expect(page.getByTestId("countdown")).toHaveText("Asr");
+
+  // Five minutes on, the card counts down to Maghrib and the highlight moves.
+  await page.clock.setFixedTime(new Date("2026-02-15T14:51:00Z"));
+  await expect(page.getByText("Maghrib in")).toBeVisible();
+  await expect(page.getByTestId("adhan-now")).toHaveCount(0);
+  await expect.poll(() => highlightedPrayer(page)).toBe("Maghrib");
+  await expect.poll(() => paintedHighlight(page)).toBe("Maghrib");
+});
+
+test("counts the last second down rather than going blank", async ({
+  page,
+}) => {
+  // Half a second before Asr (14:46). Rounded down, that was "0s", which
+  // printed nothing, so the card said only "Asr in" until Asr came.
+  await page.clock.setFixedTime(new Date("2026-02-15T14:45:59.500Z"));
+  await expect(page.getByText("Asr in")).toBeVisible();
+  await expect(page.getByTestId("countdown")).toHaveText("1s");
+
+  // Then straight to the adhan, the old headline leaving as the new arrives.
+  await page.clock.setFixedTime(new Date("2026-02-15T14:46:00Z"));
+  await expect(page.getByTestId("countdown")).toHaveText("Asr");
+  await expect(page.getByTestId("headline-leaving")).toContainText("Asr in");
+  await expect(page.getByTestId("headline-leaving")).toHaveCount(0);
+});
+
+test('keeps the space before "ago" when the time since drops to seconds', async ({
+  page,
+}) => {
+  // The next morning: Fajr 05:33, Shuruq 07:10 on 16 February. Going from
+  // minutes to "30s ago", Chrome dropped the space it had collapsed into the
+  // minutes' trailing one: the card read "Shuruq was 30sago". Only what is
+  // drawn shows it - the DOM's text still had the space - so this reads
+  // innerText.
+  await page.clock.setFixedTime(new Date("2026-02-16T07:05:00Z"));
+  const since = page.locator(".PrayerDayCard__since");
   await expect
-    .poll(() => tailTarget(page))
-    .toEqual({ painted: true, column: "Asr" });
+    .poll(() => since.evaluate((el) => (el as HTMLElement).innerText))
+    .toBe("Fajr was 1h 32m ago");
+  await page.clock.setFixedTime(new Date("2026-02-16T07:10:30Z"));
+  await expect
+    .poll(() => since.evaluate((el) => (el as HTMLElement).innerText))
+    .toBe("Shuruq was 30s ago");
+});
+
+test("never calls Shuruq a prayer time", async ({ page }) => {
+  // Shuruq 07:12 on 15 February: sunrise, with no adhan.
+  await page.clock.setFixedTime(new Date("2026-02-15T07:13:00Z"));
+  await expect(page.getByText("Duhr in")).toBeVisible();
+  await expect(page.getByTestId("adhan-now")).toHaveCount(0);
 });
 
 test("moves the strip onto tomorrow once the last prayer has passed", async ({
@@ -109,9 +209,7 @@ test("moves the strip onto tomorrow once the last prayer has passed", async ({
   // 16 Feb's own Fajr, not the 15th's.
   await expect.poll(async () => (await todayTimes(page)).Fajr).toBe("05:33");
   await expect.poll(() => highlightedPrayer(page)).toBe("Fajr");
-  await expect
-    .poll(() => tailTarget(page))
-    .toEqual({ painted: true, column: "Fajr" });
+  await expect.poll(() => paintedHighlight(page)).toBe("Fajr");
 });
 
 test("carries the day over at midnight", async ({ page }) => {
@@ -148,8 +246,24 @@ test("opens the month table on the current month", async ({ page }) => {
   // non-leap year in src/prayer_data does, duplicating the 28th - so this is
   // also a check that the table follows the calendar and not the file.
   expect(rows).toHaveLength(28);
-  expect(rows[0]).toEqual(["1", "05:59", "07:36", "12:19", "14:26", "16:53", "18:29"]);
-  expect(rows[27]).toEqual(["28", "05:08", "06:45", "12:18", "15:03", "17:42", "19:09"]);
+  expect(rows[0]).toEqual([
+    "1",
+    "05:59",
+    "07:36",
+    "12:19",
+    "14:26",
+    "16:53",
+    "18:29",
+  ]);
+  expect(rows[27]).toEqual([
+    "28",
+    "05:08",
+    "06:45",
+    "12:18",
+    "15:03",
+    "17:42",
+    "19:09",
+  ]);
 });
 
 test("marks today in the month table, and only today", async ({ page }) => {
@@ -167,7 +281,9 @@ test("puts the settings screen one tap away and comes back", async ({
   page,
 }) => {
   await page.locator("ion-button[router-link='/settings']").click();
-  await expect(page.locator("ion-title", { hasText: "Settings" })).toBeVisible();
+  await expect(
+    page.locator("ion-title", { hasText: "Settings" })
+  ).toBeVisible();
   await page.locator("ion-button[router-link='/']").click();
   await expect(page.locator(PRAYER_STRIP)).toBeVisible();
 });

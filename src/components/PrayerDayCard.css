@@ -1,23 +1,20 @@
 /*
-  The wrapper owns the margins, and the card inside it owns none. That is what
-  makes the tail's arithmetic below hold: the bubble and the strip are both
-  exactly this element's width, by construction rather than by two separate
-  elements happening to agree. 10px is ion-card's own margin, so the card and
-  the month card below it still line up.
+  One card for the whole day, laid out like the home screen widget. Its margins
+  are ion-card's own, so it lines up with the month card below it.
 */
 .PrayerDayCard {
-  --strip-columns: 6;
-  margin: 10px;
+  position: relative;
+  margin: 12px 16px 10px;
+  border-radius: 24px;
 }
 
 /*
   Ionic's dark palette pairs its lighter primary with black contrast text,
   which is right for a small button and wrong for this: a large flat block of
   blue, where it reads as low contrast and looks nothing like the light theme's
-  white-on-blue. Pinned to white here, which reaches the card, the tail and the
-  strip's highlight - custom properties cross the shadow boundary, so the value
-  is inherited by ion-card's own colour rules. Scoped to this component so the
-  rest of the palette is untouched.
+  white-on-blue. Pinned to white here. Custom properties cross the shadow
+  boundary, so the value is inherited by ion-card's own colour rules. Scoped to
+  this component so the rest of the palette is untouched.
 */
 .ion-palette-dark .PrayerDayCard {
   --ion-color-primary-contrast: #ffffff;
@@ -25,112 +22,78 @@
 }
 
 /*
-  The tail hangs into the gap between the two cards, so the bubble must not
-  clip it. ion-card sets both overflow: hidden and contain: content on its own
-  host, and the second is the one that catches you out - paint containment
-  clips to the border box on its own, whatever overflow says. Both are undone
-  from here: declarations from the outer tree beat the shadow tree's whatever
-  the specificity.
+  The countdown across the top and the times along the bottom, with whatever
+  height is left between them as open sky. sky.ts places the sun as a fraction
+  of the card's height, so the height is what gives it room to travel.
 */
-.PrayerDayCard__bubble {
+.PrayerDayCard .PrayerDayCard__content {
   position: relative;
-  overflow: visible;
-  contain: none;
-  margin: 0;
-  border-radius: 18px;
-}
-
-/*
-  Where the tail sits is a fraction of the card's width, set from the index of
-  the next prayer. The strip's columns are sixths of the same width, so the
-  arithmetic lands on a column centre without measuring anything, and survives
-  a resize.
-*/
-.PrayerDayCard__tail {
-  position: absolute;
-  bottom: -5px;
-  left: calc((var(--next-column) + 0.5) * (100% / var(--strip-columns)));
-  width: 12px;
-  height: 12px;
-  margin-left: -6px;
-  background: var(--ion-color-primary);
-  transform: rotate(45deg);
-  border-bottom-right-radius: 2px;
-  transition: left 320ms cubic-bezier(0.32, 0.72, 0.3, 1);
-}
-
-/* Nothing to point at until the next prayer is known. */
-.PrayerDayCard:not([data-points-at]) .PrayerDayCard__tail {
-  display: none;
-}
-
-.PrayerDayCard__bubble-content {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   justify-content: space-between;
+  gap: 32px;
+  min-height: 252px;
+  box-sizing: border-box;
+  padding: 24px 16px 16px;
+}
+
+.PrayerDayCard__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   gap: 12px;
+  padding: 0 8px;
 }
 
 .PrayerDayCard__countdown {
   min-width: 0;
 }
 
+.PrayerDayCard__skeleton {
+  height: 34px;
+}
+
 /*
-  Doubled up on the wrapper throughout this block. Ionic styles the text inside
-  a card by element - .card-content-md p and friends - which outweighs a single
-  class of ours, so a bare .PrayerDayCard__label loses and every line comes out
-  the same size.
+  Doubled up on the wrapper throughout. Ionic styles the text inside a card by
+  element - .card-content-md p and friends - which outweighs a single class of
+  ours, so a bare class loses and every line comes out the same size.
 */
 .PrayerDayCard .PrayerDayCard__label {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.35;
+  font-size: 14px;
+  line-height: 1.3;
   opacity: 0.85;
 }
 
 /*
-  The prayer's name is set at the countdown's size, so the line reads as one
-  phrase rather than a caption stuck to a number - weight and opacity carry the
-  hierarchy instead. Both are a couple of points down on the countdown alone,
-  which is what keeps the longest pairing ("Maghrib in 23h 59m") on one line on
-  a 320dp screen.
+  Large and light: the biggest thing on the card, so it needs no weight to
+  lead, and a thin figure leaves more of the sky showing through it.
 */
-.PrayerDayCard .PrayerDayCard__line .PrayerDayCard__label {
-  font-size: 22px;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-  opacity: 0.8;
-}
-
-/*
-  The prayer's name and the time left read as one sentence, so they sit on one
-  line - aligned on the baseline rather than centred, or the small text floats
-  in the middle of the big text's height.
-*/
-.PrayerDayCard .PrayerDayCard__line {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin: 0 0 2px;
-  flex-wrap: wrap;
-}
-
 .PrayerDayCard .PrayerDayCard__remaining {
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  margin: 2px 0 0;
+  font-size: 46px;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
+}
+
+.PrayerDayCard .PrayerDayCard__since {
+  margin: 8px 0 0;
+  padding: 0 8px;
+  font-size: 13px;
+  line-height: 1.35;
+  opacity: 0.85;
 }
 
 .PrayerDayCard .PrayerDayCard__meta {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 2px;
+  gap: 6px;
   text-align: right;
-  font-size: 13px;
-  line-height: 1.35;
+  font-size: 12px;
+  line-height: 1.3;
   opacity: 0.85;
   white-space: nowrap;
 }
@@ -142,80 +105,528 @@
 }
 
 /*
-  Marks the strip as belonging to a day the reader is not on yet. Tinted from
-  the card's own contrast colour so it stays legible in either palette without
-  a second rule.
+  Marks the times as belonging to a day the reader is not on yet. Tinted from
+  the card's own text colour so it stays legible in either palette.
 */
 .PrayerDayCard__badge {
-  margin-bottom: 2px;
   padding: 1px 8px;
   border-radius: 999px;
   background: rgba(var(--ion-color-primary-contrast-rgb), 0.22);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.02em;
-  opacity: 1;
 }
 
-/*
-  No card behind the times, and no horizontal padding: the columns have to be
-  sixths of the wrapper's full width for the tail above to line up with them,
-  so the breathing room goes inside the cells instead.
-*/
 .PrayerDayCard__strip {
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(var(--strip-columns), 1fr);
-  margin-top: 13px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
 }
 
 .PrayerDayCard__strip-loading {
-  padding: 26px 6px 12px;
+  padding: 12px 6px;
 }
 
 .PrayerDayCard__cell {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   padding: 8px 1px;
-  border-radius: 8px;
-  transition: background-color 320ms cubic-bezier(0.32, 0.72, 0.3, 1);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  transition:
+    background-color 320ms cubic-bezier(0.32, 0.72, 0.3, 1),
+    border-color 320ms cubic-bezier(0.32, 0.72, 0.3, 1),
+    opacity 320ms cubic-bezier(0.32, 0.72, 0.3, 1);
 }
 
 .PrayerDayCard__cell-name {
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: -0.01em;
-  color: var(--ion-color-medium);
+  opacity: 0.85;
 }
 
+/* Regular weight, and only the next prayer's in bold: two weights, not four. */
 .PrayerDayCard__cell-time {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
 }
 
-.PrayerDayCard__cell[data-next="true"] {
-  background: var(--ion-color-primary);
+/*
+  The glass the next prayer's highlight is made of. The Sky theme swaps in its
+  own below.
+*/
+.PrayerDayCard {
+  --pane: rgba(var(--ion-color-primary-contrast-rgb), 0.16);
+  --pane-edge: rgba(var(--ion-color-primary-contrast-rgb), 0.4);
 }
 
-.PrayerDayCard__cell[data-next="true"] .PrayerDayCard__cell-name,
+/* The next prayer: a frosted pane, as on the widget. */
+/*
+  The next prayer's frosted pane, as on the widget: one element behind the
+  cells, placed by column, so when the next prayer changes it glides across
+  rather than one cell going out and another lighting up. Six equal columns
+  with 2px between them, as the grid has.
+*/
+.PrayerDayCard__pane {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--column) * (100% + 2px) / 6);
+  width: calc((100% - 10px) / 6);
+  box-sizing: border-box;
+  border-radius: 12px;
+  background: var(--pane);
+  border: 1px solid var(--pane-edge);
+  transition: left 700ms cubic-bezier(0.32, 0.72, 0.3, 1);
+}
+
+/* The cells sit above the pane. */
+.PrayerDayCard__cell {
+  position: relative;
+}
+
+/*
+  The timeline: a dot above each prayer, over the same six columns as the
+  strip, and a line from Fajr's dot as far as now - solid between prayers that
+  have come in, fading out over the stretch since the last one, and nothing
+  drawn ahead of now. Kept quiet: it is there to be noticed, not read.
+*/
+.PrayerDayCard__timeline {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+  align-items: center;
+  height: 9px;
+  margin-bottom: 8px;
+}
+
+.PrayerDayCard__timeline-fill {
+  position: absolute;
+  top: 50%;
+  left: calc(100% / 12);
+  width: calc(var(--progress) * (100% - 100% / 6));
+  height: 1px;
+  transform: translateY(-50%);
+  border-radius: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.6) calc(var(--solid) * 100%),
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+/*
+  Still to come: an empty ring. Passed: a bead of white glass with a soft
+  glow. All white, on any sky: in the text's colour, the ring and the trail
+  came out dark on the noon sky.
+*/
+.PrayerDayCard__dot {
+  position: relative;
+  justify-self: center;
+  width: 5px;
+  height: 5px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  transition:
+    background-color 320ms ease,
+    border-color 320ms ease,
+    box-shadow 320ms ease;
+}
+
+.PrayerDayCard__dot[data-passed="true"] {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.55);
+}
+
+/*
+  On a dark sky full white glares, so the beads are a softer grey-white and
+  glow less. Opaque, not faded: a translucent bead lets the line show through.
+*/
+.ion-palette-dark .PrayerDayCard__dot[data-passed="true"] {
+  background: #c4c6d6;
+  border-color: #c4c6d6;
+  box-shadow: 0 0 3px rgba(255, 255, 255, 0.2);
+}
+
+/*
+  The prayers still to come after the next one are faded back, like their
+  cells below. The next prayer's ring stays at full strength, and so do the
+  prayers that have come in: faded, a bead turns translucent and the line
+  shows through it.
+*/
+.PrayerDayCard__dot[data-passed="false"]:not([data-next="true"]) {
+  opacity: 0.55;
+}
+
+/*
+  Just come in: the bead breathes, slowly, for its first ten minutes. Only the
+  glow moves, so the dot itself stays put.
+*/
+.PrayerDayCard__dot[data-recent="true"] {
+  animation: PrayerDayCard-pulse 3.2s ease-in-out infinite;
+}
+
+@keyframes PrayerDayCard-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 4px 0 rgba(255, 255, 255, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 8px 3px rgba(255, 255, 255, 0.75);
+  }
+}
+
+.PrayerDayCard__cell[data-next="true"] .PrayerDayCard__cell-name {
+  opacity: 1;
+}
+
 .PrayerDayCard__cell[data-next="true"] .PrayerDayCard__cell-time {
-  color: var(--ion-color-primary-contrast);
+  font-weight: 600;
+}
+
+/*
+  Every other prayer is faded back, so the eye lands on the next one first.
+  Faded as a whole cell, so its name and time keep their weight against each
+  other - on any theme, the Sky's included.
+*/
+.PrayerDayCard__cell:not([data-next="true"]) {
+  opacity: 0.6;
+}
+
+/*
+  Each new headline - a new countdown, or "It's time for Asr" - rises in as
+  the old one drifts up and away (HeadlineSlot), so the change at a prayer's
+  time reads as one movement rather than a jump. Both sit in the same grid
+  cell, so the card keeps its height while they cross.
+*/
+.PrayerDayCard__slot {
+  display: grid;
+}
+
+.PrayerDayCard__slot > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.PrayerDayCard__entering {
+  animation: PrayerDayCard-headline-in 650ms cubic-bezier(0.2, 0.7, 0.2, 1)
+    120ms both;
+}
+
+.PrayerDayCard__leaving {
+  pointer-events: none;
+  animation: PrayerDayCard-headline-out 450ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@keyframes PrayerDayCard-headline-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes PrayerDayCard-headline-out {
+  from {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+    filter: blur(3px);
+  }
+}
+
+/* "It's time for", with the adhan icon calling beside it. */
+.PrayerDayCard .PrayerDayCard__label--calling {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.PrayerDayCard__adhan {
+  flex: none;
+  margin: -2px 0;
 }
 
 @media (max-width: 359px) {
+  .PrayerDayCard .PrayerDayCard__remaining {
+    font-size: 38px;
+  }
+
   .PrayerDayCard__cell-name {
     font-size: 10px;
   }
 
   .PrayerDayCard__cell-time {
-    font-size: 12px;
+    font-size: 13px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .PrayerDayCard__tail,
-  .PrayerDayCard__cell {
+  .PrayerDayCard__cell,
+  .PrayerDayCard__dot,
+  .PrayerDayCard__pane {
     transition: none;
   }
+
+  .PrayerDayCard__entering {
+    animation: none;
+  }
+
+  .PrayerDayCard__leaving {
+    display: none;
+  }
+
+  .PrayerDayCard__dot[data-recent="true"] {
+    animation: none;
+  }
+}
+
+/*
+  The Sky theme. The card becomes the sky itself, from its top down to the
+  horizon, in colours useTheme sets on <html> from src/lib/sky.ts. Outer-tree
+  declarations on the ion-card host beat its shadow styles, so the background
+  and colour here replace the primary colour it was given.
+*/
+.sky-theme .PrayerDayCard {
+  background: linear-gradient(
+    180deg,
+    var(--sky-top) 0%,
+    var(--sky-mid) 62%,
+    var(--sky-horizon) 100%
+  );
+  color: var(--sky-text);
+}
+
+/*
+  sky.ts picks the text colour to read at 4.5:1 against the sky behind it,
+  which only holds at full strength - so no fading here. Size and weight carry
+  the hierarchy instead.
+*/
+.sky-theme .PrayerDayCard .PrayerDayCard__label,
+.sky-theme .PrayerDayCard .PrayerDayCard__since,
+.sky-theme .PrayerDayCard .PrayerDayCard__meta,
+.sky-theme .PrayerDayCard__cell-name {
+  opacity: 1;
+}
+
+.sky-theme .PrayerDayCard__badge {
+  background: rgba(var(--sky-text-rgb), 0.16);
+}
+
+/* The times sit on the lower sky, so they take its text colour. */
+.sky-theme .PrayerDayCard__strip {
+  color: var(--sky-lower-text);
+}
+
+.sky-theme .PrayerDayCard {
+  --pane: var(--sky-glass);
+  --pane-edge: var(--sky-glass-edge);
+}
+
+.PrayerDayCard__sky {
+  display: none;
+}
+
+.sky-theme .PrayerDayCard__sky {
+  /* The sun's centre, shared by the sun and the lens flare (see below). */
+  --sun-left: var(--sky-sun-x);
+  --sun-top: calc(var(--sky-sun-y) * 0.545 + 14.9%);
+  display: block;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/*
+  Moved along its arc by --sky-sun-x/y; parked below the card at night, where
+  it is transparent anyway. sky.ts's arc spans the whole card, which here would
+  put the noon sun on the countdown and the early-morning sun behind the times.
+  So it is fitted to the open sky: it rises from the timeline's dots (64% of
+  the card) at Shuruq, climbs to 30% at noon - beside the countdown - and sets
+  back onto the dots at Maghrib, sinking behind them before sunrise and after
+  sunset. The widgets draw sky.ts's arc as it is.
+*/
+.PrayerDayCard__sun {
+  position: absolute;
+  left: var(--sun-left);
+  top: var(--sun-top);
+  width: 40px;
+  height: 40px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--sky-sun-colour);
+  /*
+    None before Shuruq, rising in from it, and fading out after Maghrib
+    (sky.ts); the minute's step is eased over.
+  */
+  opacity: var(--sky-sun-on, 1);
+  transition: opacity 2s ease;
+}
+
+/*
+  The halo, drawn as the widgets draw it (SkyPainter.kt): the sun's colour at
+  half strength out to the disc's edge, fading evenly to nothing at 2.4 times
+  its radius. A wide, soft glow, where a blurred box-shadow made only a thin
+  fuzzy rim. Behind the disc, which covers its solid middle.
+*/
+.PrayerDayCard__sun::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 240%;
+  height: 240%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle closest-side,
+    var(--sky-sun-glow) 0%,
+    var(--sky-sun-glow) calc(100% / 2.4),
+    transparent 100%
+  );
+  z-index: -1;
+}
+
+/*
+  Dawn: before Shuruq the card shows no sun, but the horizon warms where it
+  will come up - over the timeline's dots at the left, where the sun rises at
+  Shuruq - building over the 45 minutes before and going as the sun takes over
+  (--sky-dawn, sky.ts). Wide and low, as first light is: brightest at the
+  card's left edge, level with the dots, where there is open sky rather than
+  text, and spreading thinly along the horizon.
+*/
+.PrayerDayCard__dawn {
+  position: absolute;
+  left: 0;
+  top: 63%;
+  width: 130%;
+  height: 60%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 196, 120, 0.9) 0%,
+    rgba(255, 160, 90, 0.6) 30%,
+    rgba(255, 130, 90, 0.22) 65%,
+    rgba(255, 120, 90, 0) 100%
+  );
+  opacity: var(--sky-dawn, 0);
+  transition: opacity 2s ease;
+}
+
+/*
+  Fajr: the white thread of dawn in a haze. A soft band of pale light gathers
+  on the horizon over the hour before Fajr, with a soft line of light inside
+  it for the last twenty-five minutes; after Fajr the light warms, drifts left
+  and hands over to the dawn glow. Where, how big and how strong all come from
+  sky.ts (fajrThread), as whole backgrounds, since the oldest iOS the app runs
+  on cannot mix colours in CSS. In the open sky between the countdown and the
+  dots, so it is never behind text. The line is a glow, not a stroke: a few
+  px tall and blurred, so it never reads as a cut across the card.
+*/
+.PrayerDayCard__fajr-haze,
+.PrayerDayCard__fajr-line {
+  position: absolute;
+  left: var(--sky-fajr-x, 50%);
+  top: 55.5%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+
+.PrayerDayCard__fajr-haze {
+  width: var(--sky-fajr-haze-w, 0);
+  height: var(--sky-fajr-haze-h, 0);
+  background: var(--sky-fajr-haze-bg, none);
+  filter: blur(10px);
+}
+
+.PrayerDayCard__fajr-line {
+  width: var(--sky-fajr-line-w, 0);
+  height: 5px;
+  background: var(--sky-fajr-line-bg, none);
+  filter: blur(0.8px);
+  animation: PrayerDayCard-thread-breathe 7s ease-in-out infinite;
+}
+
+/* As Fajr comes in, the thread brightens once, then breathes again. */
+.PrayerDayCard__fajr-line--arriving {
+  animation:
+    PrayerDayCard-thread-arrive 2.5s ease-out both,
+    PrayerDayCard-thread-breathe 7s ease-in-out 2.5s infinite;
+}
+
+@keyframes PrayerDayCard-thread-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes PrayerDayCard-thread-arrive {
+  0% {
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.75;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .PrayerDayCard__fajr-line,
+  .PrayerDayCard__fajr-line--arriving {
+    animation: none;
+  }
+}
+
+/*
+  Faded in after Isha by --sky-night. The stars themselves are StarField's.
+*/
+.PrayerDayCard__stars {
+  position: absolute;
+  inset: 0;
+  opacity: var(--sky-night);
+  /*
+    Thinned over the lower part of the card, where the timeline's dots and
+    the times are, like haze near the horizon: the faint stars disappear and
+    only the odd bright one shows, so few sit beside the dots. The stars turn,
+    so this is done on the still layer rather than by where they are sown.
+  */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 48%,
+    rgba(0, 0, 0, 0.3) 62%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 48%,
+    rgba(0, 0, 0, 0.3) 62%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
 }

@@ -9,7 +9,7 @@ The home screen after setup: a card counting down to the next prayer, and the da
 - The strip lists Fajr, Shuruq, Duhr, Asr, Maghrib, and Isha, in that order.
 - Times are the London Unified timetable for the London calendar date, Shafi asr (the first asr column in `src/prayer_data/london-<year>.json`).
 - The card names the next prayer ("Duhr in") and a countdown (`[data-testid=countdown]`). The previous prayer is "was … ago".
-- The column being counted down to has `data-next="true"`. The card's tail is the element `.PrayerDayCard__tail`. Whether it is actually painted is `elementFromPoint` under the card, not the element's box (`e2e/support/app.ts` `tailTarget`). `ion-card` paint containment can clip it while the box stays put.
+- The column being counted down to has `data-next="true"`. The times sit inside the card. Whether the highlight is actually painted is `elementFromPoint` at the cell's centre, not the element's box (`e2e/support/app.ts` `paintedHighlight`).
 - `[data-testid=day-date]` is the London date of the strip, en-GB, comma removed, for example `Sat 31 Oct`.
 - The card names the location (`London`).
 - After the last prayer of the day the strip rolls to tomorrow and `[data-testid=tomorrow-badge]` reads `Tomorrow`. That badge is about the display zone, not about the strip itself.
@@ -30,7 +30,7 @@ The script uses a fresh context, so it always starts on setup. It clicks the but
 
 Columns in the JSON row are month, day, fajr, shuruq, duhr, asr (Shafi), asr (Hanafi), maghrib, isha. Those clock strings are UTC instants. The script formats each one in `Europe/London` the same way `formatTimeInZone` does, and that formatted value is what the strip must show. The strip's Asr is the Shafi column unless settings say otherwise. This journey never turns Hanafi on.
 
-It also requires the strip's columns to be in timetable order (the map of times would hide a swapped strip, so it reads the DOM order too), the card to name `London` and to show the previous prayer as `was … ago`, and the tail to be painted and pointing at the highlighted column (`elementFromPoint`, as `tailTarget` does in `e2e/support/app.ts`).
+It also requires the strip's columns to be in timetable order (the map of times would hide a swapped strip, so it reads the DOM order too), the card to name `London` and to show the previous prayer as `was … ago`, and the highlighted cell to be painted inside the card (`elementFromPoint`, as `paintedHighlight` does in `e2e/support/app.ts`).
 
 It then reads `localStorage["CapacitorStorage.settings"]`, reloads, and requires the strip to still match and the **Done** button to stay absent.
 
@@ -43,7 +43,6 @@ Native: `node .cursor/skills/verify-london-prayer-times/native.mjs pass ios` (or
 - Do not assert a hardcoded countdown. The app ticks every second and the figure depends on the real clock. Assert that the countdown matches `/^\d/` and that one strip cell is `data-next="true"`.
 - Do not pin the clock for this journey. A frozen clock is how `e2e/home-page.spec.ts` stays stable; it is not what a person sees. Compare against the timetable row for the real London date.
 - The JSON strings match the screen only while London is on GMT. During British Summer Time the screen is an hour later. Compare the screen to the London-local formatting of the UTC instant, which is what `drive.mjs today` does. A hand check that diffs the raw JSON against the strip in summer is wrong, and dropping the check to make it pass is also wrong.
-- The card and the strip must stay the same width. The tail is placed at `(column + 0.5) × (100% / 6)` of the card. Horizontal padding on the strip itself moves the columns off the tail.
 - `[data-testid=tomorrow-badge]` at 23:30 London time is right. The same badge for someone whose device is already on the next calendar day, while still showing London's clock, is wrong. This journey forces `Europe/London`, so that case does not come up. Do not "fix" a missing badge by changing the device zone.
 - Between Isha and midnight, today's row is the wrong row. Use `stripDay` from `timetable.mjs`, which both drivers do. A strip that "does not match today" at 21:00 is the app working.
 - Belfast is a different timetable. This feature is London, the default after **Done**.

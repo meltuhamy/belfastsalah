@@ -1,0 +1,34 @@
+/*
+  The call going out: each wave brightens and fades in turn, outward from the
+  minaret, about every two and a half seconds.
+*/
+@keyframes AdhanIcon-wave {
+  0%,
+  100% {
+    opacity: 0.18;
+  }
+  35% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.18;
+  }
+}
+
+.AdhanIcon--calling .AdhanIcon__wave {
+  animation: AdhanIcon-wave 2.4s ease-in-out infinite;
+}
+
+.AdhanIcon--calling .AdhanIcon__wave--2 {
+  animation-delay: 0.35s;
+}
+
+.AdhanIcon--calling .AdhanIcon__wave--3 {
+  animation-delay: 0.7s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .AdhanIcon--calling .AdhanIcon__wave {
+    animation: none;
+  }
+}

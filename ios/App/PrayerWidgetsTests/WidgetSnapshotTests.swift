@@ -86,6 +86,24 @@ final class WidgetSnapshotTests: XCTestCase {
         snapshot(Fixture.entry(at: Fixture.afterIsha), .systemLarge, named: "large")
     }
 
+    func testSky() {
+        let sky = WidgetSettings(palette: .sky)
+        // Midday with the sun high, the sun going down just after Maghrib,
+        // and stars after Isha. The phone's appearance makes no difference.
+        for family in WidgetFamily.home {
+            snapshot(Fixture.entry(settings: sky), family, named: "\(family.slug)-midday")
+        }
+        // Before Fajr, the haze with Fajr's thread in it; before sunrise, the
+        // dawn glow and no sun yet.
+        snapshot(Fixture.entry(at: Fixture.beforeFajr, settings: sky), .systemMedium, .dark,
+                 named: "medium-before-fajr")
+        snapshot(Fixture.entry(at: Fixture.beforeSunrise, settings: sky), .systemMedium,
+                 named: "medium-before-sunrise")
+        snapshot(Fixture.entry(at: Fixture.sunset, settings: sky), .systemMedium, named: "medium-sunset")
+        snapshot(Fixture.entry(at: Fixture.afterIsha, settings: sky), .systemMedium, .dark,
+                 named: "medium-after-isha")
+    }
+
     func testNoTimes() {
         let empty = PrayerEntry(date: Date(), settings: WidgetSettings(), content: .empty)
         snapshot(empty, .systemSmall, named: "small")

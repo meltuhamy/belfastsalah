@@ -1,27 +1,35 @@
 /**
  * What the app looks like, and what decides it.
  *
- * One setting with four values rather than the pair of coupled booleans this
- * replaces. "System" is the default and the reason for the rewrite: it used to
- * be sampled once, at first launch, and frozen into a stored boolean, so the
- * app never followed the device again - not on the device's own light/dark
- * schedule, and not when the user changed it by hand.
+ * One setting rather than the pair of coupled booleans this replaces. "System"
+ * was the reason for the rewrite: it used to be sampled once, at first launch,
+ * and frozen into a stored boolean, so the app never followed the device again
+ * - not on the device's own light/dark schedule, and not when the user changed
+ * it by hand. "Sky" is the default for a new install (getDefaultSettings).
  */
 
 import { Prayer } from "./PrayerTimes";
 
-export type Theme = "system" | "light" | "dark" | "maghrib";
+export type Theme = "system" | "light" | "dark" | "sky";
 
 // Also the order they appear in the picker: the standard three first, then
-// the one specific to this app.
-export const THEMES: ReadonlyArray<Theme> = ["system", "light", "dark", "maghrib"];
+// this app's own. There was a "Dark after Maghrib" between them; Sky goes dark
+// at Maghrib too, and settings that had it now have Sky (migrateSettings).
+export const THEMES: ReadonlyArray<Theme> = ["system", "light", "dark", "sky"];
 
 export const themeLabels: Record<Theme, string> = {
   system: "Match device",
   light: "Light",
   dark: "Dark",
-  maghrib: "Dark after Maghrib",
+  sky: "Sky",
 };
+
+/**
+ * Put on <html> alongside the palette class while the Sky theme is on, so its
+ * stylesheet only applies then. The colours themselves arrive as custom
+ * properties, from sky.ts.
+ */
+export const SKY_THEME_CLASS = "sky-theme";
 
 /** Ionic 8 ships this palette; adding the class to <html> switches to it. */
 export const DARK_PALETTE_CLASS = "ion-palette-dark";
@@ -52,7 +60,8 @@ export function isDark(theme: Theme, conditions: Conditions): boolean {
       return false;
     case "dark":
       return true;
-    case "maghrib":
+    // Dark from Maghrib to sunrise, so its night agrees with the timetable's.
+    case "sky":
       // Falling back to the device's setting rather than to light: it is the
       // better guess for the moment before the timetable arrives, and someone
       // who picked this mode wants dark at night, which is when a device is

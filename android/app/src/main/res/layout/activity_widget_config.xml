@@ -50,6 +50,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/config_bg_dark" />
+        <RadioButton
+            android:id="@+id/palette_sky"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/config_bg_sky" />
     </RadioGroup>
 
     <TextView

@@ -19,36 +19,30 @@ describe("isDark", () => {
     expect(isDark("system", { ...DAY, prefersDark: true })).toBe(true);
     expect(isDark("system", { ...NIGHT, prefersDark: false })).toBe(false);
   });
+});
 
-  describe("maghrib", () => {
-    // Dark from Maghrib to sunrise, which is the stretch where the prayer
-    // still ahead of you is Isha, Fajr or Shuruq.
-    it("Should be dark between Maghrib and sunrise", () => {
-      for (const nextPrayer of [Prayer.Isha, Prayer.Fajr, Prayer.Shuruq]) {
-        expect(isDark("maghrib", { prefersDark: false, nextPrayer })).toBe(true);
-      }
-    });
+describe("sky", () => {
+  // Its colours change all day, but it goes dark from Maghrib to sunrise, so
+  // its night agrees with the timetable's - which is what "Dark after
+  // Maghrib" did before Sky replaced it.
+  it("Should be dark between Maghrib and sunrise, and light otherwise", () => {
+    for (const nextPrayer of [Prayer.Isha, Prayer.Fajr, Prayer.Shuruq]) {
+      expect(isDark("sky", { prefersDark: false, nextPrayer })).toBe(true);
+    }
+    for (const nextPrayer of [Prayer.Duhr, Prayer.Asr, Prayer.Maghrib]) {
+      expect(isDark("sky", { prefersDark: true, nextPrayer })).toBe(false);
+    }
+  });
 
-    it("Should be light between sunrise and Maghrib", () => {
-      for (const nextPrayer of [Prayer.Duhr, Prayer.Asr, Prayer.Maghrib]) {
-        expect(isDark("maghrib", { prefersDark: true, nextPrayer })).toBe(false);
-      }
-    });
-
-    it("Should fall back to the device before the timetable loads", () => {
-      expect(isDark("maghrib", { prefersDark: true, nextPrayer: null })).toBe(
-        true
-      );
-      expect(isDark("maghrib", { prefersDark: false, nextPrayer: null })).toBe(
-        false
-      );
-    });
+  it("Should fall back to the device before it has a day to follow", () => {
+    expect(isDark("sky", { prefersDark: true, nextPrayer: null })).toBe(true);
+    expect(isDark("sky", { prefersDark: false, nextPrayer: null })).toBe(false);
   });
 });
 
 describe("theme options", () => {
   it("Should offer the standard three first, then this app's own", () => {
-    expect(THEMES).toEqual(["system", "light", "dark", "maghrib"]);
+    expect(THEMES).toEqual(["system", "light", "dark", "sky"]);
   });
 
   it("Should label every option it offers", () => {

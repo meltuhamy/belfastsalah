@@ -285,39 +285,75 @@ without it the knob was being yanked back to the stored value mid-drag. It is
 also why `SetupPage` uses a functional state update. Bear it in mind before
 adding another control that has to hold state while being interacted with.
 
-## The card that points at the next prayer
+## The day card
 
-`PrayerDayCard` is the blue countdown card, and below it the strip of the
-day's six times on the page background. The card has a tail that points at
-whichever column is next.
+`PrayerDayCard` is one card, laid out like the home screen widget: the
+countdown and where and when across the top, the day's six times along the
+bottom with the next one on a frosted pane, and open sky in between. It is tall
+on purpose - in the Sky theme the sun travels that space and the stars fill it.
+The Sky theme's colours, sun position and highlight panes (`--sky-glass`) all
+come from `skyProperties` in `src/lib/sky.ts`; the card squeezes the sun's arc
+into the open band so it never sits on the countdown, while the widgets draw
+sky.ts's arc as it is. The stars are `StarField`: a new random scatter
+(`src/lib/starfield.ts`) every time the card mounts, painted once into a canvas
+and turned slowly about the middle of the card's top edge - made on mount, not
+on render, or the once-a-second tick would reshuffle them. They sit at three
+depths, each its own layer; tipping the phone (`tilt.ts`) moves each layer by a
+different amount (`STAR_LAYERS`), written onto the elements and eased a
+frame at a time by `createTiltEaser`, with a top speed - not by a CSS
+transition, which every reading restarted at full speed. The tilt is measured
+on which way is up (`upFor`), never on `beta`/`gamma` directly: those Euler
+angles flip by up to 180 degrees as a phone passes upright, which threw the
+stars across the card now and then (MEL-352). Springs, with overshoot, were
+tried and taken out: plain easing felt better.
+By day there is a faint lens flare (`LensFlare`): ghosts on the line from the
+sun through the card's middle, which the tilt shifts a little, so the line drifts about
+the sun. It fades with `--sky-sun-on`. The stars and the flare share one tilt
+listener's logic, `useTilt`, which also asks iOS for the readings.
 
-The tail is placed by arithmetic, not by measuring: `--next-column` is the
-`Prayer` enum value of the next prayer — the enum is ordered as the strip is,
-so it *is* the column index — and the tail sits at
-`(column + 0.5) × (100% / 6)` of the card's width. That only lands on a column
-centre because the card and the strip are the same width and the strip's grid
-spans all of it. The wrapper owns the margins and the `IonCard` inside it has
-none, so that is true by construction rather than by two elements agreeing;
-keep it that way, and keep horizontal padding out of the strip itself (it goes
-inside the cells instead).
+The card's sun is strictly from Shuruq (`--sky-sun-on`, rising in over three
+minutes) to ten minutes after Maghrib, though sky.ts's arc has it up 45
+minutes either side; the widgets draw their sun at the same strength. Before Shuruq the card shows
+first light instead: a warm glow on the horizon at the left, where the sun
+will come up (`--sky-dawn`, `PrayerDayCard__dawn`).
 
-Two Ionic details cost an afternoon each, and both are undone in
-`PrayerDayCard.css`:
+Fajr has a moment of its own on the Sky card, the white thread of dawn in a
+haze (`fajrThread` in sky.ts, designed in the "Fajr moments" canvas): a soft
+band of pale light gathers on the horizon over the hour before Fajr, with a
+soft line of light inside it for the last 25 minutes. As Fajr comes in the
+line brightens once (`PrayerDayCard__fajr-line--arriving`, keyed on Fajr's
+adhan moment), then breathes; between Fajr and Shuruq the light warms to
+peach, drifts left and hands over to the dawn glow, and by Shuruq it has
+gone. sky.ts writes whole `radial-gradient`s (`--sky-fajr-haze-bg`,
+`--sky-fajr-line-bg`) since old iOS cannot mix colours in CSS. The line is a
+blurred glow a few px tall, never a 1px stroke, which read as a cut across
+the card. The widgets draw it too, still (see Sky widgets).
 
-- **`ion-card` sets `contain: content` as well as `overflow: hidden`.** Paint
-  containment clips to the border box by itself, whatever `overflow` says, so
-  overriding only `overflow` leaves the tail invisible with nothing in the DOM
-  to show for it. `e2e/support/app.ts`'s `tailTarget` asks the page what is
-  actually painted in the gap below the card, via `elementFromPoint`, because
-  a clipped tail keeps its box and its position — a geometry assertion passes
-  straight through this bug.
+Two Ionic details to know, both handled in `PrayerDayCard.css`:
+
 - **`ion-card` is a shadow host**, so `::before`/`::after` on it are never
-  rendered; its box children come from the shadow tree. The tail is a real
-  `<span>`.
+  rendered; the sun and stars are real `<span>`s in a layer of their own.
+- **Text inside a card needs its class doubled up** (`.PrayerDayCard .X`):
+  Ionic styles it as `.card-content-md p`, which outweighs a single class of
+  ours and flattens every line to the same size.
 
-Text inside a card needs its class doubled up (`.PrayerDayCard .X`): Ionic
-styles it as `.card-content-md p`, which outweighs a single class of ours and
-flattens every line to the same size.
+For five minutes after a prayer comes in its adhan is being called, and the
+card says "It's time for Asr" with the adhan icon calling, then "Maghrib is
+in …"; Asr stays highlighted, and the strip
+stays on that prayer's day. `src/lib/adhanMoment.ts` decides, never for
+Shuruq. It also covers the moment after a prayer's time when `next` is still
+that prayer, before the app has fetched the one after - the card used to go
+blank there - and a prayer's exact second, which the `prev`/`next` lookups
+count as neither. The highlight is one pane behind the cells that glides from
+column to column, and each new headline rises in as the old one drifts out
+(`HeadlineSlot`); the outgoing copy has its test ids stripped. The countdown
+rounds its seconds up, as a countdown does: rounded down, the last
+part-second was "0s", which prints nothing, and the card said only "Fajr in"
+(MEL-351).
+
+`e2e/support/app.ts`'s `paintedHighlight` asks the page what is actually drawn
+at the highlighted cell, via `elementFromPoint`, so a cell clipped by the
+card's corners does not pass on its box alone.
 
 After the last prayer of the day the strip shows *tomorrow's* times, since
 that is what the card is counting down to — `usePrayerStrip`. The "Tomorrow"
@@ -356,6 +392,13 @@ and there is the test day (`/settings/notifications/test`).
   passed is still ahead. Both sort by time, since offsets can cross. The
   body is `reminderBody(offset)`: "In 10 minutes", "Prayer time now",
   "10 minutes ago".
+- **Android never posts a reminder early, or twice.** A Xiaomi delivered
+  exact alarms a minute or two early, and a reminder posted early was still
+  ahead of the clock, so the next replan armed it again and it came a second
+  time. A broadcast more than `EARLY_TOLERANCE_MILLIS` (5s) early is not
+  posted and the reminder is armed again for its time; `PostedReminders`
+  remembers the last few posted so a re-armed one is skipped
+  (`ReminderAlarmsTest`).
 - **`PrayerReminderEditor`** is the one editor, used on a prayer's screen and
   in the test day's sheet: switch, slider, and a sound list where tapping a
   row chooses it and only its speaker button plays it (`soundPreview.ts`).
@@ -441,8 +484,12 @@ and there is the test day (`/settings/notifications/test`).
 
 ## Theming
 
-One setting, `theme`, with four values: `system` (default), `light`, `dark`,
-`maghrib`. `src/lib/theme.ts` decides; `useTheme` in `App.tsx` is the only
+One setting, `theme`, with four values: `system`, `light`, `dark`, `sky`.
+`sky` is a new install's default (`getDefaultSettings`); settings saved
+without a theme migrate to `system`, which was the default when they were
+written, so an upgrade does not change the look. There used to be a `maghrib`
+("Dark after Maghrib"); Sky goes dark at Maghrib too, and `migrateSettings`
+moves it there. `src/lib/theme.ts` decides; `useTheme` in `App.tsx` is the only
 thing that touches the palette class, and it puts Ionic's `.ion-palette-dark`
 on `<html>`.
 
@@ -454,6 +501,77 @@ looks fine until you notice the striped rows in the month table are white.
 
 Setup keeps its answers local until Done, so it reports the theme up to
 `App` via `onThemePreview` — otherwise the picker looks dead on that screen.
+
+### Sky
+
+The Sky theme paints the countdown card as the sky for the moment, and tints
+the rest of the app from it. `src/lib/sky.ts` decides everything and is pure:
+ten colour points built from the day's own prayer times (the six prayers, plus
+Fajr − 60, Shuruq + 90, Maghrib − 25 and Isha + 90), blended in OKLab. The
+widgets will draw the same sky from it (MEL-336), so colours belong there and
+nowhere else.
+
+- **`useTheme` applies it**, as custom properties on `<html>` plus the
+  `sky-theme` class, and only when the minute changes - not on the
+  once-a-second tick. `theme/sky.css` re-points Ionic's palette at them and
+  is imported after `dark.class.css`, at the same specificity as its most
+  specific rule. Tints are computed in TypeScript because the oldest iOS the
+  app runs on has no `color-mix()`.
+- **Dark follows `maghrib`'s rule.** The tint changes all day, but the
+  palette only flips at Maghrib and Shuruq, so the page's text colour is
+  never caught between the two.
+- **Text on the card is black or white, at full strength.** Any colour reads
+  at 4.58:1 or better against one of the two. Where the sky turns from dark to
+  light, a straight blend leaves the top of the card dark while its middle is
+  already light, and no text colour reads against both. So `blend` bends the
+  middle and horizon to cross over at the instant the top does. `sky.test.ts`
+  checks every five minutes of a year, and every minute of the clock-change
+  days. Do not fade the card's secondary lines in this theme: the contrast
+  only holds at full opacity.
+- **Setup has no times yet**, so `useTheme` stands London's day in for the
+  preview.
+- **The day bar runs midnight to midnight in the timetable's zone**
+  (`timetableZoneFor`), so Istanbul's day starts at Istanbul's midnight.
+- The sun and stars are a decorative layer inside the card, clipped on its
+  own: the card itself keeps `overflow`/`contain` undone for the tail.
+
+### Sky widgets
+
+The widgets have a Sky palette too, drawn from the same module. The sky
+changes all day but the payload is only written when the app runs, so this is
+the one calculation the native side does itself:
+
+- **The payload carries the inputs, not the answers**: each day's ten point
+  times (`WidgetDay.sky`) and the ten points' colours (`skyColours`).
+  `WidgetSky.kt` and the `WidgetSky` enum in `WidgetPayload.swift` are
+  line-by-line ports of `skyAtTimes`/`skyAtDays`. A change to the blend in
+  `sky.ts` has to be made in both.
+- **`fixtures/widget-payload/sky-london-2026-01-15.json` holds them to it**:
+  TypeScript writes over 500 samples of its own answer (every ten minutes for
+  two days, every minute through dawn and into sunset), and `WidgetSkyTest`
+  and `SkyTests` check the ports against them, a channel's rounding apart.
+  Regenerate with `UPDATE_FIXTURES=1 npx vitest run widgetPayload.fixture`.
+- **Android draws the sky as a bitmap** (`SkyPainter`) into an ImageView,
+  `sky_background`, which every widget layout now has behind its content in
+  a FrameLayout - RemoteViews cannot set a gradient at runtime. The picture
+  is kept under about 470KB: a RemoteViews crosses processes in one binder
+  transaction, which fails above about 1MB.
+- **Android redraws a Sky widget every quarter hour** with a plain RTC
+  alarm (`WidgetAlarms.scheduleSkyTick`), which does not wake the phone:
+  while the screen is off it waits, so the sky costs nothing until someone
+  could see it. The prayer boundary's exact alarm is separate and unchanged.
+- **iOS gives a Sky timeline an entry every quarter hour**, each with its
+  own `PrayerEntry.sky`. Sixty entries is about fifteen hours.
+- On the sky, text is black or white at full strength and the next prayer's
+  highlight is frosted glass, whatever highlight colour was chosen.
+- **The light on the sky is ported too**: the sun's strength, the dawn glow
+  and Fajr's thread (`skyLightAtTimes` in sky.ts, `SkyState.light` in
+  `WidgetSky.kt` and `WidgetPayload.swift`), worked out from the same point
+  times. The samples fixture carries `light` at every sample and both native
+  sky tests check it. `SkyPainter` and `SkyBackground` draw it as still
+  pictures - a widget cannot animate, so the card's breathing line is just
+  a line there - with the haze shallower on short widgets. The screenshot
+  tests have a Sky frame before Fajr and one before sunrise.
 
 ## Prayer data
 

@@ -39,9 +39,10 @@ export function getDefaultSettings(): AppSettings {
     // reminders always were. An adhan is opt-in.
     reminders: defaultReminders(),
     asrMethod: AsrMethod.Shafi,
-    // Following the device is the default. It used to be a boolean seeded
-    // from the device once at first launch and then never updated again.
-    theme: "system",
+    // Sky is the default for a new install: the app's own look, and dark
+    // or light by the day's prayer times rather than the device. Settings
+    // saved before it keep whatever theme they had.
+    theme: "sky",
     timeFormat: "system",
     location: null,
     showTimesInDeviceZone: false,
@@ -67,7 +68,8 @@ function themeFromLegacy(legacy: LegacySettings): Theme | null {
   if (!legacy.nightMode) {
     return "light";
   }
-  return legacy.nightModeMaghrib ? "maghrib" : "dark";
+  // "Dark after Maghrib" became its own theme, which Sky has since replaced.
+  return legacy.nightModeMaghrib ? "sky" : "dark";
 }
 
 /**
@@ -90,11 +92,22 @@ export function migrateSettings(stored: unknown): AppSettings {
     ...rest
   } = (stored ?? {}) as LegacySettings & Partial<AppSettings>;
   const legacyTheme = themeFromLegacy({ nightMode, nightModeMaghrib });
-  const defaults = getDefaultSettings();
+  const defaults = {
+    ...getDefaultSettings(),
+    // Settings saved without a theme were following the device, which was
+    // the default then. Sky is the default for new installs only, so an
+    // upgrade does not change how the app looks.
+    theme: "system" as Theme,
+  };
+  // "Dark after Maghrib" is gone; Sky goes dark at Maghrib too, and has the
+  // day's colours besides.
+  const storedTheme = (rest as { theme?: string }).theme;
+  const theme: Theme | null =
+    legacyTheme ?? (storedTheme === "maghrib" ? "sky" : null);
   return {
     ...defaults,
     ...rest,
-    ...(legacyTheme === null ? {} : { theme: legacyTheme }),
+    ...(theme === null ? {} : { theme }),
     reminders: migrateReminders(reminders, { notifyMinutes, notifySound, fajrSound }),
   };
 }

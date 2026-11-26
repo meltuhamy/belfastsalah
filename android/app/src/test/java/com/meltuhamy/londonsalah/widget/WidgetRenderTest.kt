@@ -259,6 +259,86 @@ class WidgetRenderTest {
         assertEquals(Color.WHITE, widget.textColor(R.id.widget_countdown))
     }
 
+    // --- The Sky palette -------------------------------------------------------
+
+    private val sky = WidgetConfig(palette = WidgetPalette.SKY)
+
+    @Test
+    fun `the sky palette draws the sky behind every widget`() {
+        for (kind in WidgetKind.values()) {
+            val widget = draw(kind, homeScreenSize(kind), sky)
+            assertTrue("$kind", widget.isShown(R.id.sky_background))
+            assertTrue("$kind", widget.skyPicture() != null)
+        }
+    }
+
+    @Test
+    fun `other palettes draw no sky`() {
+        for (palette in listOf(WidgetPalette.LIGHT, WidgetPalette.DARK, WidgetPalette.SYSTEM)) {
+            for (kind in WidgetKind.values()) {
+                val widget = draw(kind, homeScreenSize(kind), WidgetConfig(palette = palette))
+                assertFalse("$palette $kind", widget.isShown(R.id.sky_background))
+            }
+        }
+    }
+
+    @Test
+    fun `the sky takes black text by day and white by night`() {
+        // 13:00 is after Duhr, under a midday sky; just after Isha it is dusk.
+        for ((kind, _, countdown) in headed) {
+            val day = draw(kind, homeScreenSize(kind), sky, nowMillis = ONE_PM)
+            assertEquals("$kind by day", Color.BLACK, day.textColor(countdown))
+            val night = draw(kind, homeScreenSize(kind), sky, nowMillis = AFTER_ISHA)
+            assertEquals("$kind at night", Color.WHITE, night.textColor(countdown))
+        }
+    }
+
+    @Test
+    fun `a mostly see-through sky takes the wallpaper's light text`() {
+        // The sky's black-or-white is for the sky. Faded to a fifth, a midday
+        // sky shows the wallpaper through it, which is more often dark.
+        val faded = sky.copy(opacity = 20)
+        for ((kind, _, countdown) in headed) {
+            val day = draw(kind, homeScreenSize(kind), faded, nowMillis = ONE_PM)
+            assertEquals("$kind", Color.WHITE, day.textColor(countdown))
+        }
+    }
+
+    @Test
+    fun `text on the sky is never faded`() {
+        // sky.ts chooses black or white to read at 4.5:1 against the sky, which
+        // only holds at full strength.
+        val widget = draw(WidgetKind.WIDE, homeScreenSize(WidgetKind.WIDE), sky)
+        assertEquals(Color.BLACK, widget.textColor(R.id.widget_next_label))
+        assertEquals(Color.BLACK, widget.textColor(R.id.widget_date))
+    }
+
+    @Test
+    fun `the sky still highlights the next prayer`() {
+        for (kind in timetables) {
+            val widget = draw(kind, homeScreenSize(kind), sky)
+            assertEquals("$kind", listOf(ASR), widget.highlighted(CELLS.getValue(kind)))
+        }
+    }
+
+    @Test
+    fun `the sky follows the clock`() {
+        // The picture is drawn fresh for each moment: midday and dusk differ.
+        val kind = WidgetKind.WIDE
+        val day = draw(kind, homeScreenSize(kind), sky, nowMillis = ONE_PM).skyPicture()!!
+        val dayTop = day.getPixel(day.width / 2, 1)
+        val night = draw(kind, homeScreenSize(kind), sky, nowMillis = AFTER_ISHA).skyPicture()!!
+        val nightTop = night.getPixel(night.width / 2, 1)
+        assertTrue(Color.blue(dayTop) > Color.blue(nightTop) + 80)
+    }
+
+    @Test
+    fun `a sky widget with no times asks to be opened, without a sky`() {
+        val widget = draw(WidgetKind.WIDE, homeScreenSize(WidgetKind.WIDE), sky, payload = null)
+        assertFalse(widget.isShown(R.id.sky_background))
+        assertEquals("Open the app", widget.text(R.id.widget_location))
+    }
+
     private fun clock(millis: Long): String {
         val minutes = (millis / 60_000) % (24 * 60)
         return "%02d:%02d".format(minutes / 60, minutes % 60)

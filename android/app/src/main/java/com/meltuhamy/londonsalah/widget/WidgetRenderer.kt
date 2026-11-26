@@ -1,8 +1,10 @@
 package com.meltuhamy.londonsalah.widget
 
 import android.app.PendingIntent
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
 import android.os.SystemClock
 import android.util.TypedValue
 import android.view.View
@@ -117,28 +119,80 @@ object WidgetRenderer {
      * `nowMillis` decides which prayer is next and what the countdown reads.
      * Everything in the app passes nothing and gets the real clock; tests pin
      * it, which is what makes a rendered widget the same on every run.
+     *
+     * `boxDp` is the widget's width and height, for the Sky palette's picture
+     * to be drawn in the right proportions. Null draws it in the kind's usual
+     * shape, cropped to fit.
      */
     fun render(
         context: Context,
         kind: WidgetKind,
         config: WidgetConfig,
         sizeDp: Int? = null,
-        nowMillis: Long = System.currentTimeMillis()
+        nowMillis: Long = System.currentTimeMillis(),
+        boxDp: Pair<Int, Int>? = null
     ): RemoteViews {
         val views = RemoteViews(context.packageName, kind.layoutId)
         val payload = WidgetPayload.parse(WidgetStore.read(context))
         val next = payload?.nextAfter(nowMillis)
         val day = if (payload != null && next != null) payload.dayOf(next) else null
+        val sky =
+            if (config.palette == WidgetPalette.SKY && next != null) payload?.skyAt(nowMillis)
+            else null
+
+        paintSky(context, views, kind, config, sky, boxDp)
 
         return when (kind) {
             WidgetKind.TILE ->
-                renderTile(context, views, config, payload, next, sizeDp, nowMillis)
+                renderTile(context, views, config, sky, payload, next, sizeDp, nowMillis)
             WidgetKind.COMPACT ->
-                renderInline(context, views, config, day, next, COMPACT_IDS, nowMillis)
+                renderInline(context, views, config, sky, day, next, COMPACT_IDS, nowMillis)
             WidgetKind.COLUMN ->
-                renderInline(context, views, config, day, next, COLUMN_IDS_INLINE, nowMillis)
-            else -> renderTimetable(context, views, config, payload, day, next, nowMillis)
+                renderInline(context, views, config, sky, day, next, COLUMN_IDS_INLINE, nowMillis)
+            else -> renderTimetable(context, views, config, sky, payload, day, next, nowMillis)
         }
+    }
+
+    /** A kind's usual shape on a phone, for when the launcher has not said. */
+    private fun usualBoxDp(kind: WidgetKind): Pair<Int, Int> = when (kind) {
+        WidgetKind.TILE -> 160 to 160
+        WidgetKind.COMPACT -> 320 to 80
+        WidgetKind.COLUMN -> 80 to 300
+        WidgetKind.WIDE -> 320 to 150
+        WidgetKind.TALL -> 150 to 300
+    }
+
+    /**
+     * The Sky palette's picture behind the content, or nothing for every
+     * other palette - and for a Sky widget with no times, which shows the
+     * dark palette's plain background while it asks to be opened.
+     */
+    private fun paintSky(
+        context: Context,
+        views: RemoteViews,
+        kind: WidgetKind,
+        config: WidgetConfig,
+        sky: SkyState?,
+        boxDp: Pair<Int, Int>?
+    ) {
+        if (sky == null) {
+            views.setViewVisibility(R.id.sky_background, View.GONE)
+            return
+        }
+        val (widthDp, heightDp) = boxDp ?: usualBoxDp(kind)
+        val narrow = kind == WidgetKind.COMPACT || kind == WidgetKind.COLUMN
+        views.setImageViewBitmap(
+            R.id.sky_background,
+            SkyPainter.paint(
+                sky,
+                widthDp,
+                heightDp,
+                context.resources.displayMetrics.density,
+                sunDp = if (narrow) 20f else 26f
+            )
+        )
+        views.setInt(R.id.sky_background, "setImageAlpha", config.alpha())
+        views.setViewVisibility(R.id.sky_background, View.VISIBLE)
     }
 
     /**
@@ -154,16 +208,18 @@ object WidgetRenderer {
         context: Context,
         views: RemoteViews,
         config: WidgetConfig,
+        sky: SkyState?,
         day: WidgetDay?,
         next: WidgetUpcoming?,
         ids: InlineIds,
         nowMillis: Long
     ): RemoteViews {
         views.setOnClickPendingIntent(ids.root, openApp(context))
-        views.setInt(ids.root, "setBackgroundColor", config.backgroundColor(context))
+        views.setInt(ids.root, "setBackgroundColor", config.backgroundColor(context, sky))
 
-        val primary = config.primaryTextColor(context)
-        val secondary = config.secondaryTextColor(context)
+        val primary = config.primaryTextColor(context, sky)
+        val secondary = config.secondaryTextColor(context, sky)
+        val onAccent = config.accentTextColor(context, sky)
 
         for (i in ids.cells.indices) {
             WidgetCountdown.stopTicking(views, ids.countdowns[i])
@@ -183,23 +239,23 @@ object WidgetRenderer {
             // Matched by name because that is what both sides agree on: the
             // upcoming list and today's rows come from the same source.
             val isNext = next != null && prayer.name == next.name
-            val highlight = if (isNext) config.accentDrawable() else 0
+            val highlight = if (isNext) config.accentDrawable(context, sky) else 0
             views.setInt(ids.cells[i], "setBackgroundResource", highlight)
 
             val onHighlight = highlight != 0
             views.setTextColor(
                 ids.names[i],
-                if (onHighlight) config.accentTextColor(context) else secondary
+                if (onHighlight) onAccent else secondary
             )
             views.setTextColor(
                 ids.times[i],
-                if (onHighlight) config.accentTextColor(context) else primary
+                if (onHighlight) onAccent else primary
             )
 
             if (isNext && next != null && config.countdown == CountdownMode.SECONDS) {
                 views.setTextColor(
                     ids.countdowns[i],
-                    if (onHighlight) config.accentTextColor(context) else secondary
+                    if (onHighlight) onAccent else secondary
                 )
                 views.setViewVisibility(ids.countdowns[i], View.VISIBLE)
                 WidgetCountdown.startTicking(views, next, ids.countdowns[i], nowMillis)
@@ -213,16 +269,17 @@ object WidgetRenderer {
         context: Context,
         views: RemoteViews,
         config: WidgetConfig,
+        sky: SkyState?,
         payload: WidgetPayload?,
         next: WidgetUpcoming?,
         sizeDp: Int?,
         nowMillis: Long
     ): RemoteViews {
         views.setOnClickPendingIntent(R.id.tile_root, openApp(context))
-        views.setInt(R.id.tile_root, "setBackgroundColor", config.backgroundColor(context))
-        views.setTextColor(R.id.tile_prayer, config.secondaryTextColor(context))
-        views.setTextColor(R.id.tile_countdown, config.primaryTextColor(context))
-        views.setTextColor(R.id.tile_location, config.secondaryTextColor(context))
+        views.setInt(R.id.tile_root, "setBackgroundColor", config.backgroundColor(context, sky))
+        views.setTextColor(R.id.tile_prayer, config.secondaryTextColor(context, sky))
+        views.setTextColor(R.id.tile_countdown, config.primaryTextColor(context, sky))
+        views.setTextColor(R.id.tile_location, config.secondaryTextColor(context, sky))
 
         // RemoteViews has no auto-sizing text before API 31, so a one-cell
         // tile would simply clip "3:27:23". Sized here instead, from whichever
@@ -266,6 +323,7 @@ object WidgetRenderer {
         context: Context,
         views: RemoteViews,
         config: WidgetConfig,
+        sky: SkyState?,
         payload: WidgetPayload?,
         day: WidgetDay?,
         next: WidgetUpcoming?,
@@ -273,9 +331,10 @@ object WidgetRenderer {
     ): RemoteViews {
         views.setOnClickPendingIntent(R.id.widget_root, openApp(context))
 
-        val primary = config.primaryTextColor(context)
-        val secondary = config.secondaryTextColor(context)
-        views.setInt(R.id.widget_root, "setBackgroundColor", config.backgroundColor(context))
+        val primary = config.primaryTextColor(context, sky)
+        val secondary = config.secondaryTextColor(context, sky)
+        val onAccent = config.accentTextColor(context, sky)
+        views.setInt(R.id.widget_root, "setBackgroundColor", config.backgroundColor(context, sky))
         views.setTextColor(R.id.widget_next_label, secondary)
         views.setTextColor(R.id.widget_countdown, primary)
         views.setTextColor(R.id.widget_location, secondary)
@@ -340,16 +399,16 @@ object WidgetRenderer {
             // Matched by name because that is what both sides agree on: the
             // upcoming list and today's rows come from the same source.
             val highlight =
-                if (prayer.name == next.name) config.accentDrawable() else 0
+                if (prayer.name == next.name) config.accentDrawable(context, sky) else 0
             views.setInt(COLUMN_IDS[i], "setBackgroundResource", highlight)
             val onHighlight = highlight != 0
             views.setTextColor(
                 NAME_IDS[i],
-                if (onHighlight) config.accentTextColor(context) else secondary
+                if (onHighlight) onAccent else secondary
             )
             views.setTextColor(
                 TIME_IDS[i],
-                if (onHighlight) config.accentTextColor(context) else primary
+                if (onHighlight) onAccent else primary
             )
         }
 
@@ -365,4 +424,16 @@ object WidgetRenderer {
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+}
+
+/**
+ * A placed widget's width and height in dp, as its launcher reports them, or
+ * null when it has not. In portrait a widget is about its minimum width and
+ * maximum height, which is what is taken - the Sky palette's picture is
+ * cropped to fit anyway, so close is enough.
+ */
+fun widgetBoxDp(options: Bundle?): Pair<Int, Int>? {
+    val width = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) ?: 0
+    val height = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0) ?: 0
+    return if (width > 0 && height > 0) width to height else null
 }

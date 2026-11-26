@@ -34,10 +34,14 @@ describe("migrateSettings", () => {
       "dark"
     );
     expect(
-      migrateSettings(
-        legacyStored({ nightMode: true, nightModeMaghrib: true })
-      ).theme
-    ).toEqual("maghrib");
+      migrateSettings(legacyStored({ nightMode: true, nightModeMaghrib: true }))
+        .theme
+    ).toEqual("sky");
+  });
+
+  it("Should move Dark after Maghrib, which is gone, to Sky", () => {
+    const stored = { ...getDefaultSettings(), theme: "maghrib" };
+    expect(migrateSettings(stored).theme).toEqual("sky");
   });
 
   it("Should ignore the maghrib flag when dark mode was off", () => {
@@ -71,7 +75,7 @@ describe("migrateSettings", () => {
   });
 
   it("Should leave already-current settings alone", () => {
-    const current = { ...getDefaultSettings(), theme: "maghrib" as const };
+    const current = { ...getDefaultSettings(), theme: "dark" as const };
     expect(migrateSettings(current)).toEqual(current);
   });
 
@@ -79,5 +83,9 @@ describe("migrateSettings", () => {
     // No nightMode at all: either a fresh blob or one already migrated.
     const { nightMode: _nightMode, ...noTheme } = legacyStored();
     expect(migrateSettings(noTheme).theme).toEqual("system");
+  });
+
+  it("Should give a new install the Sky theme", () => {
+    expect(getDefaultSettings().theme).toEqual("sky");
   });
 });

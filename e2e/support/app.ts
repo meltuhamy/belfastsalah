@@ -103,33 +103,32 @@ export async function highlightedPrayer(page: Page): Promise<string> {
 }
 
 /**
- * Where the card's tail is pointing, read off the screen rather than out of the
- * markup.
- *
- * `painted` asks the page what is actually drawn in the gap below the card,
- * because a tail that has been clipped away keeps its box and its position -
- * ion-card's paint containment swallowed it whole the first time round, and
- * nothing about the DOM said so. `column` is the strip cell the tip lands in.
+ * Whether the next prayer's highlight is drawn, inside the card, where its cell
+ * is: asks the page what is actually painted at the cell's centre, so a cell
+ * clipped by the card's rounded corners or pushed out of it does not pass on
+ * its box alone. Returns the highlighted prayer's name, or null.
  */
-export async function tailTarget(
-  page: Page
-): Promise<{ painted: boolean; column: string | null }> {
+export async function paintedHighlight(page: Page): Promise<string | null> {
   return page.evaluate(() => {
-    const tail = document.querySelector(".PrayerDayCard__tail")!;
-    const bubble = document.querySelector(".PrayerDayCard__bubble")!;
-    const box = tail.getBoundingClientRect();
-    const x = box.x + box.width / 2;
-    const y = bubble.getBoundingClientRect().bottom + 2;
-
-    let column: string | null = null;
-    for (const cell of document.querySelectorAll("[data-testid=strip-cell]")) {
-      const rect = cell.getBoundingClientRect();
-      if (x >= rect.left && x <= rect.right) {
-        column = cell.querySelector("span")!.textContent!.trim();
-      }
-    }
-
-    return { painted: document.elementFromPoint(x, y) === tail, column };
+    const cell = document.querySelector(
+      "[data-testid=strip-cell][data-next=true]"
+    );
+    const card = document.querySelector(".PrayerDayCard");
+    if (cell == null || card == null) return null;
+    const box = cell.getBoundingClientRect();
+    const outer = card.getBoundingClientRect();
+    const inside =
+      box.left >= outer.left &&
+      box.right <= outer.right &&
+      box.top >= outer.top &&
+      box.bottom <= outer.bottom;
+    const hit = document.elementFromPoint(
+      box.left + box.width / 2,
+      box.top + box.height / 2
+    );
+    return inside && hit != null && cell.contains(hit)
+      ? cell.querySelector("span")!.textContent!.trim()
+      : null;
   });
 }
 

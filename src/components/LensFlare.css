@@ -1,0 +1,63 @@
+/*
+  Fills the card's sky layer. --sun-left and --sun-top are the sun's centre,
+  set on that layer (PrayerDayCard.css), so the flare follows the sun's arc
+  exactly; --lens-x and --lens-y are the tilt's shift of the lens's centre.
+  Screen-blended, so it only ever brightens the sky, as reflections do.
+*/
+.LensFlare {
+  position: absolute;
+  inset: 0;
+  opacity: var(--sky-sun-on, 0);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  transition: opacity 600ms ease;
+}
+
+/* A very faint wash of light around the sun: the haze a bright source leaves. */
+.LensFlare__veil {
+  position: absolute;
+  left: var(--sun-left);
+  top: var(--sun-top);
+  width: 220px;
+  height: 220px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle closest-side,
+    rgba(255, 248, 228, 0.1) 0%,
+    rgba(255, 248, 228, 0) 100%
+  );
+}
+
+/*
+  A ghost: on the line from the sun through the lens's centre (the card's
+  middle, shifted by the tilt), `--at` of the way along. Brightest just inside
+  its edge and tinted there, with a soft middle, as a reflection off a curved
+  surface is. The tilt is eased frame by frame in useTilt.
+*/
+.LensFlare__ghost {
+  position: absolute;
+  left: calc(
+    var(--sun-left) + (50% + var(--lens-x, 0px) - var(--sun-left)) * var(--at)
+  );
+  top: calc(
+    var(--sun-top) + (50% + var(--lens-y, 0px) - var(--sun-top)) * var(--at)
+  );
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle closest-side,
+    rgba(var(--tint), calc(var(--strength) * 0.55)) 0%,
+    rgba(var(--tint), calc(var(--strength) * 0.7)) 62%,
+    rgba(var(--tint), var(--strength)) 82%,
+    rgba(var(--tint), 0) 100%
+  );
+  filter: blur(0.6px);
+}
+
+/* The camera's iris: a hexagon, its corners softened by the blur. */
+.LensFlare__ghost--iris {
+  border-radius: 0;
+  clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0% 50%);
+  filter: blur(0.8px);
+}

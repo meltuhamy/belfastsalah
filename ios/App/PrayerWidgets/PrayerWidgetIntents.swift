@@ -34,11 +34,11 @@ enum HighlightOption: String, AppEnum {
 }
 
 enum BackgroundOption: String, AppEnum {
-    case system, light, dark
+    case system, light, dark, sky
 
     static let typeDisplayRepresentation: TypeDisplayRepresentation = "Background"
     static let caseDisplayRepresentations: [BackgroundOption: DisplayRepresentation] = [
-        .system: "Match the phone", .light: "Light", .dark: "Dark",
+        .system: "Match the phone", .light: "Light", .dark: "Dark", .sky: "Sky",
     ]
 
     var palette: WidgetSettings.Palette { WidgetSettings.Palette(rawValue: rawValue)! }

@@ -1,21 +1,30 @@
 import React from "react";
+import "./AdhanIcon.css";
 
 /**
  * The adhan: a minaret with the call going out from its balcony. Drawn in
  * currentColor, so it takes the colour of the text around it, like the
  * Ionicons it sits beside in the settings list.
+ *
+ * `calling` is the call going out now, on the day card while a prayer's adhan
+ * is being called: a third wave beyond the two, and the three brightening in
+ * turn outward from the minaret.
  */
-const AdhanIcon: React.FC<{ size?: number; className?: string }> = ({
-  size = 24,
-  className,
-}) => (
+const AdhanIcon: React.FC<{
+  size?: number;
+  className?: string;
+  calling?: boolean;
+}> = ({ size = 24, className, calling = false }) => (
   <svg
     width={size}
     height={size}
     viewBox="0 0 24 24"
     fill="currentColor"
     aria-hidden="true"
-    className={className}
+    className={[className, calling ? "AdhanIcon--calling" : null]
+      .filter(Boolean)
+      .join(" ")}
+    style={calling ? { overflow: "visible" } : undefined}
     data-testid="adhan-icon"
   >
       <g transform="translate(0 -1.25)">
@@ -27,7 +36,11 @@ const AdhanIcon: React.FC<{ size?: number; className?: string }> = ({
       <path d="M6.6 16.6h4.8l-.6 1.3H7.2z"/>
       <rect x="7.2" y="18.1" width="3.6" height="3.6"/>
       <rect x="5.7" y="21.6" width="6.6" height="1.1" rx="0.55"/>
-      <path d="M14.2 13.2a3.2 3.2 0 0 1 0 4.4M17.1 11.2a6.2 6.2 0 0 1 0 8.4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+      <path className="AdhanIcon__wave AdhanIcon__wave--1" d="M14.2 13.2a3.2 3.2 0 0 1 0 4.4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+      <path className="AdhanIcon__wave AdhanIcon__wave--2" d="M17.1 11.2a6.2 6.2 0 0 1 0 8.4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+      {calling && (
+        <path className="AdhanIcon__wave AdhanIcon__wave--3" d="M20 9.2a9.2 9.2 0 0 1 0 12.4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+      )}
       </g>
   </svg>
 );

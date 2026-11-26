@@ -1,0 +1,24 @@
+.SkyDayBar {
+  position: relative;
+  background: var(--sky-day-band);
+  /*
+    Under the theme picker, with a caption below it. The space is the bar's
+    own: Ionic zeroes the margins of a p inside an ion-label, so a margin on
+    the caption never arrived.
+  */
+  height: 24px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.SkyDayBar__now {
+  position: absolute;
+  left: var(--sky-now);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 32px;
+  border-radius: 2px;
+  background: #fff;
+  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.4);
+}

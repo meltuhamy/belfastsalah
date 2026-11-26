@@ -47,9 +47,12 @@ enum Fixture {
      * it reads the clock when drawn - aim at the second exactly and the text
      * flickers between runs.
      */
+    static let beforeFajr = on15th("06:05", seconds: -0.5) // Fajr's thread in its haze
+    static let beforeSunrise = on15th("07:35", seconds: -0.5) // the dawn glow, no sun yet
     static let onePM = on15th("13:00", seconds: -0.5) // Asr next, 1:02:00 away
     static let threePM = on15th("15:00", seconds: -0.5) // Maghrib: the longest name
     static let afterIsha = on15th("18:02", seconds: -0.5) // tomorrow's Fajr
+    static let sunset = on15th("16:30", seconds: -0.5) // just after Maghrib, 16:24
 
     /** The first entry at `now`, for drawing. */
     static func entry(
@@ -123,7 +126,7 @@ struct WidgetFrame: View {
     var probing = false
 
     var body: some View {
-        let colors = WidgetColors(settings: entry.settings, systemScheme: scheme)
+        let colors = WidgetColors(settings: entry.settings, systemScheme: scheme, sky: entry.sky)
         Group {
             if family.isAccessory {
                 PrayerWidgetContent(entry: entry, family: family, colors: colors)
@@ -133,7 +136,7 @@ struct WidgetFrame: View {
             } else {
                 PrayerWidgetContent(entry: entry, family: family, colors: colors)
                     .padding(16)
-                    .background(colors.background)
+                    .background(WidgetBackground(colors: colors))
                     .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             }
         }
@@ -164,6 +167,7 @@ func rebasedToNow(_ entry: PrayerEntry) -> PrayerEntry {
             nextTime: times.nextTime,
             nextAt: target,
             minutesLeft: times.minutesLeft
-        ))
+        )),
+        sky: entry.sky
     )
 }

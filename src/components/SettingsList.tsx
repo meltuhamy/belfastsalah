@@ -25,6 +25,7 @@ import {
 import { PrayerLocation, locationNames } from "../lib/PrayerTimeData";
 import supportsHanafiAsr, { AsrMethod } from "../lib/PrayerTimes";
 import { AppSettings } from "../lib/settings";
+import SkyDayBar from "./SkyDayBar";
 import { THEMES, Theme, themeLabels } from "../lib/theme";
 import {
   TIME_FORMATS,
@@ -349,6 +350,17 @@ const SettingsList: React.FC<Props> = ({
           ))}
         </IonSelect>
       </IonItem>
+      {settings.theme === "sky" && (
+        <IonItem className="settings-list__note-item">
+          <IonLabel className="ion-text-wrap settings-list__sky">
+            <SkyDayBar />
+            <p>
+              Colours follow today's prayer times: dawn at Fajr, sunset at
+              Maghrib, dark until Shuruq.
+            </p>
+          </IonLabel>
+        </IonItem>
+      )}
       <IonItem>
         <IonIcon icon={timeOutline} slot="start" />
         <IonSelect

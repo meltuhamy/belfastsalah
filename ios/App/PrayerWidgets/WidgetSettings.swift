@@ -21,7 +21,14 @@ struct WidgetSettings: Equatable {
     var showLocation = true
     var showDate = true
 
-    enum Palette: String, CaseIterable { case system, light, dark }
+    enum Palette: String, CaseIterable {
+        case system, light, dark
+        /**
+         * The sky for the moment, as the app's Sky theme draws it. Its colours
+         * change all day, so each entry carries its own (PrayerEntry.sky).
+         */
+        case sky
+    }
 
     enum Countdown: String, CaseIterable {
         /** "1:23:45", ticked by the system at no cost to us. */
@@ -65,18 +72,45 @@ struct WidgetColors {
     let secondary: Color
     let accent: Color?
     let onAccent: Color
+    /** The sky to draw behind the widget, for the Sky palette; nil otherwise. */
+    let sky: SkyState?
 
-    init(settings: WidgetSettings, systemScheme: ColorScheme) {
+    init(settings: WidgetSettings, systemScheme: ColorScheme, sky: SkyState? = nil) {
+        if settings.palette == .sky, let sky {
+            // Black or white at full strength, as sky.ts chose it: the
+            // contrast it guarantees is for those two exactly.
+            let text: Color = sky.lightText ? .white : .black
+            self.sky = sky
+            background = Color(hex: sky.top)
+            primary = text
+            secondary = text
+            // Frosted glass rather than a colour, which would fight the sky.
+            accent = settings.accent == nil ? nil : Color.white.opacity(sky.lightText ? 0.18 : 0.55)
+            onAccent = text
+            return
+        }
+
         let dark: Bool
         switch settings.palette {
         case .system: dark = systemScheme == .dark
         case .light: dark = false
-        case .dark: dark = true
+        // A Sky widget with no sky has no times either, and is asking to be
+        // opened: the night is the sky's resting state.
+        case .dark, .sky: dark = true
         }
+        self.sky = nil
         background = dark ? Color(white: 0x1E / 255) : .white
         primary = dark ? .white : Color(white: 0x1B / 255)
         secondary = dark ? Color(white: 0xB3 / 255) : Color(red: 0x5F / 255, green: 0x63 / 255, blue: 0x68 / 255)
         accent = settings.accent?.color
         onAccent = settings.accent?.onAccent ?? primary
+    }
+}
+
+extension Color {
+    /** A "#rrggbb" colour, as the payload writes them. */
+    init(hex: String) {
+        let c = WidgetSky.channels(hex)
+        self.init(red: Double(c[0]) / 255, green: Double(c[1]) / 255, blue: Double(c[2]) / 255)
     }
 }

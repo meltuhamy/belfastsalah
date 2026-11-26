@@ -178,6 +178,43 @@ class ReminderAlarmsTest {
     }
 
     @Test
+    fun `posts nothing for a broadcast that comes early, and arms the reminder for its time`() {
+        // MEL-347: "Prayer time now", a minute or two before the prayer.
+        val payload = stored("london-spring-2026-03-28.json")
+        val entry = payload.reminders.first()
+        val notifications = context.getSystemService(NotificationManager::class.java)
+
+        ReminderAlarms.handle(context, fireIntent(entry), entry.at - 90_000)
+
+        assertTrue(shadowOf(notifications).allNotifications.isEmpty())
+        assertTrue(fireTimes().contains(entry.at))
+
+        ReminderAlarms.handle(context, fireIntent(entry), entry.at)
+        assertEquals(1, shadowOf(notifications).allNotifications.size)
+        assertFalse(fireTimes().contains(entry.at))
+    }
+
+    @Test
+    fun `posts a reminder once, even when a replan just before its time arms it again`() {
+        // MEL-348: one a moment early, then the same again on time.
+        val payload = stored("london-spring-2026-03-28.json")
+        val entry = payload.reminders.first()
+        val notifications = context.getSystemService(NotificationManager::class.java)
+
+        ReminderAlarms.handle(context, fireIntent(entry), entry.at - 2_000)
+        assertEquals(1, shadowOf(notifications).allNotifications.size)
+        notifications.cancelAll()
+
+        // The app opens a second later and replans from the real clock.
+        ReminderAlarms.replan(context, entry.at - 1_000)
+        assertTrue(fireTimes().contains(entry.at))
+
+        ReminderAlarms.handle(context, fireIntent(entry), entry.at)
+        assertTrue(shadowOf(notifications).allNotifications.isEmpty())
+        assertFalse(fireTimes().contains(entry.at))
+    }
+
+    @Test
     fun `reads each reminder's sound, and a missing one as the default`() {
         val adhan = fixture("london-adhan-2026-01-15.json")
         fun soundsFor(prayer: String) =

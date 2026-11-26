@@ -35,11 +35,25 @@ object ReminderAlarms {
     const val EXTRA_BODY = "body"
 
     /**
+     * How early a reminder's broadcast may arrive and still be posted. Any
+     * earlier and it is armed again for its own time instead.
+     *
+     * Exact alarms are meant to arrive on time, but some phones move them:
+     * a Xiaomi posted "Prayer time now" for Duhr and Asr a minute or two
+     * before either (MEL-347). And a reminder posted early is still ahead of
+     * the clock, so the next replan - opening the app to check, or turning
+     * reminders off and on - armed it again and it came a second time, on
+     * time (MEL-348).
+     */
+    const val EARLY_TOLERANCE_MILLIS = 5_000L
+
+    /**
      * A broadcast from an alarm, or from boot, update, or a clock change.
      *
-     * [nowMillis] is the clock the window is chosen against. A firing reminder
-     * counts as already passed even if the broadcast arrived a moment early,
-     * so it is not armed again.
+     * [nowMillis] is the clock the window is chosen against. A reminder that
+     * fires within [EARLY_TOLERANCE_MILLIS] of its time is posted and counts
+     * as passed, so it is not armed again; one that fires earlier than that
+     * is not posted, and the replan from the real clock arms it again.
      */
     @Synchronized
     fun handle(context: Context, intent: Intent, nowMillis: Long) {
@@ -49,7 +63,7 @@ object ReminderAlarms {
         var now = nowMillis
         if (intent.action == ACTION_FIRE) {
             val at = intent.getLongExtra(EXTRA_AT, Long.MIN_VALUE)
-            if (at != Long.MIN_VALUE) {
+            if (at != Long.MIN_VALUE && at - nowMillis <= EARLY_TOLERANCE_MILLIS) {
                 if (payload != null) ReminderNotifications.show(context, intent, payload)
                 if (at > now) now = at
             }

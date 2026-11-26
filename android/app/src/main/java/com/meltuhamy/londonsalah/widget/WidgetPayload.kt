@@ -17,13 +17,31 @@ data class WidgetPrayer(val name: String, val time: String)
 /** `day` indexes [WidgetPayload.days]: the day this prayer belongs to. */
 data class WidgetUpcoming(val name: String, val at: Long, val time: String, val day: Int)
 
-data class WidgetDay(val dateLabel: String, val prayers: List<WidgetPrayer>)
+/**
+ * `sky` is the day's ten sky points as UTC instants, in the order
+ * [WidgetPayload.skyColours] lists their colours - what WidgetSky works from.
+ */
+data class WidgetDay(
+    val dateLabel: String,
+    val prayers: List<WidgetPrayer>,
+    val sky: LongArray
+)
 
 data class WidgetPayload(
     val locationLabel: String,
     val days: List<WidgetDay>,
-    val upcoming: List<WidgetUpcoming>
+    val upcoming: List<WidgetUpcoming>,
+    val skyColours: List<SkyColours>
 ) {
+    /**
+     * The sky a Sky widget draws at this instant, or null with no days to
+     * draw it from - or none to draw at all, in a payload written before
+     * there was a sky.
+     */
+    fun skyAt(nowMillis: Long): SkyState? =
+        if (days.isEmpty() || skyColours.isEmpty()) null
+        else WidgetSky.at(nowMillis, days.map { it.sky }, skyColours)
+
     /** The first prayer still ahead, or null once the written window runs out. */
     fun nextAfter(nowMillis: Long): WidgetUpcoming? =
         upcoming.firstOrNull { it.at > nowMillis }
@@ -37,8 +55,20 @@ data class WidgetPayload(
     fun dayOf(next: WidgetUpcoming): WidgetDay? = days.getOrNull(next.day)
 
     companion object {
+        /** A day's sky points: SKY_PHASES in src/lib/sky.ts. */
+        const val SKY_POINTS = 10
+
         /** Must match WIDGET_PAYLOAD_VERSION in src/lib/widgetPayload.ts. */
-        const val SUPPORTED_VERSION = 3
+        const val SUPPORTED_VERSION = 4
+
+        /**
+         * The version before the sky, which is the same shape without `sky`
+         * and `skyColours`. Still read, because only the app writes a payload:
+         * after an upgrade every placed widget holds this one until the app
+         * is opened, and refusing it left them all saying "No times". A Sky
+         * widget draws the plain dark background from it, as with no times.
+         */
+        const val SKYLESS_VERSION = 3
 
         /**
          * Returns null for anything unusable - absent, malformed, or written
@@ -49,18 +79,23 @@ data class WidgetPayload(
             if (json.isNullOrBlank()) return null
             return try {
                 val root = JSONObject(json)
-                if (root.optInt("version", -1) != SUPPORTED_VERSION) return null
+                val version = root.optInt("version", -1)
+                if (version != SUPPORTED_VERSION && version != SKYLESS_VERSION) return null
+                val hasSky = version == SUPPORTED_VERSION
 
                 val daysJson = root.getJSONArray("days")
                 val days = (0 until daysJson.length()).map { d ->
                     val day = daysJson.getJSONObject(d)
                     val prayersJson = day.getJSONArray("prayers")
+                    val skyJson = if (hasSky) day.getJSONArray("sky") else null
                     WidgetDay(
                         day.getString("dateLabel"),
                         (0 until prayersJson.length()).map { i ->
                             val p = prayersJson.getJSONObject(i)
                             WidgetPrayer(p.getString("name"), p.getString("time"))
-                        }
+                        },
+                        if (skyJson == null) LongArray(0)
+                        else LongArray(skyJson.length()) { skyJson.getLong(it) }
                     )
                 }
 
@@ -75,10 +110,22 @@ data class WidgetPayload(
                     )
                 }
 
+                val coloursJson = if (hasSky) root.getJSONArray("skyColours") else null
+                val skyColours = (0 until (coloursJson?.length() ?: 0)).map { i ->
+                    val c = coloursJson!!.getJSONObject(i)
+                    SkyColours(c.getString("top"), c.getString("mid"), c.getString("horizon"))
+                }
+                // The sky needs a whole day of points and a colour for each;
+                // a payload that has a sky and less than that cannot be drawn.
+                if (hasSky && (skyColours.size != SKY_POINTS ||
+                        days.any { it.sky.size != SKY_POINTS })
+                ) return null
+
                 WidgetPayload(
                     locationLabel = root.getString("locationLabel"),
                     days = days,
-                    upcoming = upcoming
+                    upcoming = upcoming,
+                    skyColours = skyColours
                 )
             } catch (e: JSONException) {
                 null

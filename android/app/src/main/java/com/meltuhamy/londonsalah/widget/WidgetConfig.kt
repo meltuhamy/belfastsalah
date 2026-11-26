@@ -14,7 +14,17 @@ import com.meltuhamy.londonsalah.R
  * stored form small means the palettes can be adjusted later without
  * migrating anyone's settings.
  */
-enum class WidgetPalette { SYSTEM, LIGHT, DARK }
+enum class WidgetPalette {
+    SYSTEM, LIGHT, DARK,
+
+    /**
+     * The sky for the moment, as the app's Sky theme draws it: a gradient
+     * with the sun and stars, worked out by WidgetSky from the payload. Its
+     * colours change all day, so they are passed in at draw time as a
+     * [SkyState] rather than decided here.
+     */
+    SKY
+}
 
 enum class WidgetTextTone { AUTO, LIGHT, DARK }
 
@@ -57,38 +67,70 @@ data class WidgetConfig(
         WidgetPalette.SYSTEM ->
             (context.resources.configuration.uiMode and
                 Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        // Only reached without a sky to draw - no payload yet - when the
+        // widget is asking to be opened. The night is the sky's resting state.
+        WidgetPalette.SKY -> true
     }
 
-    fun backgroundColor(context: Context): Int {
+    /**
+     * Opacity as an alpha, 0-255. The Sky palette applies it to the sky's
+     * picture rather than to a colour.
+     */
+    fun alpha(): Int = opacity.coerceIn(0, 100) * 255 / 100
+
+    /** `sky` is the moment's sky for the Sky palette, and null otherwise. */
+    fun backgroundColor(context: Context, sky: SkyState? = null): Int {
+        // The sky is a picture behind the content (WidgetRenderer), so the
+        // content itself is see-through.
+        if (sky != null) return 0
         val base = if (dark(context)) DARK_BACKGROUND else LIGHT_BACKGROUND
-        val alpha = (opacity.coerceIn(0, 100) * 255 / 100) shl 24
-        return (base and 0x00FFFFFF) or alpha
+        return (base and 0x00FFFFFF) or (alpha() shl 24)
     }
 
     /**
      * Text is read against whatever is behind the widget once the background
      * goes translucent, so a transparent widget defaults to light text - the
      * wallpaper below is more often dark than not, and either way the user can
-     * override it.
+     * override it. That holds for the sky too: sky.ts's choice of black or
+     * white is for the sky itself, so it decides only while the sky is mostly
+     * there. A faded midday sky over a dark wallpaper took black text.
      */
-    private fun lightText(context: Context): Boolean = when (textTone) {
+    private fun lightText(context: Context, sky: SkyState?): Boolean = when (textTone) {
         WidgetTextTone.LIGHT -> true
         WidgetTextTone.DARK -> false
-        WidgetTextTone.AUTO -> dark(context) || opacity < 50
+        WidgetTextTone.AUTO ->
+            if (sky != null && opacity >= 50) sky.lightText else dark(context) || opacity < 50
     }
 
-    fun primaryTextColor(context: Context): Int =
-        if (lightText(context)) LIGHT_TEXT else DARK_TEXT
+    /**
+     * On the sky, black or white at full strength, as sky.ts chose it: the
+     * contrast it guarantees is for those two exactly.
+     */
+    fun primaryTextColor(context: Context, sky: SkyState? = null): Int =
+        if (lightText(context, sky)) LIGHT_TEXT else if (sky != null) SKY_DARK_TEXT else DARK_TEXT
 
-    fun secondaryTextColor(context: Context): Int =
-        if (lightText(context)) LIGHT_TEXT_MUTED else DARK_TEXT_MUTED
+    fun secondaryTextColor(context: Context, sky: SkyState? = null): Int =
+        if (sky != null && textTone == WidgetTextTone.AUTO) primaryTextColor(context, sky)
+        else if (lightText(context, sky)) LIGHT_TEXT_MUTED
+        else DARK_TEXT_MUTED
 
-    /** The rounded pill behind the next prayer, or 0 for no highlight. */
-    fun accentDrawable(): Int =
-        if (accent < 0 || accent >= ACCENTS.size) 0 else ACCENTS[accent].drawable
+    private fun hasAccent() = accent >= 0 && accent < ACCENTS.size
 
-    fun accentTextColor(context: Context): Int =
-        if (accent < 0 || accent >= ACCENTS.size) primaryTextColor(context)
+    /**
+     * The rounded pill behind the next prayer, or 0 for no highlight. On the
+     * sky a coloured pill fights the gradient, so it is frosted glass instead,
+     * lighter or darker to suit the text on it.
+     */
+    fun accentDrawable(context: Context? = null, sky: SkyState? = null): Int = when {
+        !hasAccent() -> 0
+        sky != null && context != null && lightText(context, sky) ->
+            R.drawable.widget_accent_glass_on_dark
+        sky != null -> R.drawable.widget_accent_glass_on_light
+        else -> ACCENTS[accent].drawable
+    }
+
+    fun accentTextColor(context: Context, sky: SkyState? = null): Int =
+        if (!hasAccent() || sky != null) primaryTextColor(context, sky)
         else ACCENTS[accent].onAccent
 
     data class Accent(val drawable: Int, val onAccent: Int, val label: Int)
@@ -102,6 +144,7 @@ data class WidgetConfig(
         private const val LIGHT_TEXT_MUTED = 0xFFB3B3B3.toInt()
         private const val DARK_TEXT = 0xFF1B1B1B.toInt()
         private const val DARK_TEXT_MUTED = 0xFF5F6368.toInt()
+        private const val SKY_DARK_TEXT = 0xFF000000.toInt()
 
         /**
          * Highlights are drawables rather than plain colours so the pill keeps

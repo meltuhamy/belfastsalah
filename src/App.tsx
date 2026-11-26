@@ -10,7 +10,7 @@ import {
   uses24Hour as resolveUses24Hour,
 } from "./lib/timeFormat";
 import { useDeviceUses24Hour } from "./lib/useTimeFormat";
-import { locationTimeZones } from "./lib/PrayerTimeData";
+import { locationTimeZones, timetableZoneFor } from "./lib/PrayerTimeData";
 import HomePage from "./pages/HomePage";
 import SettingsPage from "./pages/SettingsPage";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage";
@@ -44,6 +44,8 @@ import "./theme/variables.css";
    element with equal specificity, and whichever comes last wins. The other
    order silently leaves the light palette in force in dark mode. */
 import "@ionic/react/css/palettes/dark.class.css";
+/* After the dark palette, which it overrides when the Sky theme is on. */
+import "./theme/sky.css";
 import { useSettings } from "./lib/useSettings";
 import { AppContext } from "./State";
 import { usePrayerDay } from "./lib/usePrayerDay";
@@ -67,7 +69,11 @@ import {
 import { syncAndroidReminders } from "./lib/nativeReminders";
 import { iosSoundName } from "./lib/reminderSound";
 import { prayerKey, reminderBody, soundForPrayer } from "./lib/prayerReminders";
-import { addSaveListener, removeSaveListener } from "./lib/settings";
+import {
+  addSaveListener,
+  getDefaultSettings,
+  removeSaveListener,
+} from "./lib/settings";
 import { refreshWidgets } from "./lib/widgets";
 import FullPageSpinner from "./components/FullPageSpinner";
 import SetupPage from "./pages/SetupPage";
@@ -78,7 +84,7 @@ setupIonicReact();
 const App: React.FC = () => {
   const [settings, , hydrated] = useSettings();
   const { dispatch } = useContext(AppContext);
-  const [{ next }] = usePrayerDay();
+  const [{ next, today }] = usePrayerDay();
   const [showSettingsSavedToast, setShowSettingsSavedToast] = useState(false);
   const [showNotifyToast, setShowNotifyToast] =
     useState<Array<LocalNotificationSchema> | null>([]);
@@ -91,10 +97,14 @@ const App: React.FC = () => {
   // One owner of the palette. Before setup completes there are no stored
   // settings to read, so the setup screen reports its choice up here rather
   // than applying it itself - two components toggling the class would fight.
-  const [setupTheme, setSetupTheme] = useState<Theme>("system");
+  const [setupTheme, setSetupTheme] = useState<Theme>(
+    getDefaultSettings().theme
+  );
   useTheme(
     settings?.theme ?? setupTheme,
-    next === null ? null : next.prayer
+    next === null ? null : next.prayer,
+    today,
+    timetableZoneFor(settings?.location ?? null)
   );
 
   const location = settings == null ? null : settings.location;

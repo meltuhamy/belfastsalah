@@ -125,7 +125,9 @@ class WidgetConfigActivity : Activity() {
         val (widthPx, heightPx) = previewSizePx()
         val sizeDp = (minOf(widthPx, heightPx) / resources.displayMetrics.density).toInt()
 
-        val views = WidgetRenderer.render(this, kind, read(), sizeDp)
+        val density = resources.displayMetrics.density
+        val boxDp = (widthPx / density).toInt() to (heightPx / density).toInt()
+        val views = WidgetRenderer.render(this, kind, read(), sizeDp, boxDp = boxDp)
         preview.removeAllViews()
         preview.addView(
             views.apply(this, preview),
@@ -175,6 +177,7 @@ class WidgetConfigActivity : Activity() {
                 WidgetPalette.SYSTEM -> R.id.palette_system
                 WidgetPalette.LIGHT -> R.id.palette_light
                 WidgetPalette.DARK -> R.id.palette_dark
+                WidgetPalette.SKY -> R.id.palette_sky
             }
         )
         text.check(
@@ -209,6 +212,7 @@ class WidgetConfigActivity : Activity() {
         palette = when (palette.checkedRadioButtonId) {
             R.id.palette_light -> WidgetPalette.LIGHT
             R.id.palette_dark -> WidgetPalette.DARK
+            R.id.palette_sky -> WidgetPalette.SKY
             else -> WidgetPalette.SYSTEM
         },
         opacity = opacity.progress,

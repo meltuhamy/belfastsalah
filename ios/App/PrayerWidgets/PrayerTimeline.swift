@@ -16,6 +16,11 @@ struct PrayerEntry: TimelineEntry {
      * it under "No times", so a preview screenshot says what went wrong.
      */
     var note: String? = nil
+    /**
+     * The sky at `date`, for the Sky palette, worked out from the payload by
+     * WidgetSky. Nil for every other palette, and for an empty entry.
+     */
+    var sky: SkyState? = nil
 
     enum Content: Equatable {
         case times(Times)
@@ -58,6 +63,11 @@ struct PrayerEntry: TimelineEntry {
  * leaves out seconds, so in that mode there is an entry for every minute,
  * each with its own fixed text. A timeline is capped at `maxEntries` and asks
  * for the next one when it runs out, which is a few reloads a day even then.
+ *
+ * The Sky palette is the other: the sky moves all day, so there is an entry
+ * at every quarter of an hour as well, each with its own sky - about a
+ * hundred a day, so a timeline of sixty lasts about fifteen hours and it
+ * reloads about twice a day.
  */
 enum PrayerTimeline {
 
@@ -70,6 +80,15 @@ enum PrayerTimeline {
 
     static let maxEntries = 60
     static let maxMinuteEntries = 180
+
+    /** How often the Sky palette's sky moves on between prayers. */
+    static let skyStep: TimeInterval = 15 * 60
+
+    /** The next quarter past, half past, or hour after `moment`. */
+    static func nextSkyStep(after moment: Date) -> Date {
+        let t = moment.timeIntervalSince1970
+        return Date(timeIntervalSince1970: ((t / skyStep).rounded(.down) + 1) * skyStep)
+    }
 
     static func build(
         payload: WidgetPayload?,
@@ -98,6 +117,14 @@ enum PrayerTimeline {
                     if entries.count >= limit { return (entries, .atEnd) }
                     // The instant the count drops by one; at 0, the prayer.
                     moment = upcoming.date.addingTimeInterval(-Double(left) * 60)
+                }
+            } else if settings.palette == .sky {
+                var moment = start
+                while moment < upcoming.date {
+                    let left = minutesLeft(from: moment, to: upcoming.date)
+                    entries.append(entry(moment, settings, payload, day, upcoming, left))
+                    if entries.count >= limit { return (entries, .atEnd) }
+                    moment = nextSkyStep(after: moment)
                 }
             } else {
                 let left = minutesLeft(from: start, to: upcoming.date)
@@ -142,16 +169,27 @@ enum PrayerTimeline {
                 nextTime: next.time,
                 nextAt: next.date,
                 minutesLeft: minutesLeft
-            ))
+            )),
+            sky: settings.palette == .sky ? payload.skyAt(date) : nil
         )
     }
 }
 
 extension PrayerEntry {
+    /** A midday sky with the sun high, for the gallery's Sky preview. */
+    static let sampleSky = SkyState(
+        top: "#4f9ae4", mid: "#7dbbef", horizon: "#b9def8",
+        lightText: false,
+        sun: SkySun(x: 0.45, y: 0.26, colour: "#fff7dc"),
+        night: 0,
+        light: SkyLight(sunOn: 1, dawn: 0, thread: .none)
+    )
+
     /**
      * What the widget gallery and placeholders show: 15 February in London,
      * Duhr next. Tests use 15 January, so none can pass on these by accident.
      */
+
     static func sample(settings: WidgetSettings = WidgetSettings(), date: Date = Date()) -> PrayerEntry {
         let names = ["Fajr", "Shuruq", "Duhr", "Asr", "Maghrib", "Isha"]
         let times = ["05:36", "07:13", "12:20", "14:45", "17:18", "18:48"]
@@ -167,7 +205,8 @@ extension PrayerEntry {
                 nextTime: "12:20",
                 nextAt: date.addingTimeInterval(2 * 3600 + 20 * 60),
                 minutesLeft: 139
-            ))
+            )),
+            sky: settings.palette == .sky ? sampleSky : nil
         )
     }
 }

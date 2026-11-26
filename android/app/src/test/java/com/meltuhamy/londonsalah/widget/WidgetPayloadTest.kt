@@ -29,7 +29,8 @@ class WidgetPayloadTest {
                 { "name": "Asr", "time": "14:45" },
                 { "name": "Maghrib", "time": "17:18" },
                 { "name": "Isha", "time": "18:48" }
-              ]
+              ],
+              "sky": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
             },
             {
               "dateLabel": "Mon 16 Feb",
@@ -40,10 +41,12 @@ class WidgetPayloadTest {
                 { "name": "Asr", "time": "14:47" },
                 { "name": "Maghrib", "time": "17:20" },
                 { "name": "Isha", "time": "18:50" }
-              ]
+              ],
+              "sky": [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
             }
           ],
-          "upcoming": $upcoming
+          "upcoming": $upcoming,
+          "skyColours": ${PayloadFixture.SKY_COLOURS}
         }
     """.trimIndent()
 
@@ -117,6 +120,44 @@ class WidgetPayloadTest {
         assertNull(
             WidgetPayload.parse(payloadJson(upcoming = """[{ "name": "Fajr", "at": 1000, "day": 0 }]"""))
         )
+    }
+
+    @Test
+    fun `reads each day's sky and the colours to paint it`() {
+        val payload = WidgetPayload.parse(payloadJson(upcoming = "[]"))!!
+        assertEquals((11L..20L).toList(), payload.days[1].sky.toList())
+        assertEquals(10, payload.skyColours.size)
+        assertEquals(SkyColours("#4f9ae4", "#7dbbef", "#b9def8"), payload.skyColours[4])
+    }
+
+    @Test
+    fun `refuses a day without its sky`() {
+        // A Sky widget would have nothing to draw, and version 4 always has it.
+        val noSky = payloadJson(upcoming = "[]")
+            .replace(""""sky": [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]""", """"sky": [11, 12]""")
+        assertNull(WidgetPayload.parse(noSky))
+    }
+
+    @Test
+    fun `still reads the payload the version before the sky wrote`() {
+        // After an upgrade, until the app is opened, this is what every
+        // placed widget holds. Its times still show; there is just no sky.
+        val before = payloadJson(
+            version = WidgetPayload.SKYLESS_VERSION,
+            upcoming = """[{ "name": "Duhr", "at": 2000, "time": "12:20", "day": 0 }]"""
+        )
+            .replace(Regex(""",\s*"sky": \[[^\]]*\]"""), "")
+            .replace(Regex(""",\s*"skyColours": \[.*\]\s*}\s*$""", RegexOption.DOT_MATCHES_ALL), "\n}")
+        val payload = WidgetPayload.parse(before)!!
+
+        assertEquals("Duhr", payload.nextAfter(1000)!!.name)
+        assertEquals("05:36", payload.days[0].prayers[0].time)
+        assertNull(payload.skyAt(1000))
+        // Only a payload that has a sky must have the whole of it.
+        assertNull(WidgetPayload.parse(before.replace(
+            "\"version\": ${WidgetPayload.SKYLESS_VERSION}",
+            "\"version\": ${WidgetPayload.SUPPORTED_VERSION}"
+        )))
     }
 
     @Test
