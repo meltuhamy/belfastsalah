@@ -156,7 +156,9 @@ async function today() {
     const painted = await paintedHighlight(page);
     const cardMeta = (await page.locator(".PrayerDayCard__meta").innerText()).trim();
     const countdownLine = (
-      await page.locator(".PrayerDayCard__countdown").innerText()
+      // The head, not just the countdown: "Duhr was 12m ago" is its own line
+      // under the whole top row (PrayerDayCard__since).
+      await page.locator(".PrayerDayCard__head").innerText()
     ).trim();
     const tomorrowBadge = await page.getByTestId("tomorrow-badge").count();
     const dayDate = (await page.getByTestId("day-date").innerText()).trim();

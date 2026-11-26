@@ -180,8 +180,7 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
     <IonCard color="primary" className="PrayerDayCard">
       {/*
         The Sky theme's sun, dawn, Fajr's thread, stars and daytime lens
-        flare, drawn behind
-        everything else. Only shown in that theme.
+        flare, drawn behind everything else. Only shown in that theme.
       */}
       <span className="PrayerDayCard__sky" aria-hidden="true">
         <span className="PrayerDayCard__stars">

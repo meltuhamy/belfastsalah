@@ -175,10 +175,6 @@ enum PrayerTimeline {
 }
 
 extension PrayerEntry {
-    /**
-     * What the widget gallery and placeholders show: 15 February in London,
-     * Duhr next. Tests use 15 January, so none can pass on these by accident.
-     */
     /** A midday sky with the sun high, for the gallery's Sky preview. */
     static let sampleSky = SkyState(
         top: "#4f9ae4", mid: "#7dbbef", horizon: "#b9def8",
@@ -187,6 +183,11 @@ extension PrayerEntry {
         night: 0,
         light: SkyLight(sunOn: 1, dawn: 0, thread: .none)
     )
+
+    /**
+     * What the widget gallery and placeholders show: 15 February in London,
+     * Duhr next. Tests use 15 January, so none can pass on these by accident.
+     */
 
     static func sample(settings: WidgetSettings = WidgetSettings(), date: Date = Date()) -> PrayerEntry {
         let names = ["Fajr", "Shuruq", "Duhr", "Asr", "Maghrib", "Isha"]
