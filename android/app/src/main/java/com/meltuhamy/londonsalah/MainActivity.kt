@@ -13,6 +13,7 @@ class MainActivity : BridgeActivity() {
         registerPlugin(PrayerWidgetPlugin::class.java)
         registerPlugin(PrayerRemindersPlugin::class.java)
         registerPlugin(DeviceClockPlugin::class.java)
+        registerPlugin(KeepAwakePlugin::class.java)
         // Before the bridge, so the web layer's rescheduling comes after it.
         LegacyReminderAlarms.clearOnce(applicationContext)
         super.onCreate(savedInstanceState)

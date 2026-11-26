@@ -67,6 +67,8 @@ describe("migrateSettings", () => {
     // System follows the phone's switch, which is the least surprising
     // default for someone who never saw the setting.
     expect(migrated.timeFormat).toEqual("system");
+    // The screen sleeping as usual is what the phone did before the toggle.
+    expect(migrated.keepAwake).toBe(false);
   });
 
   it("Should keep a time format that was already chosen", () => {

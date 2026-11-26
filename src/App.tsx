@@ -53,6 +53,7 @@ import { LocalNotificationSchema } from "@capacitor/local-notifications";
 import { useInterval } from "./lib/useInterval";
 import { createPrayerTimes, prayerToString } from "./lib/PrayerTimes";
 import { useTheme } from "./lib/useTheme";
+import { useKeepAwake } from "./lib/keepAwake";
 import { Theme } from "./lib/theme";
 import {
   addUpdateNotifyListener,
@@ -106,6 +107,9 @@ const App: React.FC = () => {
     today,
     timetableZoneFor(settings?.location ?? null)
   );
+
+  // Every screen, not just home: the setting is about the app being open.
+  useKeepAwake(settings?.keepAwake ?? false);
 
   const location = settings == null ? null : settings.location;
   const showTimesInDeviceZone =

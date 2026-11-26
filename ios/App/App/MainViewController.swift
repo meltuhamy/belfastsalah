@@ -15,6 +15,7 @@ class MainViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(PrayerWidgetPlugin())
         bridge?.registerPluginInstance(DeviceClockPlugin())
         bridge?.registerPluginInstance(PrayerRemindersPlugin())
+        bridge?.registerPluginInstance(KeepAwakePlugin())
         NSLog("PrayerWidget: plugin registered")
     }
 }

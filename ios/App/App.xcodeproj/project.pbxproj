@@ -24,6 +24,7 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		5109744B525427BFEF649084 /* KeepAwakePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35304622F5F4E5E430948DB6 /* KeepAwakePlugin.swift */; };
 		565AA39A9B84297D592C94A3 /* PrayerWidgetIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = E788BBD2843B9046DCC7D757 /* PrayerWidgetIntents.swift */; };
 		5FAC35D5B528F9053E76FFBF /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25FED8C8F0736410F5264BF /* MainViewController.swift */; };
 		6E91719C4A62A2DC9BFBFF58 /* WidgetPayloadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5CA4C8BE9DE1AC4B5DDBC18 /* WidgetPayloadTests.swift */; };
@@ -98,6 +99,7 @@
 		289821CAC8E3C313EC1AEEC2 /* PrayerRemindersPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrayerRemindersPlugin.swift; sourceTree = "<group>"; };
 		2946BD469A952A0D980547E5 /* adhan-1.caf */ = {isa = PBXFileReference; includeInIndex = 1; path = "adhan-1.caf"; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
+		35304622F5F4E5E430948DB6 /* KeepAwakePlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeepAwakePlugin.swift; sourceTree = "<group>"; };
 		363B0CC19BA310111BDBFBFF /* PrayerWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PrayerWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		4174E229F0664C4D524B572E /* PrayerWidgets.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = PrayerWidgets.entitlements; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
@@ -215,6 +217,7 @@
 				72B0459552F099D830AFCC09 /* App.entitlements */,
 				6FA90A21A5F0D2083FA8C3A9 /* Sounds */,
 				289821CAC8E3C313EC1AEEC2 /* PrayerRemindersPlugin.swift */,
+				35304622F5F4E5E430948DB6 /* KeepAwakePlugin.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -476,6 +479,7 @@
 				5FAC35D5B528F9053E76FFBF /* MainViewController.swift in Sources */,
 				B6F0A529A3FFD6DAA9A2D126 /* WidgetStore.swift in Sources */,
 				199963C4F1CE2613DC61245E /* PrayerRemindersPlugin.swift in Sources */,
+				5109744B525427BFEF649084 /* KeepAwakePlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
