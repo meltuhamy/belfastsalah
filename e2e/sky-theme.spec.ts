@@ -3,6 +3,7 @@ import {
   LOCATION_SELECT,
   PRAYER_STRIP,
   chooseFromSelect,
+  goHome,
   openSettings,
   openSetup,
   pinDate,
@@ -331,4 +332,10 @@ test("takes its colours away when another theme is chosen", async ({ page }) => 
   await expect.poll(() => htmlHas(page, "sky-theme")).toBe(false);
   expect(await property(page, "--sky-top")).toBe("");
   await expect(page.getByTestId("sky-day-bar")).toHaveCount(0);
+
+  // The card's stars and flare go too, and with them their tilt listeners
+  // and frame loops, rather than running hidden.
+  await goHome(page);
+  await expect(page.getByTestId("starfield")).toHaveCount(0);
+  await expect(page.getByTestId("lens-flare")).toHaveCount(0);
 });

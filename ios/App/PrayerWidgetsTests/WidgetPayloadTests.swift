@@ -54,6 +54,31 @@ final class WidgetPayloadTests: XCTestCase {
         XCTAssertEqual(afterIsha?.day, 1)
     }
 
+    func testStillReadsThePayloadTheVersionBeforeTheSkyWrote() throws {
+        // After an upgrade, until the app is opened, this is what every placed
+        // widget holds. Its times still show; there is just no sky.
+        var json = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: Data(Fixture.json("london-2026-01-15").utf8)) as? [String: Any]
+        )
+        json["version"] = WidgetPayload.skylessVersion
+        json["skyColours"] = nil
+        json["days"] = (json["days"] as? [[String: Any]])?.map { day in
+            var day = day
+            day["sky"] = nil
+            return day
+        }
+        let before = String(decoding: try JSONSerialization.data(withJSONObject: json), as: UTF8.self)
+
+        let payload = try XCTUnwrap(WidgetPayload.parse(before))
+        XCTAssertEqual(payload.nextAfter(Fixture.onePM)?.name, "Asr")
+        XCTAssertNil(payload.skyAt(Fixture.onePM))
+
+        // Only a payload that has a sky must have the whole of it.
+        json["version"] = WidgetPayload.supportedVersion
+        let broken = String(decoding: try JSONSerialization.data(withJSONObject: json), as: UTF8.self)
+        XCTAssertNil(WidgetPayload.parse(broken))
+    }
+
     func testRejectsAnythingItCannotTrust() {
         XCTAssertNil(WidgetPayload.parse(nil))
         XCTAssertNil(WidgetPayload.parse(""))

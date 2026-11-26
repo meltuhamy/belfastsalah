@@ -1,6 +1,7 @@
 /**
- * The sky for any moment of a prayer day: what the Sky theme paints, and later
- * what the widgets will.
+ * The sky for any moment of a prayer day: what the Sky theme paints, and what
+ * the Sky widgets paint too, from native ports of skyAtTimes and
+ * skyLightAtTimes (WidgetSky.kt, WidgetPayload.swift).
  *
  * Keyed to the day's prayer times rather than the clock, so dawn starts at
  * Fajr and sunset at Maghrib whatever the season, and the sky a reader sees
@@ -25,19 +26,6 @@ export type SkyPhase =
   | "sunset"
   | "dusk"
   | "lateNight";
-
-export const skyPhaseLabels: Record<SkyPhase, string> = {
-  night: "Night",
-  dawn: "Dawn",
-  sunrise: "Sunrise",
-  morning: "Morning",
-  midday: "Midday",
-  afternoon: "Afternoon",
-  golden: "Golden hour",
-  sunset: "Sunset",
-  dusk: "Dusk",
-  lateNight: "Night",
-};
 
 /** A sky from its zenith down to the horizon. Colours are #rrggbb. */
 export type SkyColours = {
@@ -354,11 +342,6 @@ export function dayBand(day: PrayerDayTimes, timeZone: string): string {
   return `linear-gradient(90deg, ${NIGHT.mid} 0%, ${stops.join(", ")}, ${NIGHT.mid} 100%)`;
 }
 
-/**
- * Everything the Sky theme's stylesheet reads, as custom properties for
- * <html>. Computed here rather than with color-mix() in CSS, which the oldest
- * iOS the app supports does not have.
- */
 /** The card's sun rises in over this long from Shuruq. */
 const SUNRISE_FADE_MS = 3 * 60 * 1000;
 /** The card's sun fades out over this long after Maghrib. */
@@ -544,6 +527,11 @@ function fajrThreadProperties(thread: FajrThread): Record<string, string> {
   };
 }
 
+/**
+ * Everything the Sky theme's stylesheet reads, as custom properties for
+ * <html>. Computed here rather than with color-mix() in CSS, which the oldest
+ * iOS the app supports does not have.
+ */
 export function skyProperties(
   now: Date,
   day: PrayerDayTimes,

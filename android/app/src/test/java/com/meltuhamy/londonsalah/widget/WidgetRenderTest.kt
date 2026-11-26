@@ -294,6 +294,17 @@ class WidgetRenderTest {
     }
 
     @Test
+    fun `a mostly see-through sky takes the wallpaper's light text`() {
+        // The sky's black-or-white is for the sky. Faded to a fifth, a midday
+        // sky shows the wallpaper through it, which is more often dark.
+        val faded = sky.copy(opacity = 20)
+        for ((kind, _, countdown) in headed) {
+            val day = draw(kind, homeScreenSize(kind), faded, nowMillis = ONE_PM)
+            assertEquals("$kind", Color.WHITE, day.textColor(countdown))
+        }
+    }
+
+    @Test
     fun `text on the sky is never faded`() {
         // sky.ts chooses black or white to read at 4.5:1 against the sky, which
         // only holds at full strength.

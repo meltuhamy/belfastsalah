@@ -33,9 +33,14 @@ data class WidgetPayload(
     val upcoming: List<WidgetUpcoming>,
     val skyColours: List<SkyColours>
 ) {
-    /** The sky a Sky widget draws at this instant, or null with no days to draw it from. */
+    /**
+     * The sky a Sky widget draws at this instant, or null with no days to
+     * draw it from - or none to draw at all, in a payload written before
+     * there was a sky.
+     */
     fun skyAt(nowMillis: Long): SkyState? =
-        if (days.isEmpty()) null else WidgetSky.at(nowMillis, days.map { it.sky }, skyColours)
+        if (days.isEmpty() || skyColours.isEmpty()) null
+        else WidgetSky.at(nowMillis, days.map { it.sky }, skyColours)
 
     /** The first prayer still ahead, or null once the written window runs out. */
     fun nextAfter(nowMillis: Long): WidgetUpcoming? =
@@ -57,6 +62,15 @@ data class WidgetPayload(
         const val SUPPORTED_VERSION = 4
 
         /**
+         * The version before the sky, which is the same shape without `sky`
+         * and `skyColours`. Still read, because only the app writes a payload:
+         * after an upgrade every placed widget holds this one until the app
+         * is opened, and refusing it left them all saying "No times". A Sky
+         * widget draws the plain dark background from it, as with no times.
+         */
+        const val SKYLESS_VERSION = 3
+
+        /**
          * Returns null for anything unusable - absent, malformed, or written
          * by a version that does not match. Showing nothing is right here:
          * a wrong prayer time is worse than a widget asking to be opened.
@@ -65,20 +79,23 @@ data class WidgetPayload(
             if (json.isNullOrBlank()) return null
             return try {
                 val root = JSONObject(json)
-                if (root.optInt("version", -1) != SUPPORTED_VERSION) return null
+                val version = root.optInt("version", -1)
+                if (version != SUPPORTED_VERSION && version != SKYLESS_VERSION) return null
+                val hasSky = version == SUPPORTED_VERSION
 
                 val daysJson = root.getJSONArray("days")
                 val days = (0 until daysJson.length()).map { d ->
                     val day = daysJson.getJSONObject(d)
                     val prayersJson = day.getJSONArray("prayers")
-                    val skyJson = day.getJSONArray("sky")
+                    val skyJson = if (hasSky) day.getJSONArray("sky") else null
                     WidgetDay(
                         day.getString("dateLabel"),
                         (0 until prayersJson.length()).map { i ->
                             val p = prayersJson.getJSONObject(i)
                             WidgetPrayer(p.getString("name"), p.getString("time"))
                         },
-                        LongArray(skyJson.length()) { skyJson.getLong(it) }
+                        if (skyJson == null) LongArray(0)
+                        else LongArray(skyJson.length()) { skyJson.getLong(it) }
                     )
                 }
 
@@ -93,15 +110,15 @@ data class WidgetPayload(
                     )
                 }
 
-                val coloursJson = root.getJSONArray("skyColours")
-                val skyColours = (0 until coloursJson.length()).map { i ->
-                    val c = coloursJson.getJSONObject(i)
+                val coloursJson = if (hasSky) root.getJSONArray("skyColours") else null
+                val skyColours = (0 until (coloursJson?.length() ?: 0)).map { i ->
+                    val c = coloursJson!!.getJSONObject(i)
                     SkyColours(c.getString("top"), c.getString("mid"), c.getString("horizon"))
                 }
                 // The sky needs a whole day of points and a colour for each;
-                // anything less is a payload this version cannot draw.
-                if (skyColours.size != SKY_POINTS ||
-                    days.any { it.sky.size != SKY_POINTS }
+                // a payload that has a sky and less than that cannot be drawn.
+                if (hasSky && (skyColours.size != SKY_POINTS ||
+                        days.any { it.sky.size != SKY_POINTS })
                 ) return null
 
                 WidgetPayload(

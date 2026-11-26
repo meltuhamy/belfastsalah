@@ -18,12 +18,7 @@ import { usePrayerStrip } from "../lib/usePrayerStrip";
 import { isLaterDay } from "../lib/prayerStrip";
 import StarField from "./StarField";
 import AdhanIcon from "./AdhanIcon";
-import {
-  ADHAN_WINDOW_MS,
-  isCalling,
-  prayerNow,
-  upcomingPrayer,
-} from "../lib/adhanMoment";
+import { ADHAN_WINDOW_MS, prayerNow, upcomingPrayer } from "../lib/adhanMoment";
 import LensFlare from "./LensFlare";
 import "./PrayerDayCard.css";
 
@@ -180,29 +175,33 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
     <IonCard color="primary" className="PrayerDayCard">
       {/*
         The Sky theme's sun, dawn, Fajr's thread, stars and daytime lens
-        flare, drawn behind everything else. Only shown in that theme.
+        flare, drawn behind everything else. Only there in that theme: the
+        stars and the flare listen to the phone's tilt and run a frame loop,
+        which would be wasted work behind a card that hides them.
       */}
-      <span className="PrayerDayCard__sky" aria-hidden="true">
-        <span className="PrayerDayCard__stars">
-          <StarField />
-        </span>
-        <span className="PrayerDayCard__dawn" data-testid="dawn-glow" />
-        {/*
+      {settings?.theme === "sky" && (
+        <span className="PrayerDayCard__sky" aria-hidden="true">
+          <span className="PrayerDayCard__stars">
+            <StarField />
+          </span>
+          <span className="PrayerDayCard__dawn" data-testid="dawn-glow" />
+          {/*
           Fajr: the white thread of dawn in a haze (fajrThread in sky.ts).
           Keyed on Fajr's adhan moment, so the line brightens once as it
           comes in, then breathes.
         */}
-        <span className="PrayerDayCard__fajr-haze" data-testid="fajr-haze" />
-        <span
-          key={fajrArriving ? "arriving" : "waiting"}
-          className={`PrayerDayCard__fajr-line${
-            fajrArriving ? " PrayerDayCard__fajr-line--arriving" : ""
-          }`}
-          data-testid="fajr-line"
-        />
-        <span className="PrayerDayCard__sun" />
-        <LensFlare />
-      </span>
+          <span className="PrayerDayCard__fajr-haze" data-testid="fajr-haze" />
+          <span
+            key={fajrArriving ? "arriving" : "waiting"}
+            className={`PrayerDayCard__fajr-line${
+              fajrArriving ? " PrayerDayCard__fajr-line--arriving" : ""
+            }`}
+            data-testid="fajr-line"
+          />
+          <span className="PrayerDayCard__sun" />
+          <LensFlare />
+        </span>
+      )}
       <IonCardContent className="PrayerDayCard__content">
         {/*
           The line about the last prayer sits under the whole top row rather
@@ -229,7 +228,7 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
                     <p className="PrayerDayCard__label PrayerDayCard__label--calling">
                       <AdhanIcon
                         size={18}
-                        calling={isCalling(current, now)}
+                        calling
                         className="PrayerDayCard__adhan"
                       />
                       It's time for

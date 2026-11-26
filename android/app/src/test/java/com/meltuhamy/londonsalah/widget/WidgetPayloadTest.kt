@@ -139,6 +139,28 @@ class WidgetPayloadTest {
     }
 
     @Test
+    fun `still reads the payload the version before the sky wrote`() {
+        // After an upgrade, until the app is opened, this is what every
+        // placed widget holds. Its times still show; there is just no sky.
+        val before = payloadJson(
+            version = WidgetPayload.SKYLESS_VERSION,
+            upcoming = """[{ "name": "Duhr", "at": 2000, "time": "12:20", "day": 0 }]"""
+        )
+            .replace(Regex(""",\s*"sky": \[[^\]]*\]"""), "")
+            .replace(Regex(""",\s*"skyColours": \[.*\]\s*}\s*$""", RegexOption.DOT_MATCHES_ALL), "\n}")
+        val payload = WidgetPayload.parse(before)!!
+
+        assertEquals("Duhr", payload.nextAfter(1000)!!.name)
+        assertEquals("05:36", payload.days[0].prayers[0].time)
+        assertNull(payload.skyAt(1000))
+        // Only a payload that has a sky must have the whole of it.
+        assertNull(WidgetPayload.parse(before.replace(
+            "\"version\": ${WidgetPayload.SKYLESS_VERSION}",
+            "\"version\": ${WidgetPayload.SUPPORTED_VERSION}"
+        )))
+    }
+
+    @Test
     fun `reads the fixture the render tests draw from`() {
         // If this fails, every render test fails with it for a reason that
         // has nothing to do with drawing - so it is worth saying so here.

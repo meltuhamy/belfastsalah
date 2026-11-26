@@ -13,12 +13,6 @@ import { Prayer, PrayerTime } from "./PrayerTimes";
 export const ADHAN_WINDOW_MS = 5 * 60 * 1000;
 
 /**
- * How long of that the icon shows the call going out; it is still after. The
- * whole window, now it is five minutes - about as long as an adhan.
- */
-export const CALLING_MS = 5 * 60 * 1000;
-
-/**
  * The prayer whose time has come within the window, or null.
  *
  * Usually that is `prev`. But for a moment after a prayer's time `next` is
@@ -40,11 +34,6 @@ export function prayerNow(
     if (since >= 0 && since < ADHAN_WINDOW_MS) return candidate;
   }
   return null;
-}
-
-/** Whether the adhan icon should be showing the call going out. */
-export function isCalling(current: PrayerTime | null, now: Date): boolean {
-  return current != null && now.getTime() - current.time.getTime() < CALLING_MS;
 }
 
 /**

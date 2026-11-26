@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Prayer, PrayerTime } from "./PrayerTimes";
-import { isCalling, prayerNow, upcomingPrayer } from "./adhanMoment";
+import { prayerNow, upcomingPrayer } from "./adhanMoment";
 
 const at = (iso: string) => new Date(iso);
 const prayer = (p: Prayer, iso: string): PrayerTime => ({ prayer: p, time: at(iso) });
@@ -37,14 +37,6 @@ describe("prayerNow", () => {
   it("Should never call Shuruq a prayer time", () => {
     expect(prayerNow(SHURUQ, DUHR, at("2026-01-15T08:00:00Z"))).toBeNull();
     expect(prayerNow(prayer(Prayer.Fajr, "2026-01-15T06:20:00Z"), SHURUQ, at("2026-01-15T07:58:00Z"))).toBeNull();
-  });
-});
-
-describe("isCalling", () => {
-  it("Should show the call going out for the whole five minutes", () => {
-    expect(isCalling(ASR, at("2026-01-15T14:04:59Z"))).toBe(true);
-    expect(isCalling(ASR, at("2026-01-15T14:07:00Z"))).toBe(false);
-    expect(isCalling(null, at("2026-01-15T14:03:00Z"))).toBe(false);
   });
 });
 

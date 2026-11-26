@@ -65,8 +65,9 @@ struct PrayerEntry: TimelineEntry {
  * for the next one when it runs out, which is a few reloads a day even then.
  *
  * The Sky palette is the other: the sky moves all day, so there is an entry
- * at every quarter of an hour as well, each with its own sky - about sixty a
- * day, which is a timeline's worth, so it reloads about once a day.
+ * at every quarter of an hour as well, each with its own sky - about a
+ * hundred a day, so a timeline of sixty lasts about fifteen hours and it
+ * reloads about twice a day.
  */
 enum PrayerTimeline {
 

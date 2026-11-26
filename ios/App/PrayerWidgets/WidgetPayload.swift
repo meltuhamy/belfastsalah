@@ -36,9 +36,28 @@ struct WidgetDay: Codable, Equatable {
     let sky: [Int64]
 }
 
+extension WidgetDay {
+    /** A missing `sky` is an empty one: see WidgetPayload.skylessVersion. */
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        dateLabel = try c.decode(String.self, forKey: .dateLabel)
+        prayers = try c.decode([WidgetPrayer].self, forKey: .prayers)
+        sky = try c.decodeIfPresent([Int64].self, forKey: .sky) ?? []
+    }
+}
+
 struct WidgetPayload: Codable, Equatable {
     /** Must match WIDGET_PAYLOAD_VERSION in src/lib/widgetPayload.ts. */
     static let supportedVersion = 4
+
+    /**
+     * The version before the sky, which is the same shape without `sky` and
+     * `skyColours`. Still read, because only the app writes a payload: after
+     * an upgrade every placed widget holds this one until the app is opened,
+     * and refusing it left them all saying "No times". A Sky widget draws the
+     * plain dark background from it, as with no times.
+     */
+    static let skylessVersion = 3
 
     /** A day's sky points: SKY_PHASES in src/lib/sky.ts. */
     static let skyPoints = 10
@@ -58,17 +77,25 @@ struct WidgetPayload: Codable, Equatable {
     static func parse(_ json: String?) -> WidgetPayload? {
         guard let data = json?.data(using: .utf8),
               let payload = try? JSONDecoder().decode(WidgetPayload.self, from: data),
-              payload.version == supportedVersion,
-              // The sky needs a whole day of points and a colour for each.
-              payload.skyColours.count == skyPoints,
-              payload.days.allSatisfy({ $0.sky.count == skyPoints })
+              payload.version == supportedVersion || payload.version == skylessVersion
         else { return nil }
+        // The sky needs a whole day of points and a colour for each; a payload
+        // that has a sky and less than that cannot be drawn.
+        if payload.version == supportedVersion {
+            guard payload.skyColours.count == skyPoints,
+                  payload.days.allSatisfy({ $0.sky.count == skyPoints })
+            else { return nil }
+        }
         return payload
     }
 
-    /** The sky a Sky widget draws at this moment, or nil with no days to draw it from. */
+    /**
+     * The sky a Sky widget draws at this moment, or nil with no days to draw
+     * it from - or none to draw at all, in a payload written before there was
+     * a sky.
+     */
     func skyAt(_ now: Date) -> SkyState? {
-        guard !days.isEmpty else { return nil }
+        guard !days.isEmpty, !skyColours.isEmpty else { return nil }
         return WidgetSky.at(
             Int64((now.timeIntervalSince1970 * 1000).rounded(.down)),
             days: days.map(\.sky),
@@ -85,6 +112,18 @@ struct WidgetPayload: Codable, Equatable {
 // MARK: - The sky
 
 /** One sky point's colours, top of the sky to the horizon, as "#rrggbb". */
+extension WidgetPayload {
+    /** Missing `skyColours` are none: see skylessVersion. */
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        version = try c.decode(Int.self, forKey: .version)
+        locationLabel = try c.decode(String.self, forKey: .locationLabel)
+        days = try c.decode([WidgetDay].self, forKey: .days)
+        upcoming = try c.decode([WidgetUpcoming].self, forKey: .upcoming)
+        skyColours = try c.decodeIfPresent([SkyColours].self, forKey: .skyColours) ?? []
+    }
+}
+
 struct SkyColours: Codable, Equatable {
     let top: String
     let mid: String

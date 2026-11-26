@@ -91,13 +91,15 @@ data class WidgetConfig(
      * Text is read against whatever is behind the widget once the background
      * goes translucent, so a transparent widget defaults to light text - the
      * wallpaper below is more often dark than not, and either way the user can
-     * override it.
+     * override it. That holds for the sky too: sky.ts's choice of black or
+     * white is for the sky itself, so it decides only while the sky is mostly
+     * there. A faded midday sky over a dark wallpaper took black text.
      */
     private fun lightText(context: Context, sky: SkyState?): Boolean = when (textTone) {
         WidgetTextTone.LIGHT -> true
         WidgetTextTone.DARK -> false
         WidgetTextTone.AUTO ->
-            if (sky != null) sky.lightText else dark(context) || opacity < 50
+            if (sky != null && opacity >= 50) sky.lightText else dark(context) || opacity < 50
     }
 
     /**
