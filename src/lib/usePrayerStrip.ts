@@ -42,8 +42,9 @@ export function usePrayerStrip(
     phase != null && phase.kind !== "day"
       ? phase.fajr.time.getTime()
       : nextFajr?.time.getTime() ?? 0;
-  // Which night, of which timetable: a change of place or Asr overnight must
-  // not show the old one's times while the new ones load.
+  // Which night, of which timetable, so a night fetched for one place or Asr
+  // is never taken for another's. After a change overnight the strip keeps
+  // what it was showing until the new night arrives, as it does by day.
   const key = `${fajrTime}-${location}-${asrMethod}`;
 
   useEffect(() => {
