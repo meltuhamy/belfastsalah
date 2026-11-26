@@ -411,16 +411,26 @@
   natural widths, laid out but never seen.
 */
 .PrayerDayCard__fit-probe {
+  /*
+    A box of no size that clips what it holds: at a large text size the row
+    is wider than the screen, and it must not widen the page.
+  */
   position: absolute;
   top: 0;
   left: 0;
-  display: flex;
-  width: max-content;
+  width: 0;
+  height: 0;
+  overflow: hidden;
   visibility: hidden;
   pointer-events: none;
 }
 
-.PrayerDayCard__fit-probe > * {
+.PrayerDayCard__fit-row {
+  display: flex;
+  width: max-content;
+}
+
+.PrayerDayCard__fit-row > * {
   flex: none;
 }
 

@@ -160,6 +160,11 @@ test.describe("at twice the text size", () => {
     expect(await clippedText(page, "[data-testid=day-meta-outside] p")).toEqual(
       []
     );
+    // What decides it is measured off the screen, and must not widen it.
+    const probe = await page
+      .locator(".PrayerDayCard__fit-probe")
+      .evaluate((el) => el.getBoundingClientRect().width);
+    expect(probe).toBe(0);
   });
 
   test("highlights the next prayer where it is, in the second row", async ({

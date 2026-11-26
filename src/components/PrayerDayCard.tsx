@@ -63,9 +63,9 @@ function stripFitsOneRow(strip: HTMLElement): boolean {
  * their natural widths, neither of which depends on where they end up.
  */
 function metaFitsBeside(top: HTMLElement): boolean {
-  const probe = top.querySelector<HTMLElement>(".PrayerDayCard__fit-probe");
-  if (probe == null || probe.children.length < 2) return true;
-  const [countdown, meta] = Array.from(probe.children);
+  const row = top.querySelector<HTMLElement>(".PrayerDayCard__fit-row");
+  if (row == null || row.children.length < 2) return true;
+  const [countdown, meta] = Array.from(row.children);
   const style = getComputedStyle(top);
   const room =
     top.clientWidth -
@@ -379,9 +379,11 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
               so the answer cannot flip as it ticks.
             */}
               <div className="PrayerDayCard__fit-probe" aria-hidden="true">
-                <p className="PrayerDayCard__remaining">23h 59m</p>
-                <div className="PrayerDayCard__meta">
-                  {withoutTestIds(metaContent)}
+                <div className="PrayerDayCard__fit-row">
+                  <p className="PrayerDayCard__remaining">23h 59m</p>
+                  <div className="PrayerDayCard__meta">
+                    {withoutTestIds(metaContent)}
+                  </div>
                 </div>
               </div>
             </div>
