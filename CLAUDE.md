@@ -285,6 +285,34 @@ without it the knob was being yanked back to the stored value mid-drag. It is
 also why `SetupPage` uses a functional state update. Bear it in mind before
 adding another control that has to hold state while being interacted with.
 
+## System text size
+
+Text follows the phone's text size (MEL-105) through one number,
+`--text-scale` on `<html>`, capped at 2: `src/lib/textScale.ts`.
+
+- **Where it comes from.** iOS: Dynamic Type, read by measuring a probe in
+  `-apple-system-body` against its 17px default. Android: `TextSizePlugin`'s
+  font scale - MainActivity sets the WebView's `textZoom` to 100, because
+  left alone it zoomed every font, px included, with no cap. The web: the
+  browser's font size (`medium`). The e2e specs set that through Chrome's
+  `Page.setFontSizes`, which is how `e2e/text-size.spec.ts` gets 2x.
+- **What reads it.** The root font size is set inline from it, so rem grows,
+  and the app's own px sizes are written `calc(Npx * var(--text-scale, 1))`.
+  Inline because Android's WebView drops Ionic's `font:
+  var(--ion-dynamic-font, ...)` rule, which left every rem at 16px. A new
+  font size in px wants the same calc.
+- **Layouts that cannot just grow measure whether they fit** (`useMeasured`)
+  rather than switching at a scale: the day card's strip goes to two rows of
+  three, the month table scrolls sideways. Measure content widths, which the
+  layout chosen does not change, or it flips back and forth. Settings' selects
+  put their label above their value from 1.3 (`useLargeText`, `text-large` on
+  `<html>`), and the toolbar titles wrap (`PageTitle`).
+- **Widgets have caps of their own**, the largest size at which nothing is
+  cut off: `WidgetTextScale` on Android (written in dp, so the launcher does
+  not scale them again; `WidgetFontScaleTest` runs the fit check at 2x) and
+  `WidgetFamily.largestTypeSize` on iOS (`WidgetFitTests` up to
+  accessibility5). A layout change that leaves less room fails those.
+
 ## The day card
 
 `PrayerDayCard` is one card, laid out like the home screen widget: the

@@ -46,6 +46,8 @@ import "./theme/variables.css";
 import "@ionic/react/css/palettes/dark.class.css";
 /* After the dark palette, which it overrides when the Sky theme is on. */
 import "./theme/sky.css";
+/* Labels that wrap rather than being cut off at a large text size. */
+import "./theme/text-size.css";
 import { useSettings } from "./lib/useSettings";
 import { AppContext } from "./State";
 import { usePrayerDay } from "./lib/usePrayerDay";

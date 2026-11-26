@@ -7,7 +7,6 @@ import {
   IonIcon,
   IonModal,
   IonPage,
-  IonTitle,
   IonToolbar,
 } from "@ionic/react";
 import { pause, play } from "ionicons/icons";
@@ -47,6 +46,7 @@ import {
   toPosition,
 } from "../lib/testDay";
 import "./TestRemindersPage.css";
+import PageTitle from "../components/PageTitle";
 
 const TICK_MS = 100;
 // However short the sound, the day stops long enough to see the notification.
@@ -384,7 +384,7 @@ const TestRemindersPage: React.FC = () => {
           <IonButtons slot="start">
             <IonBackButton defaultHref="/settings/notifications" />
           </IonButtons>
-          <IonTitle>Test your reminders</IonTitle>
+          <PageTitle>Test your reminders</PageTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent>
@@ -546,7 +546,7 @@ const TestRemindersPage: React.FC = () => {
             <IonContent>
               <IonHeader>
                 <IonToolbar>
-                  <IonTitle>{names[sheet!]} reminder</IonTitle>
+                  <PageTitle>{names[sheet!]} reminder</PageTitle>
                 </IonToolbar>
               </IonHeader>
               <PrayerReminderEditor

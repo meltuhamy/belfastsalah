@@ -142,9 +142,15 @@ object WidgetRenderer {
 
         paintSky(context, views, kind, config, sky, boxDp)
 
+        // The font scale, as far as this kind has room for (WidgetTextScale).
+        val textScale = WidgetTextScale.scale(context, kind)
+        WidgetTextScale.apply(context, views, kind, textScale)
+
         return when (kind) {
             WidgetKind.TILE ->
-                renderTile(context, views, config, sky, payload, next, sizeDp, nowMillis)
+                renderTile(
+                    context, views, config, sky, payload, next, sizeDp, nowMillis, textScale
+                )
             WidgetKind.COMPACT ->
                 renderInline(context, views, config, sky, day, next, COMPACT_IDS, nowMillis)
             WidgetKind.COLUMN ->
@@ -273,7 +279,8 @@ object WidgetRenderer {
         payload: WidgetPayload?,
         next: WidgetUpcoming?,
         sizeDp: Int?,
-        nowMillis: Long
+        nowMillis: Long,
+        textScale: Float
     ): RemoteViews {
         views.setOnClickPendingIntent(R.id.tile_root, openApp(context))
         views.setInt(R.id.tile_root, "setBackgroundColor", config.backgroundColor(context, sky))
@@ -290,9 +297,12 @@ object WidgetRenderer {
             size < 120 -> Triple(18f, 12f, 8)
             else -> Triple(22f, 14f, 12)
         }
-        views.setTextViewTextSize(R.id.tile_countdown, TypedValue.COMPLEX_UNIT_SP, countdownSp)
-        views.setTextViewTextSize(R.id.tile_prayer, TypedValue.COMPLEX_UNIT_SP, prayerSp)
-        views.setTextViewTextSize(R.id.tile_location, TypedValue.COMPLEX_UNIT_SP, prayerSp)
+        // In dp, already scaled by as much of the font scale as fits
+        // (WidgetTextScale), so the launcher does not scale them again.
+        val dip = TypedValue.COMPLEX_UNIT_DIP
+        views.setTextViewTextSize(R.id.tile_countdown, dip, countdownSp * textScale)
+        views.setTextViewTextSize(R.id.tile_prayer, dip, prayerSp * textScale)
+        views.setTextViewTextSize(R.id.tile_location, dip, prayerSp * textScale)
 
         val padPx = (padDp * context.resources.displayMetrics.density).toInt()
         views.setViewPadding(R.id.tile_root, padPx, padPx, padPx, padPx)

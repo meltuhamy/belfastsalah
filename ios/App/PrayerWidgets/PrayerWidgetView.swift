@@ -151,6 +151,12 @@ struct PrayerWidgetContent: View {
     let colors: WidgetColors
 
     var body: some View {
+        Group { content }
+            // Dynamic Type, as far as this family has room for (MEL-105).
+            .dynamicTypeSize(...family.largestTypeSize)
+    }
+
+    @ViewBuilder private var content: some View {
         switch entry.content {
         case .empty:
             EmptyContent(family: family, colors: colors, note: entry.note)
@@ -171,6 +177,29 @@ struct PrayerWidgetContent: View {
             default:
                 SmallContent(times: times, settings: entry.settings, colors: colors)
             }
+        }
+    }
+}
+
+extension WidgetFamily {
+    /**
+     * The largest Dynamic Type size a family's text follows (MEL-105).
+     *
+     * A widget does not grow with its text, so past a point a larger size
+     * only cuts it off: at the largest accessibility size the medium widget's
+     * times lost their minutes. Each cap is the largest size at which
+     * WidgetFitTests finds nothing cut off, on the smallest phone and the
+     * largest, at every size up to the largest accessibility one. One size
+     * more and the SE's medium widget cuts its names and times, and its
+     * small widget "Maghrib in".
+     */
+    var largestTypeSize: DynamicTypeSize {
+        switch self {
+        case .systemSmall: return .xxLarge
+        case .systemMedium: return .xLarge
+        case .systemLarge, .systemExtraLarge: return .xxxLarge
+        case .accessoryRectangular: return .xxxLarge
+        default: return .xxxLarge
         }
     }
 }

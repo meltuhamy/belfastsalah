@@ -119,8 +119,8 @@
 .test-day__offset {
   top: 16px;
   transform: translateX(-50%);
-  font-size: 10px;
-  line-height: 12px;
+  font-size: calc(10px * min(var(--text-scale, 1), 1.4));
+  line-height: 1.2;
   font-weight: 700;
   color: var(--test-day-accent);
   white-space: nowrap;
@@ -130,8 +130,8 @@
 .test-day__off {
   top: 14px;
   transform: translateX(-50%);
-  font-size: 10px;
-  line-height: 12px;
+  font-size: calc(10px * min(var(--text-scale, 1), 1.4));
+  line-height: 1.2;
   font-weight: 600;
   color: var(--test-day-muted);
 }
@@ -176,6 +176,14 @@
   gap: 2px;
 }
 
+/*
+  At a large system text size six prayers do not fit across (MEL-105): two
+  rows of three, as on the day card.
+*/
+html.text-large .test-day__cells {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .test-day__cell {
   display: flex;
   flex-direction: column;
@@ -207,6 +215,7 @@
 }
 
 .test-day__cell-time {
+  white-space: nowrap;
   font-size: 0.95rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -218,8 +227,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10px;
-  line-height: 12px;
+  font-size: calc(10px * min(var(--text-scale, 1), 1.4));
+  line-height: 1.2;
   padding: 2px 4px;
   border-radius: 6px;
   border: 1px solid var(--test-day-line);
@@ -227,8 +236,8 @@
 
 .test-day__cell-when {
   min-height: 12px;
-  font-size: 10px;
-  line-height: 12px;
+  font-size: calc(10px * min(var(--text-scale, 1), 1.4));
+  line-height: 1.2;
   font-weight: 600;
   color: var(--test-day-accent);
   white-space: nowrap;

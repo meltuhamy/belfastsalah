@@ -20,6 +20,7 @@ import StarField from "./StarField";
 import AdhanIcon from "./AdhanIcon";
 import { ADHAN_WINDOW_MS, prayerNow, upcomingPrayer } from "../lib/adhanMoment";
 import LensFlare from "./LensFlare";
+import { useMeasured } from "../lib/useMeasured";
 import "./PrayerDayCard.css";
 
 /**
@@ -31,6 +32,27 @@ import "./PrayerDayCard.css";
  */
 const duration = (seconds: number) =>
   timeDurationString(seconds, "short").trim();
+
+/**
+ * Whether the strip's six times still fit side by side. At a large system text
+ * size they do not - they ran into each other, and Isha went off the card
+ * (MEL-105) - and the strip becomes two rows of three. Measured from the
+ * names' and times' own widths, which do not depend on the layout, so the
+ * answer cannot flip the layout back and forth.
+ */
+function stripFitsOneRow(strip: HTMLElement): boolean {
+  const columns = 6;
+  // The grid's 2px gaps, and each cell's 1px border and 1px padding a side.
+  const column = (strip.clientWidth - 2 * (columns - 1)) / columns - 4;
+  let widest = 0;
+  strip
+    .querySelectorAll(".PrayerDayCard__cell-name, .PrayerDayCard__cell-time")
+    .forEach((text) => {
+      widest = Math.max(widest, text.getBoundingClientRect().width);
+    });
+  // A few px to spare, so the next prayer's bolder time still fits.
+  return widest + 4 <= column;
+}
 
 /** How long the outgoing headline takes to leave, in ms; PrayerDayCard.css. */
 const HEADLINE_LEAVE_MS = 450;
@@ -171,8 +193,18 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   const locationName =
     settings?.location != null ? locationNames[settings.location] : null;
 
+  const stripRef = useRef<HTMLDivElement>(null);
+  const twoRows = useMeasured(stripRef, (el) => !stripFitsOneRow(el), [
+    strip == null,
+    uses24,
+  ]);
+  const nextColumn = strip?.findIndex((p) => p.prayer === nextPrayer) ?? -1;
+
   return (
-    <IonCard color="primary" className="PrayerDayCard">
+    <IonCard
+      color="primary"
+      className={`PrayerDayCard${twoRows ? " PrayerDayCard--rows" : ""}`}
+    >
       {/*
         The Sky theme's sun, dawn, Fajr's thread, stars and daytime lens
         flare, drawn behind everything else. Only there in that theme: the
@@ -360,7 +392,11 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
                 />
               ))}
             </div>
-            <div className="PrayerDayCard__strip" data-testid="prayer-strip">
+            <div
+              className="PrayerDayCard__strip"
+              data-testid="prayer-strip"
+              ref={stripRef}
+            >
               {/*
                 The highlight: one pane behind the cells that glides from
                 column to column, rather than each cell lighting up in turn.
@@ -372,9 +408,10 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
                   data-testid="highlight-pane"
                   style={
                     {
-                      "--column": strip.findIndex(
-                        (p) => p.prayer === nextPrayer
-                      ),
+                      // Two rows of three when the text is too big for
+                      // one row of six.
+                      "--column": twoRows ? nextColumn % 3 : nextColumn,
+                      "--row": twoRows ? Math.floor(nextColumn / 3) : 0,
                     } as React.CSSProperties
                   }
                 />

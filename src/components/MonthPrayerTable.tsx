@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import {
   PrayerTime,
   PrayerLocation,
@@ -13,6 +13,7 @@ import { useDisplayTimeZone } from "../lib/useDisplayTimeZone";
 import { useUses24Hour } from "../lib/useTimeFormat";
 import { timetableZoneFor } from "../lib/PrayerTimeData";
 import { IonSkeletonText } from "@ionic/react";
+import { useMeasured } from "../lib/useMeasured";
 import "./MonthPrayerTable.css";
 
 const MonthPrayerTableCol: React.FC<{
@@ -96,39 +97,60 @@ const MonthPrayerTable: React.FC<Props> = ({ month, year }) => {
       </td>
     </tr>
   ));
+  // At a large system text size seven columns of times do not fit across the
+  // phone (MEL-105): the table keeps a width its times fit in, set in em in
+  // the CSS, and scrolls sideways. Only then - a scrolling box would also stop
+  // the header sticking as the page scrolls, so it is not one by default.
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const scrolls = useMeasured(wrapperRef, (wrapper) => {
+    const table = wrapper.firstElementChild as HTMLElement | null;
+    if (table == null) return false;
+    // The width the CSS asks for, which the layout chosen does not change.
+    const needs = parseFloat(getComputedStyle(table).minWidth);
+    return needs > wrapper.clientWidth + 1;
+  });
+
   return (
-    <table className="MonthPrayerTable">
-      <thead>
-        <tr>
-          <th className="MonthPrayerTable__col MonthPrayerTable__col--day" />
-          <th className="MonthPrayerTable__col">Fajr</th>
-          <th className="MonthPrayerTable__col">Shuruq</th>
-          <th className="MonthPrayerTable__col">Duhr</th>
-          <th className="MonthPrayerTable__col">Asr</th>
-          <th className="MonthPrayerTable__col">Maghrib</th>
-          <th className="MonthPrayerTable__col">Isha</th>
-        </tr>
-      </thead>
-      <tbody>
-        {monthData == null
-          ? monthLoading
-          : monthData.map((dayData, i) => (
-              <tr className={getClassNameForRow(i)} key={i}>
-                <td className="MonthPrayerTable__col MonthPrayerTable__col--day">
-                  {i + 1}
-                </td>
-                {dayData.map((p) => (
-                  <MonthPrayerTableCol
-                    prayer={p}
-                    timeZone={displayTimeZone}
-                    uses24={uses24}
-                    key={p.time.getTime()}
-                  />
-                ))}
-              </tr>
-            ))}
-      </tbody>
-    </table>
+    <div
+      className={`MonthPrayerTable__scroller${
+        scrolls ? " MonthPrayerTable__scroller--scrolls" : ""
+      }`}
+      ref={wrapperRef}
+      data-testid="month-scroller"
+    >
+      <table className="MonthPrayerTable">
+        <thead>
+          <tr>
+            <th className="MonthPrayerTable__col MonthPrayerTable__col--day" />
+            <th className="MonthPrayerTable__col">Fajr</th>
+            <th className="MonthPrayerTable__col">Shuruq</th>
+            <th className="MonthPrayerTable__col">Duhr</th>
+            <th className="MonthPrayerTable__col">Asr</th>
+            <th className="MonthPrayerTable__col">Maghrib</th>
+            <th className="MonthPrayerTable__col">Isha</th>
+          </tr>
+        </thead>
+        <tbody>
+          {monthData == null
+            ? monthLoading
+            : monthData.map((dayData, i) => (
+                <tr className={getClassNameForRow(i)} key={i}>
+                  <td className="MonthPrayerTable__col MonthPrayerTable__col--day">
+                    {i + 1}
+                  </td>
+                  {dayData.map((p) => (
+                    <MonthPrayerTableCol
+                      prayer={p}
+                      timeZone={displayTimeZone}
+                      uses24={uses24}
+                      key={p.time.getTime()}
+                    />
+                  ))}
+                </tr>
+              ))}
+        </tbody>
+      </table>
+    </div>
   );
 };
 
