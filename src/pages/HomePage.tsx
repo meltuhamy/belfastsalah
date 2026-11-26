@@ -30,6 +30,7 @@ import { shouldPromptForZone } from "../lib/displayZone";
 import { locationNames, timetableZoneFor } from "../lib/PrayerTimeData";
 import { useSettings } from "../lib/useSettings";
 import TimeZoneNotice from "../components/TimeZoneNotice";
+import KeepAwakeButton from "../components/KeepAwakeButton";
 import PageTitle from "../components/PageTitle";
 
 let shouldExitApp = false;
@@ -77,6 +78,18 @@ const HomePage: React.FC = () => {
       ? appSettings.location
       : null;
 
+  // The lantern beside the cog: keeps the screen on while the app is open,
+  // for reading the times across a room or following the countdown to the
+  // adhan. It says so itself once on, so the save is quiet - the usual
+  // "settings saved" toast would only repeat it.
+  const keepAwake = appSettings?.keepAwake ?? false;
+  const toggleKeepAwake = () => {
+    if (appSettings == null) {
+      return;
+    }
+    setAppSettings({ ...appSettings, keepAwake: !keepAwake }, { quiet: true });
+  };
+
   const answerNotice = (showTimesInDeviceZone: boolean) => {
     if (appSettings == null) {
       return;
@@ -94,6 +107,7 @@ const HomePage: React.FC = () => {
         <IonToolbar>
           <PageTitle>{inView ? "Prayer Times" : monthName}</PageTitle>
           <IonButtons slot="primary">
+            <KeepAwakeButton on={keepAwake} onToggle={toggleKeepAwake} />
             <IonButton routerLink="/settings" aria-label="Settings">
               <IonIcon slot="icon-only" icon={settings} />
             </IonButton>

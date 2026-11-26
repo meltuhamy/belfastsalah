@@ -1,5 +1,5 @@
 import { useEffect, useContext } from "react";
-import { getSettings, saveSettings, AppSettings } from "./settings";
+import { getSettings, saveSettings, AppSettings, SaveOptions } from "./settings";
 import { AppContext } from "../State";
 
 type MaybeAppSettings = AppSettings | null;
@@ -7,7 +7,7 @@ let latestSettings: MaybeAppSettings = null;
 
 type UseSettingsHookResult = [
   MaybeAppSettings,
-  (appSettings: AppSettings) => Promise<void>,
+  (appSettings: AppSettings, options?: SaveOptions) => Promise<void>,
   boolean
 ];
 
@@ -26,7 +26,7 @@ export function useSettings(): UseSettingsHookResult {
     });
   }, []);
 
-  async function setNewSettings(appSettings: AppSettings) {
+  async function setNewSettings(appSettings: AppSettings, options?: SaveOptions) {
     latestSettings = appSettings;
     dispatch({
       type: "setSettings",
@@ -36,7 +36,7 @@ export function useSettings(): UseSettingsHookResult {
       }
     });
 
-    await saveSettings(latestSettings); // optimistic
+    await saveSettings(latestSettings, options); // optimistic
   }
 
   return [storageValue, setNewSettings, hydrated];

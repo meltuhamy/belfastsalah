@@ -32,6 +32,7 @@ const harness = vi.hoisted(() => {
       location: "london" as AppSettings["location"],
       showTimesInDeviceZone: false,
       timeZoneNoticeSeen: true,
+      keepAwake: false,
     },
   };
   const clearAndSetNotifications = vi.fn(
@@ -102,6 +103,7 @@ function enabledSettings(): AppSettings {
     location: PrayerLocation.London,
     showTimesInDeviceZone: false,
     timeZoneNoticeSeen: true,
+    keepAwake: false,
   };
 }
 

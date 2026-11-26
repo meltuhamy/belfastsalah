@@ -30,6 +30,10 @@ export type AppSettings = {
   // answered. Missing in settings saved by older versions, which reads as
   // false, so the prompt appears once for anyone it applies to.
   timeZoneNoticeSeen: boolean;
+  // Keeps the screen on while the app is in front: the lantern beside the
+  // settings cog on the home screen. Missing in older settings, which reads
+  // as off, the phone's own behaviour.
+  keepAwake: boolean;
 };
 
 export function getDefaultSettings(): AppSettings {
@@ -47,6 +51,7 @@ export function getDefaultSettings(): AppSettings {
     location: null,
     showTimesInDeviceZone: false,
     timeZoneNoticeSeen: false,
+    keepAwake: false,
   };
 }
 
@@ -129,19 +134,33 @@ export async function getSettings(): Promise<AppSettings | null> {
   return settingsCache;
 }
 
-async function saveSettingsToStorage(appSettings: AppSettings) {
+export type SaveOptions = {
+  // A change that announces itself, like the keep-awake toggle, skips the
+  // "Your settings have been saved" toast so two toasts do not stack.
+  quiet?: boolean;
+};
+
+async function saveSettingsToStorage(
+  appSettings: AppSettings,
+  options: SaveOptions = {}
+) {
   await Preferences.set({
     key: STORAGE_KEY,
     value: JSON.stringify(appSettings),
   });
-  saveCallbacks.forEach((cb) => cb());
+  if (!options.quiet) {
+    saveCallbacks.forEach((cb) => cb());
+  }
 }
 
 const saveSettingsToStorageDebounced = debounce(saveSettingsToStorage, 500);
 
-export async function saveSettings(appSettings: AppSettings) {
+export async function saveSettings(
+  appSettings: AppSettings,
+  options: SaveOptions = {}
+) {
   settingsCache = appSettings;
-  return saveSettingsToStorageDebounced(appSettings);
+  return saveSettingsToStorageDebounced(appSettings, options);
 }
 
 export function addSaveListener(callback: () => void) {
