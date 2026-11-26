@@ -39,7 +39,9 @@ final class WidgetFitTests: XCTestCase {
         let families = WidgetFamily.home + [.accessoryRectangular, .accessoryInline]
         for device in DeviceSizes.all {
             for family in families {
-                for typeSize in [DynamicTypeSize.large, .xLarge] {
+                // The default, one larger, and the largest of all, which each
+                // family caps at its own largestTypeSize (MEL-105).
+                for typeSize in [DynamicTypeSize.large, .xLarge, .xxxLarge, .accessibility5] {
                     for (name, entry) in entries {
                         let size = device.sizes[family]!
                         for (id, m) in measure(entry, family, size, typeSize) where m.isCutOff {

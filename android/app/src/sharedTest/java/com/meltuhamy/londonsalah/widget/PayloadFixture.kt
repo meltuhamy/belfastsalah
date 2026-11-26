@@ -106,6 +106,9 @@ object PayloadFixture {
     /** 07:35 - Shuruq is next at 07:57: no sun yet, only the dawn glow. */
     val BEFORE_SUNRISE = on15th("07:35") - SPARE
 
+    /** 11:00 - Duhr is next at 12:15: its highlight beside the plain columns. */
+    val ELEVEN_AM = on15th("11:00") - SPARE
+
     /** 13:00 - Duhr has gone, Asr is next at 14:01, "1:01:00" away. */
     val ONE_PM = on15th("13:00") - SPARE
 

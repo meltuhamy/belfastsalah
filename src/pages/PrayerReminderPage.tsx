@@ -8,7 +8,6 @@ import {
   IonHeader,
   IonIcon,
   IonPage,
-  IonTitle,
   IonToolbar,
   useIonAlert,
 } from "@ionic/react";
@@ -33,6 +32,7 @@ import { useUses24Hour } from "../lib/useTimeFormat";
 import { reminderTimesLine } from "../lib/reminderTimes";
 import { reminderSoundLabels } from "../lib/reminderSound";
 import "./PrayerReminderPage.css";
+import PageTitle from "../components/PageTitle";
 
 /** "Adhan 1, 5 min before", or "Off": what applying this one would give every prayer. */
 function summary(reminder: PrayerReminder): string {
@@ -108,7 +108,7 @@ const PrayerReminderPage: React.FC = () => {
           <IonButtons slot="start">
             <IonBackButton defaultHref="/settings/notifications" />
           </IonButtons>
-          <IonTitle>{key === null ? "All prayers" : `${name} reminder`}</IonTitle>
+          <PageTitle>{key === null ? "All prayers" : `${name} reminder`}</PageTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent>

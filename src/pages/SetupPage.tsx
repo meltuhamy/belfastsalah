@@ -3,7 +3,6 @@ import {
   IonHeader,
   IonToolbar,
   IonPage,
-  IonTitle,
   IonContent,
   IonButton,
 } from "@ionic/react";
@@ -14,6 +13,7 @@ import { Theme } from "../lib/theme";
 import SettingsList from "../components/SettingsList";
 import CenteredMaxWidthContainer from "../components/CenteredMaxWidthContainer";
 import { SplashScreen } from "@capacitor/splash-screen";
+import PageTitle from "../components/PageTitle";
 
 type Props = {
   /**
@@ -48,7 +48,7 @@ const SetupPage: React.FC<Props> = ({ onThemePreview }) => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Set up</IonTitle>
+          <PageTitle>Set up</PageTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent class="ion-padding">
