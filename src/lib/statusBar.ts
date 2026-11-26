@@ -45,15 +45,11 @@ export function systemBarsStyle(
   userAgent: string,
   dark: boolean
 ): SystemBarsStyle | null {
-  if (platform !== "android") {
-    return platform === "ios"
-      ? dark
-        ? SystemBarsStyle.Dark
-        : SystemBarsStyle.Light
-      : null;
-  }
   if (pageUnderSystemBars(platform, userAgent)) {
     return dark ? SystemBarsStyle.Dark : SystemBarsStyle.Light;
+  }
+  if (platform !== "android") {
+    return null;
   }
   return androidMajor(userAgent) >= 15 ? null : SystemBarsStyle.Dark;
 }
