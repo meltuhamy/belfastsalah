@@ -257,8 +257,10 @@ test("keeps the place and date in the card on a 360px phone at the default size"
 }) => {
   // The commonest Android width, at night: after Isha, Fajr is "11h 20m"
   // away, as wide as the countdown gets, since its digits are tabular.
+  // The 16th, a Friday: the date is the widest thing beside the countdown,
+  // and at this width "Thu" or "Wed" leaves no room where "Fri" does.
   await page.setViewportSize({ width: 360, height: 740 });
-  await pinDate(page, "2026-01-15T19:00:00Z");
+  await pinDate(page, "2026-01-16T19:00:00Z");
   await completeSetup(page);
   await expect(page.getByTestId("countdown")).toContainText("11h");
   await expect(page.getByTestId("day-meta-outside")).toHaveCount(0);

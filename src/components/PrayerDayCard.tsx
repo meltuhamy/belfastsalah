@@ -15,7 +15,13 @@ import { useUses24Hour } from "../lib/useTimeFormat";
 import { showsForeignZone } from "../lib/displayZone";
 import { locationNames } from "../lib/PrayerTimeData";
 import { usePrayerStrip } from "../lib/usePrayerStrip";
-import { isLaterDay } from "../lib/prayerStrip";
+import {
+  stripCells,
+  stripIndexOf,
+  stripPhase,
+  stripProgress,
+  timelineLines,
+} from "../lib/prayerStrip";
 import StarField from "./StarField";
 import AdhanIcon from "./AdhanIcon";
 import { ADHAN_WINDOW_MS, prayerNow, upcomingPrayer } from "../lib/adhanMoment";
@@ -173,25 +179,44 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   const uses24 = useUses24Hour(settings);
   // For five minutes after a prayer comes in its adhan is being called: the
   // card says "It's time for Asr" and keeps Asr highlighted (adhanMoment.ts).
-  // That prayer also decides which day the strip shows, so Isha's five minutes
-  // stay on today's strip rather than rolling to tomorrow's straight away.
+  // That prayer also decides what the strip shows, so Isha's five minutes stay
+  // on the day's own strip, and the night's slide waits for them to end
+  // (prayerStrip.ts).
   const current = prayerNow(prev, next, now, today);
-  const strip = usePrayerStrip(today, current ?? next);
+  const upcomingToday = upcomingPrayer(next, today, now);
+  // With neither, the times on hand have not caught up with the clock - the
+  // app has just opened, or come back after hours away - and the phase cannot
+  // be told. Taken for the day, its strip was drawn and then slid over to the
+  // night's as though Isha's moment had just ended.
+  const phase =
+    current != null || upcomingToday != null
+      ? stripPhase(current, upcomingToday)
+      : null;
+  const strip = usePrayerStrip(
+    today,
+    phase,
+    next?.prayer === Prayer.Fajr ? next : null
+  );
+  const cells = strip == null ? null : stripCells(strip);
+  const offset = strip?.offset ?? 0;
   const fajrArriving = current?.prayer === Prayer.Fajr;
   // The prayer still to come, which `next` is not for a moment after its time,
   // before the app has worked out the one after - the card used to go blank.
-  const upcoming = upcomingPrayer(next, strip, now);
+  const upcoming = upcomingPrayer(next, cells, now);
 
-  // The column highlighted: the prayer being called, else the one to come.
-  // After the last prayer of the day the strip has already rolled over to
-  // tomorrow, where that is Fajr.
-  const nextPrayer = (current ?? upcoming ?? next)?.prayer ?? null;
+  // The cell highlighted: the prayer being called, else the one to come.
+  // Found by its instant, since overnight there are two of every prayer.
+  const nextIndex =
+    cells == null ? -1 : stripIndexOf(cells, current ?? upcoming ?? next);
 
-  // The day the strip is showing, read off its own times rather than from the
-  // clock: midday is far enough from either midnight to survive being rendered
-  // in any zone.
-  const stripDay = strip?.[Prayer.Duhr].time ?? now;
-  const showsNextDay = isLaterDay(stripDay, now, timeZone);
+  // The date on the card. By day, the strip's own day, read off its times
+  // rather than from the clock: midday is far enough from either midnight to
+  // survive being rendered in any zone. Overnight the strip spans two days, and
+  // the date is the reader's own, turning over at their midnight.
+  const stripDay =
+    strip != null && strip.days.length === 1
+      ? strip.days[0][Prayer.Duhr].time
+      : now;
 
   // A standing reminder that these are not the numbers on the phone's own
   // clock. Only shown while that is true, so it stays meaningful rather than
@@ -200,40 +225,29 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   // rather than the zone - "London time" beats "British Summer Time".
   const showsOtherZone = showsForeignZone(settings, now);
 
-  // How far through the strip's day now is, in columns: 0 at Fajr's dot, 5 at
-  // Isha's, and in between by time. Null before Fajr, which is also all
-  // night once the strip has rolled on to tomorrow.
-  const passed = strip?.map((p) => p.time.getTime() <= now.getTime()) ?? [];
+  const passed = cells?.map((p) => p.time.getTime() <= now.getTime()) ?? [];
   // A prayer whose adhan is being called: its dot pulses.
   const recent =
-    strip?.map((p) => {
+    cells?.map((p) => {
       const since = now.getTime() - p.time.getTime();
       return since >= 0 && since < ADHAN_WINDOW_MS;
     }) ?? [];
-  const lastPassed = passed.lastIndexOf(true);
-  let progress: number | null = null;
-  if (strip != null && lastPassed >= 0) {
-    const from = strip[lastPassed].time.getTime();
-    const to = strip[lastPassed + 1]?.time.getTime();
-    progress =
-      to === undefined
-        ? lastPassed
-        : lastPassed + Math.min(1, (now.getTime() - from) / (to - from));
-  }
+  // How far along the row now is, in columns, and a line for each day on it.
+  const { progress, lastPassed } = stripProgress(cells ?? [], now);
+  const lines = timelineLines(
+    strip?.days.length ?? 0,
+    progress,
+    lastPassed,
+    offset
+  );
   const locationName =
     settings?.location != null ? locationNames[settings.location] : null;
 
-  // The place and date, with the Tomorrow badge and the zone caption. Beside
-  // the countdown when there is room; at a large system text size there is
-  // not, and they go under the card, centred, rather than stacking inside it
-  // (MEL-105).
+  // The place and date, and the zone caption. Beside the countdown when there
+  // is room; at a large system text size there is not, and they go under the
+  // card, centred, rather than stacking inside it (MEL-105).
   const metaContent = (
     <>
-      {showsNextDay && (
-        <span className="PrayerDayCard__badge" data-testid="tomorrow-badge">
-          Tomorrow
-        </span>
-      )}
       {/* Place and date on one line: one quiet line rather than two. */}
       <p>
         {locationName !== null && <>{locationName} · </>}
@@ -249,23 +263,44 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   const topRef = useRef<HTMLDivElement>(null);
   const metaOutside = useMeasured(topRef, (top) => !metaFitsBeside(top), [
     locationName,
-    showsNextDay,
     showsOtherZone,
     formatDateInZone(stripDay, timeZone),
   ]);
 
   const stripRef = useRef<HTMLDivElement>(null);
+  // Asked again whenever the cells are new elements - the row redrawn for a
+  // new day, or the night's second day added - since only the ones there when
+  // it was asked are watched for a change of size, such as the highlight's
+  // bolder time moving onto them.
   const twoRows = useMeasured(stripRef, (el) => !stripFitsOneRow(el), [
     strip == null,
     uses24,
+    strip?.days[0][Prayer.Fajr].time.getTime(),
+    strip?.days.length,
+    offset,
   ]);
-  const nextColumn = strip?.findIndex((p) => p.prayer === nextPrayer) ?? -1;
+  // The column the highlight sits in: where the highlighted cell is on show.
+  const nextColumn = nextIndex - offset;
+  // At large text sizes the six on show are laid out in two rows of three, and
+  // the row does not slide: only those six are drawn.
+  const shownFrom = twoRows ? offset : 0;
+  const shown = cells?.slice(shownFrom, twoRows ? offset + 6 : undefined) ?? [];
+  // The row is keyed by its first day, so when Fajr's moment ends and the two
+  // days give way to the new one alone - the same six times in the same six
+  // places - it is redrawn where it stands, rather than sliding from where
+  // the old row's start would have been.
+  const rowKey = `${strip?.days[0][Prayer.Fajr].time.getTime()}-${twoRows}`;
+  const rowStyle = {
+    "--offset": twoRows ? 0 : offset,
+  } as React.CSSProperties;
 
   return (
     <>
       <IonCard
         color="primary"
-        className={`PrayerDayCard${twoRows ? " PrayerDayCard--rows" : ""}`}
+        className={`PrayerDayCard${twoRows ? " PrayerDayCard--rows" : ""}${
+          phase?.kind === "fajr" ? " PrayerDayCard--fajr" : ""
+        }`}
       >
         {/*
         The Sky theme's sun, dawn, Fajr's thread, stars and daytime lens
@@ -418,39 +453,50 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
               {/*
             A hairline through the day, a dot above each prayer: filled once
             its time has passed, pulsing while its adhan is called, and a
-            faint line drawn as far as now. No line ahead of now.
+            faint line drawn as far as now. No line ahead of now. It runs out
+            to the card's edges, so overnight the evening's line runs off the
+            left one; at Fajr it slides away with the evening's dots.
           */}
               <div
                 className="PrayerDayCard__timeline"
                 aria-hidden="true"
                 data-testid="timeline"
-                style={
-                  {
-                    "--progress": (progress ?? 0) / 5,
-                    // How much of the line is between prayers that have both
-                    // come in - drawn solid - rather than the stretch since the
-                    // last one, which fades out towards now.
-                    "--solid":
-                      progress != null && progress > 0
-                        ? lastPassed / progress
-                        : 1,
-                  } as React.CSSProperties
-                }
               >
-                {progress !== null && (
-                  <span className="PrayerDayCard__timeline-fill" />
-                )}
-                {strip.map((prayerTime, i) => (
-                  <span
-                    key={prayerTime.prayer}
-                    className="PrayerDayCard__dot"
-                    data-passed={passed[i] ? "true" : "false"}
-                    data-recent={recent[i] ? "true" : "false"}
-                    data-next={
-                      prayerTime.prayer === nextPrayer ? "true" : "false"
-                    }
-                  />
-                ))}
+                <div
+                  key={rowKey}
+                  className="PrayerDayCard__row PrayerDayCard__timeline-row"
+                  style={rowStyle}
+                >
+                  {lines.map(
+                    (line, d) =>
+                      line != null && (
+                        <span
+                          key={d}
+                          className="PrayerDayCard__timeline-fill"
+                          data-gone={line.gone ? "true" : "false"}
+                          style={
+                            {
+                              "--from": line.from,
+                              "--length": line.length,
+                              "--solid": line.solid,
+                            } as React.CSSProperties
+                          }
+                        />
+                      )
+                  )}
+                  {cells?.map((_, i) => (
+                    <span
+                      key={i}
+                      className="PrayerDayCard__dot"
+                      data-shown={
+                        i >= offset && i < offset + 6 ? "true" : "false"
+                      }
+                      data-passed={passed[i] ? "true" : "false"}
+                      data-recent={recent[i] ? "true" : "false"}
+                      data-next={i === nextIndex ? "true" : "false"}
+                    />
+                  ))}
+                </div>
               </div>
               <div
                 className="PrayerDayCard__strip"
@@ -460,8 +506,10 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
                 {/*
                 The highlight: one pane behind the cells that glides from
                 column to column, rather than each cell lighting up in turn.
+                When the row slides it glides with it, at the same pace, so
+                it stays on its prayer.
               */}
-                {nextPrayer !== null && (
+                {nextIndex >= 0 && (
                   <span
                     className="PrayerDayCard__pane"
                     aria-hidden="true"
@@ -476,23 +524,34 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
                     }
                   />
                 )}
-                {strip.map((prayerTime) => (
-                  <div
-                    key={prayerTime.prayer}
-                    className="PrayerDayCard__cell"
-                    data-testid="strip-cell"
-                    data-next={
-                      prayerTime.prayer === nextPrayer ? "true" : "false"
-                    }
-                  >
-                    <span className="PrayerDayCard__cell-name">
-                      {prayerToString(prayerTime.prayer)}
-                    </span>
-                    <span className="PrayerDayCard__cell-time">
-                      {formatClockTime(prayerTime.time, timeZone, uses24)}
-                    </span>
-                  </div>
-                ))}
+                <div
+                  key={rowKey}
+                  className="PrayerDayCard__row"
+                  style={rowStyle}
+                >
+                  {shown.map((prayerTime, j) => {
+                    const i = shownFrom + j;
+                    // Only the six on show are the strip's cells; the rest
+                    // are there to slide in or out.
+                    const onShow = i >= offset && i < offset + 6;
+                    return (
+                      <div
+                        key={i}
+                        className="PrayerDayCard__cell"
+                        data-testid={onShow ? "strip-cell" : undefined}
+                        aria-hidden={onShow ? undefined : true}
+                        data-next={i === nextIndex ? "true" : "false"}
+                      >
+                        <span className="PrayerDayCard__cell-name">
+                          {prayerToString(prayerTime.prayer)}
+                        </span>
+                        <span className="PrayerDayCard__cell-time">
+                          {formatClockTime(prayerTime.time, timeZone, uses24)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}

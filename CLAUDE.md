@@ -422,11 +422,20 @@ part-second was "0s", which prints nothing, and the card said only "Fajr in"
 at the highlighted cell, via `elementFromPoint`, so a cell clipped by the
 card's corners does not pass on its box alone.
 
-After the last prayer of the day the strip shows *tomorrow's* times, since
-that is what the card is counting down to — `usePrayerStrip`. The "Tomorrow"
-badge is a separate question from that, and is asked in the display zone
-(`isLaterDay`): someone in Dubai reading London times at 23:30 London is
-already on that day themselves, so the badge would be a lie.
+The strip is a window six columns wide onto a row of one day, or overnight
+two (`src/lib/prayerStrip.ts`, days fetched by `usePrayerStrip`). When Isha's
+five minutes end the row slides one column left, so the evening's prayers move
+over and the next day's Fajr comes in on the right, highlighted; it stays so
+until Fajr. As Fajr comes in the row slides five more, back to the start of
+the day, the highlight gliding with Fajr at the same pace, and the evening's
+timeline line slides off with it, fading. When Fajr's moment ends the row
+becomes that day alone - the same six in the same places - and is keyed by its
+first day so it is redrawn where it stands rather than sliding. Only the six
+on show carry `strip-cell`; the rest are `aria-hidden`. The timeline is
+clipped at the card's edges rather than the strip's, so overnight the line
+runs off the left edge. At large text sizes (two rows of three) the six on
+show are laid out without sliding. There is no "Tomorrow" badge: overnight
+the date is the reader's own, turning over at their midnight.
 
 ## Hidden test notification
 

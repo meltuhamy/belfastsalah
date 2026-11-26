@@ -112,23 +112,36 @@
 }
 
 /*
-  Marks the times as belonging to a day the reader is not on yet. Tinted from
-  the card's own text colour so it stays legible in either palette.
+  The strip is a window six columns wide onto a row of one day, or overnight
+  two (prayerStrip.ts). The row slides left by --offset columns: one once
+  Isha's moment is over, bringing the next Fajr in on the right, and six as
+  that Fajr comes in. The highlight's pane glides at the same pace, so a slide
+  carries it along with its prayer. Fajr's slide is five columns, so it takes
+  longer.
 */
-.PrayerDayCard__badge {
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: rgba(var(--ion-color-primary-contrast-rgb), 0.22);
-  font-size: calc(11px * var(--text-scale, 1));
-  font-weight: 500;
-  letter-spacing: 0.02em;
+.PrayerDayCard {
+  --slide: 700ms;
+  --slide-ease: cubic-bezier(0.32, 0.72, 0.3, 1);
+}
+
+.PrayerDayCard--fajr {
+  --slide: 1200ms;
 }
 
 .PrayerDayCard__strip {
   position: relative;
+  overflow: hidden;
+}
+
+/* Six equal columns with 2px between them, and the rest off to the side. */
+.PrayerDayCard__row {
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 2px;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 10px) / 6);
+  column-gap: 2px;
+  transform: translateX(calc(var(--offset, 0) * (100% + 2px) / -6));
+  transition: transform var(--slide) var(--slide-ease);
 }
 
 .PrayerDayCard__strip-loading {
@@ -188,7 +201,7 @@
   border-radius: 12px;
   background: var(--pane);
   border: 1px solid var(--pane-edge);
-  transition: left 700ms cubic-bezier(0.32, 0.72, 0.3, 1);
+  transition: left var(--slide) var(--slide-ease);
 }
 
 /* The cells sit above the pane. */
@@ -197,26 +210,32 @@
 }
 
 /*
-  The timeline: a dot above each prayer, over the same six columns as the
-  strip, and a line from Fajr's dot as far as now - solid between prayers that
-  have come in, fading out over the stretch since the last one, and nothing
-  drawn ahead of now. Kept quiet: it is there to be noticed, not read.
+  The timeline: a dot above each prayer, on a row that slides with the
+  strip's, and a line from each day's Fajr dot as far as now - solid between
+  prayers that have come in, fading out over the stretch since the last one,
+  and nothing drawn ahead of now. Kept quiet: it is there to be noticed, not
+  read. It is clipped at the card's own edges rather than the strip's, out
+  through the content's 16px padding, so overnight the evening's line runs
+  off the left edge of the card instead of stopping short of it.
 */
 .PrayerDayCard__timeline {
   position: relative;
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 2px;
+  height: 9px;
+  margin: 0 -16px 8px;
+  padding: 0 16px;
+  overflow: hidden;
+}
+
+.PrayerDayCard__timeline-row {
   align-items: center;
   height: 9px;
-  margin-bottom: 8px;
 }
 
 .PrayerDayCard__timeline-fill {
   position: absolute;
   top: 50%;
-  left: calc(100% / 12);
-  width: calc(var(--progress) * (100% - 100% / 6));
+  left: calc(var(--from) * (100% + 2px) / 6 + (100% - 10px) / 12);
+  width: calc(var(--length) * (100% + 2px) / 6);
   height: 1px;
   transform: translateY(-50%);
   border-radius: 1px;
@@ -225,6 +244,12 @@
     rgba(255, 255, 255, 0.6) calc(var(--solid) * 100%),
     rgba(255, 255, 255, 0) 100%
   );
+  transition: opacity var(--slide) cubic-bezier(0.4, 0, 0.8, 0.4);
+}
+
+/* The evening's line, once Fajr has slid its day off: it fades as it goes. */
+.PrayerDayCard__timeline-fill[data-gone="true"] {
+  opacity: 0;
 }
 
 /*
@@ -376,9 +401,13 @@
   timeline's dots are dropped: they mark six columns in a row, and they are
   decoration.
 */
-.PrayerDayCard--rows .PrayerDayCard__strip {
+.PrayerDayCard--rows .PrayerDayCard__row {
+  grid-auto-flow: row;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(2, auto);
+  row-gap: 2px;
+  transform: none;
+  transition: none;
 }
 
 .PrayerDayCard--rows .PrayerDayCard__pane {
@@ -455,11 +484,6 @@
   margin: 0;
 }
 
-.PrayerDayCard__outside .PrayerDayCard__badge,
-.sky-theme .PrayerDayCard__outside .PrayerDayCard__badge {
-  background: rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.08);
-}
-
 @media (max-width: 359px) {
   .PrayerDayCard .PrayerDayCard__remaining {
     font-size: calc(38px * min(var(--text-scale, 1), var(--headline-scale-cap)));
@@ -478,7 +502,9 @@
   .PrayerDayCard__cell,
   .PrayerDayCard__dot,
   .PrayerDayCard__pane,
-  .PrayerDayCard--rows .PrayerDayCard__pane {
+  .PrayerDayCard--rows .PrayerDayCard__pane,
+  .PrayerDayCard__row,
+  .PrayerDayCard__timeline-fill {
     transition: none;
   }
 
@@ -521,10 +547,6 @@
 .sky-theme .PrayerDayCard .PrayerDayCard__meta,
 .sky-theme .PrayerDayCard__cell-name {
   opacity: 1;
-}
-
-.sky-theme .PrayerDayCard__badge {
-  background: rgba(var(--sky-text-rgb), 0.16);
 }
 
 /* The times sit on the lower sky, so they take its text colour. */

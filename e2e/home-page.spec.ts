@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "@playwright/test";
 import {
   PRAYER_STRIP,
   completeSetup,
@@ -43,8 +43,6 @@ test("lists today's six prayers, as printed on the timetable", async ({
 
 test("dates the card in the timetable's calendar", async ({ page }) => {
   await expect(page.getByTestId("day-date")).toHaveText("Sun 15 Feb");
-  // The strip is the day the reader is on, so nothing to flag.
-  await expect(page.getByTestId("tomorrow-badge")).toHaveCount(0);
 });
 
 test("names the next prayer and counts down to it", async ({ page }) => {
@@ -77,7 +75,9 @@ test("highlights the columns on either end inside the card", async ({
 test("fills a dot on the timeline for each prayer that has passed", async ({
   page,
 }) => {
-  const dots = page.locator("[data-testid=timeline] .PrayerDayCard__dot");
+  const dots = page.locator(
+    "[data-testid=timeline] .PrayerDayCard__dot[data-shown=true]"
+  );
   // 10:00: Fajr and Shuruq are behind us, Duhr at 12:20 is not.
   await expect(dots).toHaveCount(6);
   await expect
@@ -92,12 +92,30 @@ test("fills a dot on the timeline for each prayer that has passed", async ({
     )
     .toEqual(["1", "1", "1", "0.55", "0.55", "0.55"]);
 
-  // After Isha the strip is tomorrow's, none of which has happened yet.
+  // After Isha the strip has slid along to tomorrow's Fajr: Shuruq to Isha
+  // have come in, Fajr has not, and the evening's line runs on towards it.
   await page.clock.setFixedTime(new Date("2026-02-15T20:00:00Z"));
   await expect
     .poll(() => dots.evaluateAll((all) => all.map((d) => d.dataset.passed)))
-    .toEqual(["false", "false", "false", "false", "false", "false"]);
-  await expect(page.locator(".PrayerDayCard__timeline-fill")).toHaveCount(0);
+    .toEqual(["true", "true", "true", "true", "true", "false"]);
+  await expect(page.locator(".PrayerDayCard__timeline-fill")).toHaveCount(1);
+});
+
+test("runs the evening's line off the card's left edge overnight", async ({
+  page,
+}) => {
+  await page.clock.setFixedTime(new Date("2026-02-15T20:00:00Z"));
+  await expect.poll(() => highlightedPrayer(page)).toBe("Fajr");
+  // Today's Fajr has slid off to the left, so the line from it starts beyond
+  // the card, and is clipped at the card's own edge, not the strip's.
+  const card = (await page.locator(".PrayerDayCard").boundingBox())!;
+  const clip = (await page.getByTestId("timeline").boundingBox())!;
+  const line = (await page
+    .locator(".PrayerDayCard__timeline-fill")
+    .boundingBox())!;
+  expect(line.x).toBeLessThan(card.x);
+  expect(clip.x).toBeCloseTo(card.x, 0);
+  expect(clip.x + clip.width).toBeCloseTo(card.x + card.width, 0);
 });
 
 test("pulses a prayer's dot while its adhan is called", async ({ page }) => {
@@ -198,27 +216,113 @@ test("never calls Shuruq a prayer time", async ({ page }) => {
   await expect(page.getByTestId("adhan-now")).toHaveCount(0);
 });
 
-test("moves the strip onto tomorrow once the last prayer has passed", async ({
+// The 15th's evening into the 16th: Shuruq to Isha, then the 16th's Fajr.
+const LONDON_15_FEB_NIGHT = {
+  Shuruq: LONDON_15_FEB.Shuruq,
+  Duhr: LONDON_15_FEB.Duhr,
+  Asr: LONDON_15_FEB.Asr,
+  Maghrib: LONDON_15_FEB.Maghrib,
+  Isha: LONDON_15_FEB.Isha,
+  Fajr: "05:33",
+};
+
+test("keeps today's strip through Isha's adhan moment", async ({ page }) => {
+  // Isha comes in at 18:49 on the 15th.
+  await page.clock.setFixedTime(new Date("2026-02-15T18:52:00Z"));
+  await expect(page.getByTestId("adhan-now")).toBeVisible();
+  await expect.poll(() => todayTimes(page)).toEqual(LONDON_15_FEB);
+  await expect.poll(() => paintedHighlight(page)).toBe("Isha");
+});
+
+test("slides tomorrow's Fajr in once Isha's moment is over", async ({
   page,
 }) => {
-  // Isha is at 18:48 on the 15th, so at 20:00 there is nothing left today.
-  await page.clock.setFixedTime(new Date("2026-02-15T20:00:00Z"));
-
-  await expect(page.getByTestId("tomorrow-badge")).toHaveText("Tomorrow");
-  await expect(page.getByTestId("day-date")).toHaveText("Mon 16 Feb");
-  // 16 Feb's own Fajr, not the 15th's.
-  await expect.poll(async () => (await todayTimes(page)).Fajr).toBe("05:33");
+  await page.clock.setFixedTime(new Date("2026-02-15T18:55:00Z"));
+  // Today's Shuruq to Isha moved over, and 16 Feb's own Fajr on the right.
+  await expect.poll(() => todayTimes(page)).toEqual(LONDON_15_FEB_NIGHT);
   await expect.poll(() => highlightedPrayer(page)).toBe("Fajr");
+  await expect.poll(() => paintedHighlight(page)).toBe("Fajr");
+  // Still the 15th for the reader, and no badge to say otherwise.
+  await expect(page.getByTestId("day-date")).toHaveText("Sun 15 Feb");
+  await expect(page.getByText("Tomorrow")).toHaveCount(0);
+});
+
+/** Counts the strip's slides, from now on in the page it is run in. */
+function listenForSlides() {
+  const seen: string[] = [];
+  (window as unknown as { slides: string[] }).slides = seen;
+  document.addEventListener(
+    "transitionrun",
+    (event) => {
+      const target = event.target as Element;
+      if (target.classList.contains("PrayerDayCard__row")) {
+        seen.push(event.propertyName);
+      }
+    },
+    true
+  );
+}
+
+async function slides(page: Page): Promise<string[]> {
+  // Long enough for a slide to have started.
+  await page.waitForTimeout(500);
+  return page.evaluate(
+    () => (window as unknown as { slides: string[] }).slides
+  );
+}
+
+// The strip slides when Isha's moment ends in front of the reader, not when
+// the app catches up with a night it was not open for. It used to: until the
+// next prayer had loaded the phase read as the day, so the day's strip was
+// drawn and then slid over to the night's.
+test("opens on the night's strip without sliding to it", async ({ page }) => {
+  await page.addInitScript(listenForSlides);
+  await page.clock.setFixedTime(new Date("2026-02-15T20:00:00Z"));
+  await page.evaluate(() => localStorage.clear());
+  await completeSetup(page);
+  await expect.poll(() => todayTimes(page)).toEqual(LONDON_15_FEB_NIGHT);
+  await expect.poll(() => paintedHighlight(page)).toBe("Fajr");
+  expect(await slides(page)).toEqual([]);
+});
+
+test("comes back to the night's strip without sliding to it", async ({
+  page,
+}) => {
+  await page.evaluate(listenForSlides);
+  // Away from 10:00 until 20:00, as a phone in a pocket is.
+  await page.clock.setFixedTime(new Date("2026-02-15T20:00:00Z"));
+  await expect.poll(() => todayTimes(page)).toEqual(LONDON_15_FEB_NIGHT);
+  await expect.poll(() => paintedHighlight(page)).toBe("Fajr");
+  expect(await slides(page)).toEqual([]);
+});
+
+test("holds the night's strip past midnight, and dates it the new day", async ({
+  page,
+}) => {
+  await page.clock.setFixedTime(new Date("2026-02-16T00:30:00Z"));
+  await expect(page.getByTestId("day-date")).toHaveText("Mon 16 Feb");
+  await expect.poll(() => todayTimes(page)).toEqual(LONDON_15_FEB_NIGHT);
   await expect.poll(() => paintedHighlight(page)).toBe("Fajr");
 });
 
-test("carries the day over at midnight", async ({ page }) => {
-  await expect(page.getByTestId("day-date")).toHaveText("Sun 15 Feb");
+test("slides back to the start of the day as Fajr comes in", async ({
+  page,
+}) => {
+  await page.clock.setFixedTime(new Date("2026-02-16T03:00:00Z"));
+  await expect.poll(() => todayTimes(page)).toEqual(LONDON_15_FEB_NIGHT);
 
-  await page.clock.setFixedTime(new Date("2026-02-16T00:30:00Z"));
-  await expect(page.getByTestId("day-date")).toHaveText("Mon 16 Feb");
-  // Past midnight the reader is on that day themselves, so the badge goes.
-  await expect(page.getByTestId("tomorrow-badge")).toHaveCount(0);
+  // 16 Feb: Fajr 05:33.
+  await page.clock.setFixedTime(new Date("2026-02-16T05:34:00Z"));
+  await expect(page.getByTestId("countdown")).toHaveText("Fajr");
+  await expect.poll(async () => (await todayTimes(page)).Fajr).toBe("05:33");
+  await expect
+    .poll(async () => Object.keys(await todayTimes(page)))
+    .toEqual(["Fajr", "Shuruq", "Duhr", "Asr", "Maghrib", "Isha"]);
+  await expect.poll(() => paintedHighlight(page)).toBe("Fajr");
+
+  // And once Fajr's moment is over, the same six, Shuruq next.
+  await page.clock.setFixedTime(new Date("2026-02-16T05:40:00Z"));
+  await expect.poll(() => paintedHighlight(page)).toBe("Shuruq");
   await expect.poll(async () => (await todayTimes(page)).Fajr).toBe("05:33");
 });
 
