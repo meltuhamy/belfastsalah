@@ -1,9 +1,53 @@
+/*
+  The cells' size, set here so em below means it. Grows with the system text
+  size (MEL-105).
+*/
 .MonthPrayerTable {
+  --cell-font: calc(14px * var(--text-scale, 1));
   table-layout: fixed;
   width: 100%;
+  /*
+    Never narrower than seven columns of times need: a day number, then six
+    times of about 2.8em each with a little room. At the default size that is
+    well inside any phone; at a large size it is wider than the screen, and
+    the scroller below lets it scroll sideways rather than wrapping "06:26"
+    into "06:2" over "6". MonthPrayerTable.tsx compares this width, not the
+    table's, with the screen's, so the choice does not depend on itself.
+  */
+  min-width: calc(1.45em + 6 * 3.3em);
   border-collapse: collapse;
-  font-size: 10px;
-  /* position: relative; */
+  font-size: var(--cell-font);
+}
+
+.MonthPrayerTable__scroller--scrolls {
+  overflow-x: auto;
+}
+
+/*
+  Scrolling anyway, so each column takes the width its contents need: the
+  names in the header are shown whole rather than cut to "M…".
+*/
+.MonthPrayerTable__scroller--scrolls .MonthPrayerTable {
+  table-layout: auto;
+  width: auto;
+}
+
+.MonthPrayerTable__scroller--scrolls .MonthPrayerTable__col {
+  padding-inline: 0.35em;
+}
+
+/* The day stays in view while the times scroll past it. */
+.MonthPrayerTable__scroller--scrolls .MonthPrayerTable__col--day {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--ion-card-background, #fff);
+}
+
+.MonthPrayerTable__scroller--scrolls
+  .MonthPrayerTable__row:nth-child(even)
+  .MonthPrayerTable__col--day {
+  background: var(--ion-color-light);
 }
 
 .MonthPrayerTable thead tr:nth-child(1) th {
@@ -21,11 +65,11 @@
 .MonthPrayerTable__col {
   text-align: center;
   padding: 4px 0 4px 0;
-  font-size: 14px;
+  white-space: nowrap;
 }
 
 .MonthPrayerTable__col--day {
-  width: 20px;
+  width: 1.45em;
 }
 
 .MonthPrayerTable__row:nth-child(even) {
@@ -48,7 +92,7 @@
 }
 
 @media (max-width: 375px) {
-  .MonthPrayerTable__col {
-    font-size: 12px;
+  .MonthPrayerTable {
+    --cell-font: calc(12px * var(--text-scale, 1));
   }
 }

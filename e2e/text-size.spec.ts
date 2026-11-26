@@ -1,0 +1,266 @@
+import { test, expect, type Page } from "@playwright/test";
+import {
+  completeSetup,
+  openSettings,
+  pinDate,
+  PRAYER_STRIP,
+  todayTimes,
+  waitForMonthTable,
+} from "./support/app";
+
+// The system text size (MEL-105). On the web that is the browser's own font
+// size, which `medium` resolves to - set here through Chrome's DevTools
+// protocol, the same setting a reader changes in the browser's settings. The
+// phones feed the same number in from Dynamic Type and Android's font scale
+// (textScale.ts), so what is checked here is the layout they get.
+
+// 15 January 2026, a winter afternoon: Asr is next. Times from
+// src/prayer_data/london-2026.json, row 1/15 (Shafi'i Asr).
+const AFTERNOON = "2026-01-15T14:00:00Z";
+const TIMES = {
+  Fajr: "06:20",
+  Shuruq: "07:57",
+  Duhr: "12:15",
+  Asr: "14:02",
+  Maghrib: "16:24",
+  Isha: "18:01",
+};
+
+/** The browser's text size, as a multiple of its 16px default. */
+async function setTextSize(page: Page, scale: number) {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Page.setFontSizes", { fontSizes: { standard: 16 * scale } });
+}
+
+/** The strip's cells' boxes, in the order Fajr to Isha. */
+async function cellBoxes(page: Page) {
+  return page.locator("[data-testid=strip-cell]").evaluateAll((cells) =>
+    cells.map((cell) => {
+      const { left, right, top, bottom } = cell.getBoundingClientRect();
+      return { left, right, top, bottom };
+    })
+  );
+}
+
+/** Text in the strip or the month table that does not fit its box. */
+async function clippedText(page: Page, selector: string) {
+  return page
+    .locator(selector)
+    .evaluateAll((elements) =>
+      elements
+        .filter((el) => el.scrollWidth > el.clientWidth + 1)
+        .map((el) => el.textContent)
+    );
+}
+
+test.describe("at the default text size", () => {
+  test.beforeEach(async ({ page }) => {
+    await pinDate(page, AFTERNOON);
+    await completeSetup(page);
+  });
+
+  test("keeps the six times in one row", async ({ page }) => {
+    expect(await todayTimes(page)).toEqual(TIMES);
+    const boxes = await cellBoxes(page);
+    expect(new Set(boxes.map((b) => Math.round(b.top))).size).toBe(1);
+    await expect(page.locator(".PrayerDayCard--rows")).toHaveCount(0);
+  });
+
+  test("keeps one row on a 375px phone, the narrowest in use", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await expect(page.locator(PRAYER_STRIP)).toBeVisible();
+    const boxes = await cellBoxes(page);
+    expect(new Set(boxes.map((b) => Math.round(b.top))).size).toBe(1);
+    expect(
+      await clippedText(
+        page,
+        ".PrayerDayCard__cell-name, .PrayerDayCard__cell-time"
+      )
+    ).toEqual([]);
+  });
+
+  test("keeps the place and date in the card, beside the countdown", async ({
+    page,
+  }) => {
+    await expect(page.getByTestId("day-meta-outside")).toHaveCount(0);
+    const card = (await page.locator(".PrayerDayCard").boundingBox())!;
+    const date = (await page.getByTestId("day-date").boundingBox())!;
+    expect(date.y + date.height).toBeLessThanOrEqual(card.y + card.height);
+    expect(date.x).toBeGreaterThan(card.x + card.width / 2);
+  });
+
+  test("does not make the month table scroll", async ({ page }) => {
+    await waitForMonthTable(page);
+    await expect(
+      page.locator(".MonthPrayerTable__scroller--scrolls")
+    ).toHaveCount(0);
+  });
+});
+
+test.describe("at twice the text size", () => {
+  test.beforeEach(async ({ page }) => {
+    await setTextSize(page, 2);
+    await pinDate(page, AFTERNOON);
+    await completeSetup(page);
+  });
+
+  test("makes the card's text bigger", async ({ page }) => {
+    const size = await page
+      .locator(".PrayerDayCard__cell-time")
+      .first()
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    // 16px at the default size.
+    expect(size).toBe(32);
+  });
+
+  test("shows every prayer, in two rows of three, without overlaps", async ({
+    page,
+  }) => {
+    expect(await todayTimes(page)).toEqual(TIMES);
+    await expect(page.locator(".PrayerDayCard--rows")).toHaveCount(1);
+
+    const card = (await page.locator(".PrayerDayCard").boundingBox())!;
+    const boxes = await cellBoxes(page);
+    for (const box of boxes) {
+      expect(box.left).toBeGreaterThanOrEqual(card.x);
+      expect(box.right).toBeLessThanOrEqual(card.x + card.width);
+    }
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        const [a, b] = [boxes[i], boxes[j]];
+        const overlap =
+          a.left < b.right - 1 &&
+          b.left < a.right - 1 &&
+          a.top < b.bottom - 1 &&
+          b.top < a.bottom - 1;
+        expect(overlap, `cells ${i} and ${j} overlap`).toBe(false);
+      }
+    }
+    expect(
+      await clippedText(
+        page,
+        ".PrayerDayCard__cell-name, .PrayerDayCard__cell-time"
+      )
+    ).toEqual([]);
+  });
+
+  test("sets the place and date under the card, centred", async ({ page }) => {
+    const outside = page.getByTestId("day-meta-outside");
+    await expect(outside).toBeVisible();
+    await expect(outside).toContainText("London");
+    await expect(page.getByTestId("day-date")).toHaveCount(1);
+
+    const card = (await page.locator(".PrayerDayCard").boundingBox())!;
+    const line = (await outside.locator("p").first().boundingBox())!;
+    expect(line.y).toBeGreaterThanOrEqual(card.y + card.height);
+    const middle = line.x + line.width / 2;
+    expect(Math.abs(middle - (card.x + card.width / 2))).toBeLessThan(2);
+    expect(await clippedText(page, "[data-testid=day-meta-outside] p")).toEqual(
+      []
+    );
+    // What decides it is measured off the screen, and must not widen it.
+    const probe = await page
+      .locator(".PrayerDayCard__fit-probe")
+      .evaluate((el) => el.getBoundingClientRect().width);
+    expect(probe).toBe(0);
+  });
+
+  test("highlights the next prayer where it is, in the second row", async ({
+    page,
+  }) => {
+    // Asr: first column, second row.
+    await expect(
+      page.locator("[data-testid=strip-cell][data-next=true]")
+    ).toContainText("Asr");
+    // Polled: the pane glides into place when the layout changes.
+    const offset = () =>
+      page.evaluate(() => {
+        const pane = document
+          .querySelector("[data-testid=highlight-pane]")!
+          .getBoundingClientRect();
+        const cell = document
+          .querySelector("[data-testid=strip-cell][data-next=true]")!
+          .getBoundingClientRect();
+        return Math.max(
+          Math.abs(pane.left - cell.left),
+          Math.abs(pane.top - cell.top)
+        );
+      });
+    await expect.poll(offset).toBeLessThan(2);
+  });
+
+  test("scrolls the month table sideways rather than breaking its times", async ({
+    page,
+  }) => {
+    await waitForMonthTable(page);
+    const scroller = page.locator(".MonthPrayerTable__scroller--scrolls");
+    await expect(scroller).toHaveCount(1);
+    expect(
+      await scroller.evaluate((el) => el.scrollWidth > el.clientWidth)
+    ).toBe(true);
+    expect(await clippedText(page, ".MonthPrayerTable__col")).toEqual([]);
+    // One line each: a time broken over two lines read as "06:2" and "6".
+    const lines = await page
+      .locator(".MonthPrayerTable tbody td")
+      .evaluateAll((cells) =>
+        cells.map(
+          (cell) =>
+            cell.getBoundingClientRect().height /
+            parseFloat(getComputedStyle(cell).fontSize)
+        )
+      );
+    expect(Math.max(...lines)).toBeLessThan(2);
+  });
+
+  test("wraps settings' labels rather than cutting them off", async ({
+    page,
+  }) => {
+    await openSettings(page);
+    const cut = await page.evaluate(() => {
+      const parts = document.querySelectorAll("ion-toggle, ion-select");
+      const clipped: Array<string> = [];
+      parts.forEach((host) => {
+        host.shadowRoot
+          ?.querySelectorAll("[part~=label], [part~=text]")
+          .forEach((part) => {
+            const el = part as HTMLElement;
+            if (el.scrollWidth > el.clientWidth + 1) {
+              clipped.push(host.textContent ?? el.textContent ?? "");
+            }
+          });
+      });
+      return clipped;
+    });
+    expect(cut).toEqual([]);
+    await expect(
+      page.locator("ion-toggle").filter({ hasText: "Prayer Notifications" })
+    ).toBeVisible();
+  });
+});
+
+test("stops growing at twice the default size", async ({ page }) => {
+  await setTextSize(page, 3);
+  await pinDate(page, AFTERNOON);
+  await completeSetup(page);
+  const size = await page
+    .locator(".PrayerDayCard__cell-time")
+    .first()
+    .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+  expect(size).toBe(32);
+  await expect(page.locator(PRAYER_STRIP)).toBeVisible();
+});
+
+test("keeps the place and date in the card on a 360px phone at the default size", async ({
+  page,
+}) => {
+  // The commonest Android width, at night: after Isha, Fajr is "11h 20m"
+  // away, as wide as the countdown gets, since its digits are tabular.
+  await page.setViewportSize({ width: 360, height: 740 });
+  await pinDate(page, "2026-01-15T19:00:00Z");
+  await completeSetup(page);
+  await expect(page.getByTestId("countdown")).toContainText("11h");
+  await expect(page.getByTestId("day-meta-outside")).toHaveCount(0);
+  await expect(page.getByTestId("day-date")).toBeVisible();
+});

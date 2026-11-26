@@ -3,7 +3,6 @@ import {
   IonHeader,
   IonToolbar,
   IonPage,
-  IonTitle,
   IonContent,
   IonButtons,
   IonButton,
@@ -15,6 +14,7 @@ import FullPageSpinner from "../components/FullPageSpinner";
 import SettingsList from "../components/SettingsList";
 import { AppSettings } from "../lib/settings";
 import CenteredMaxWidthContainer from "../components/CenteredMaxWidthContainer";
+import PageTitle from "../components/PageTitle";
 
 const SettingsTab: React.FC = () => {
   const [settings, setNewSettings] = useSettings();
@@ -28,7 +28,7 @@ const SettingsTab: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Settings</IonTitle>
+          <PageTitle>Settings</PageTitle>
           <IonButtons slot="primary">
             <IonButton routerLink="/" routerDirection="back" aria-label="Home">
               <IonIcon slot="icon-only" icon={home} />

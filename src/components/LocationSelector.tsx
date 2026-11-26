@@ -2,6 +2,7 @@ import React from "react";
 import { IonSelect, IonSelectOption } from "@ionic/react";
 import { PrayerLocation, locationNames } from "../lib/PrayerTimeData";
 import supportsHanafiAsr, { AsrMethod } from "../lib/PrayerTimes";
+import { useLargeText } from "../lib/textScale";
 
 type Props = {
   location: PrayerLocation | null;
@@ -24,34 +25,39 @@ const LocationSelector: React.FC<Props> = ({
   location,
   asrMethod,
   onChange,
-}) => (
-  <IonSelect
-    label="Location"
-    data-testid="location-select"
-    value={location}
-    interface="alert"
-    okText="Choose"
-    cancelText="Cancel"
-    onIonChange={(event) => {
-      const newLocation = event.detail.value as PrayerLocation;
-      onChange(
-        newLocation,
-        // Belfast's and Istanbul's timetables have no second asr column, so
-        // hanafi asr has to fall back or the data parser throws.
-        supportsHanafiAsr(newLocation) ? asrMethod : AsrMethod.Shafi
-      );
-    }}
-  >
-    <IonSelectOption value={PrayerLocation.London}>
-      {locationNames[PrayerLocation.London]}
-    </IonSelectOption>
-    <IonSelectOption value={PrayerLocation.Belfast}>
-      {locationNames[PrayerLocation.Belfast]}
-    </IonSelectOption>
-    <IonSelectOption value={PrayerLocation.Istanbul}>
-      {locationNames[PrayerLocation.Istanbul]}
-    </IonSelectOption>
-  </IonSelect>
-);
+}) => {
+  // Above the value at a large text size, where beside it there is no room.
+  const labelPlacement = useLargeText() ? "stacked" : "start";
+  return (
+    <IonSelect
+      label="Location"
+      labelPlacement={labelPlacement}
+      data-testid="location-select"
+      value={location}
+      interface="alert"
+      okText="Choose"
+      cancelText="Cancel"
+      onIonChange={(event) => {
+        const newLocation = event.detail.value as PrayerLocation;
+        onChange(
+          newLocation,
+          // Belfast's and Istanbul's timetables have no second asr column, so
+          // hanafi asr has to fall back or the data parser throws.
+          supportsHanafiAsr(newLocation) ? asrMethod : AsrMethod.Shafi
+        );
+      }}
+    >
+      <IonSelectOption value={PrayerLocation.London}>
+        {locationNames[PrayerLocation.London]}
+      </IonSelectOption>
+      <IonSelectOption value={PrayerLocation.Belfast}>
+        {locationNames[PrayerLocation.Belfast]}
+      </IonSelectOption>
+      <IonSelectOption value={PrayerLocation.Istanbul}>
+        {locationNames[PrayerLocation.Istanbul]}
+      </IonSelectOption>
+    </IonSelect>
+  );
+};
 
 export default LocationSelector;

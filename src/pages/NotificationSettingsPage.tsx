@@ -12,7 +12,6 @@ import {
   IonListHeader,
   IonNote,
   IonPage,
-  IonTitle,
   IonToolbar,
 } from "@ionic/react";
 import { play } from "ionicons/icons";
@@ -30,6 +29,7 @@ import {
 import { prayerToString } from "../lib/PrayerTimes";
 import { reminderSoundLabels } from "../lib/reminderSound";
 import "./NotificationSettingsPage.css";
+import PageTitle from "../components/PageTitle";
 
 function soundText(reminder: PrayerReminder): string {
   return reminder.on ? reminderSoundLabels[reminder.sound] : "Off";
@@ -59,7 +59,7 @@ const NotificationSettingsPage: React.FC = () => {
           <IonButtons slot="start">
             <IonBackButton defaultHref="/settings" />
           </IonButtons>
-          <IonTitle>Notification Settings</IonTitle>
+          <PageTitle>Notification Settings</PageTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent>

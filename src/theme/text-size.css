@@ -1,0 +1,36 @@
+/*
+  Text that follows the system text size (MEL-105, src/lib/textScale.ts).
+
+  Ionic's controls keep their labels and values to one line and cut them off
+  with an ellipsis. At the default size nothing here is long enough for that
+  to happen; at a large one "Prayer Notifications" became "Prayer
+  Notificati..." and the time format's value "Sy...". Let them wrap instead:
+  a label over two lines can still be read, a cut one cannot.
+*/
+ion-toggle::part(label),
+ion-checkbox::part(label),
+ion-radio::part(label),
+ion-select::part(label),
+ion-range::part(label) {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+/*
+  A select's value is not wrapped: Ionic squeezes it to fit beside its label,
+  and wrapped it read "Syste" over "m". At a large size the label goes above
+  the value instead (labelPlacement, useLargeText), where the value has the
+  whole row.
+*/
+
+/*
+  Toolbar titles, likewise (PageTitle.tsx): on Android "Notification Settings"
+  became "Notification S...". iOS's titles stop growing at 20.4px, as the
+  system's own navigation bars do (Ionic's min(1.0625rem, 20.4px)), and fit.
+*/
+.PageTitle {
+  display: block;
+  white-space: normal;
+  overflow-wrap: break-word;
+  line-height: 1.2;
+}

@@ -1,5 +1,6 @@
 import React from "react";
 import "./KeepAwakeButton.css";
+import { useLargeText } from "../lib/textScale";
 
 /**
  * The fanous: a lantern under a crescent, drawn like AdhanIcon - filled
@@ -50,6 +51,10 @@ export const LanternIcon: React.FC<{ lit: boolean; className?: string }> = ({
  * "Screen On", the lantern staying put by the cog and lighting as it goes,
  * so the state can be read across a room and needs no toast to explain it.
  *
+ * At a large system text size (MEL-105) the words would squeeze the title
+ * until it broke mid-word, so there the pill keeps only the lit lantern on
+ * its tint: still on at a glance, and the title keeps its room.
+ *
  * A plain <button>, not an IonButton: ion-button copies aria-* into its
  * shadow button only on its first render, so aria-pressed went stale, and
  * remounting it to fix that would cut the animation off.
@@ -57,23 +62,33 @@ export const LanternIcon: React.FC<{ lit: boolean; className?: string }> = ({
 const KeepAwakeButton: React.FC<{
   on: boolean;
   onToggle: () => void;
-}> = ({ on, onToggle }) => (
-  <button
-    type="button"
-    className={`KeepAwakeButton${on ? " KeepAwakeButton--on" : ""}`}
-    aria-label="Keep screen on"
-    aria-pressed={on}
-    onClick={onToggle}
-    data-testid="keep-awake"
-  >
-    <span className="KeepAwakeButton__label" aria-hidden={!on}>
-      Screen On
-    </span>
-    <span className="KeepAwakeButton__icon">
-      <LanternIcon lit={false} className="KeepAwakeButton__unlit" />
-      <LanternIcon lit className="KeepAwakeButton__lit" />
-    </span>
-  </button>
-);
+}> = ({ on, onToggle }) => {
+  const compact = useLargeText();
+  const className = [
+    "KeepAwakeButton",
+    on && "KeepAwakeButton--on",
+    compact && "KeepAwakeButton--compact",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return (
+    <button
+      type="button"
+      className={className}
+      aria-label="Keep screen on"
+      aria-pressed={on}
+      onClick={onToggle}
+      data-testid="keep-awake"
+    >
+      <span className="KeepAwakeButton__label" aria-hidden="true">
+        Screen On
+      </span>
+      <span className="KeepAwakeButton__icon">
+        <LanternIcon lit={false} className="KeepAwakeButton__unlit" />
+        <LanternIcon lit className="KeepAwakeButton__lit" />
+      </span>
+    </button>
+  );
+};
 
 export default KeepAwakeButton;

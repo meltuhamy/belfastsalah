@@ -14,8 +14,13 @@ class MainActivity : BridgeActivity() {
         registerPlugin(PrayerRemindersPlugin::class.java)
         registerPlugin(DeviceClockPlugin::class.java)
         registerPlugin(KeepAwakePlugin::class.java)
+        registerPlugin(TextSizePlugin::class.java)
         // Before the bridge, so the web layer's rescheduling comes after it.
         LegacyReminderAlarms.clearOnce(applicationContext)
         super.onCreate(savedInstanceState)
+        // The WebView would otherwise zoom every font by the system font
+        // scale on its own, px sizes included and with no cap. The page reads
+        // the scale from TextSizePlugin and applies it itself (textScale.ts).
+        bridge.webView.settings.textZoom = 100
     }
 }

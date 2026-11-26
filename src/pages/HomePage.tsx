@@ -2,7 +2,6 @@ import {
   IonContent,
   IonHeader,
   IonPage,
-  IonTitle,
   IonToolbar,
   IonCard,
   IonCardHeader,
@@ -32,6 +31,7 @@ import { locationNames, timetableZoneFor } from "../lib/PrayerTimeData";
 import { useSettings } from "../lib/useSettings";
 import TimeZoneNotice from "../components/TimeZoneNotice";
 import KeepAwakeButton from "../components/KeepAwakeButton";
+import PageTitle from "../components/PageTitle";
 
 let shouldExitApp = false;
 App.addListener("backButton", () => {
@@ -105,7 +105,7 @@ const HomePage: React.FC = () => {
     <IonPage className="HomePage">
       <IonHeader className={scrolled ? undefined : "ion-no-border"}>
         <IonToolbar>
-          <IonTitle>{inView ? "Prayer Times" : monthName}</IonTitle>
+          <PageTitle>{inView ? "Prayer Times" : monthName}</PageTitle>
           <IonButtons slot="primary">
             <KeepAwakeButton on={keepAwake} onToggle={toggleKeepAwake} />
             <IonButton routerLink="/settings" aria-label="Settings">

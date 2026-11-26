@@ -51,6 +51,7 @@ import {
 } from "../lib/widgets";
 import { useLongPress } from "../lib/useLongPress";
 import "./SettingsList.css";
+import { useLargeText } from "../lib/textScale";
 
 type Props = {
   settings: AppSettings;
@@ -77,6 +78,9 @@ const SettingsList: React.FC<Props> = ({
   onTimeFormatChange,
   onShowTimesInDeviceZoneChange,
 }) => {
+  // A select's label goes above its value at a large text size: beside it,
+  // the value was squeezed to "Syste..." (MEL-105).
+  const selectLabelPlacement = useLargeText() ? "stacked" : "start";
   const [testResult, setTestResult] = useState<string | null>(null);
   const [exactAlarmsOff, setExactAlarmsOff] = useState(false);
   const [batteryRestricted, setBatteryRestricted] = useState(false);
@@ -209,6 +213,7 @@ const SettingsList: React.FC<Props> = ({
             <IonIcon icon={globeOutline} slot="start" />
             <IonSelect
               label="Show times in"
+              labelPlacement={selectLabelPlacement}
               value={settings.showTimesInDeviceZone}
               interface="alert"
               okText="Choose"
@@ -336,6 +341,7 @@ const SettingsList: React.FC<Props> = ({
         <IonIcon icon={contrast} slot="start" />
         <IonSelect
           label="Theme"
+          labelPlacement={selectLabelPlacement}
           value={settings.theme}
           interface="alert"
           okText="Choose"
@@ -365,6 +371,7 @@ const SettingsList: React.FC<Props> = ({
         <IonIcon icon={timeOutline} slot="start" />
         <IonSelect
           label="Time format"
+          labelPlacement={selectLabelPlacement}
           value={settings.timeFormat}
           interface="alert"
           okText="Choose"

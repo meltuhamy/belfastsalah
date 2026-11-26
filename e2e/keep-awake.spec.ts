@@ -115,3 +115,69 @@ test("the pill fits beside the title and the cog", async ({ page }) => {
   await pill(page).click();
   await expect(button(page)).toHaveAttribute("aria-pressed", "false");
 });
+
+/** Chrome's text size, as in text-size.spec.ts; reloads to apply it. */
+async function setTextSize(page: Page, scale: number) {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Page.setFontSizes", { fontSizes: { standard: 16 * scale } });
+  // Setup's answers are written through a 500ms debounce.
+  await page.waitForTimeout(700);
+  await page.reload();
+  await expect(button(page)).toBeVisible();
+}
+
+/** Words in the toolbar's title, as laid out: a word split over lines fails. */
+async function titleIsWhole(page: Page) {
+  return page.locator(".PageTitle").first().evaluate((el) => {
+    const range = document.createRange();
+    const text = el.firstChild!;
+    const tops = new Set<number>();
+    const words: Array<Set<number>> = [];
+    let offset = 0;
+    for (const word of (el.textContent ?? "").split(" ")) {
+      const lines = new Set<number>();
+      for (let i = 0; i < word.length; i++) {
+        range.setStart(text, offset + i);
+        range.setEnd(text, offset + i + 1);
+        lines.add(Math.round(range.getBoundingClientRect().top));
+      }
+      words.push(lines);
+      lines.forEach((t) => tops.add(t));
+      offset += word.length + 1;
+    }
+    return words.every((lines) => lines.size === 1);
+  });
+}
+
+test("the label grows with a larger text size, still whole", async ({ page }) => {
+  await setTextSize(page, 1.25);
+  await button(page).click();
+  await expect(pill(page)).toBeVisible();
+  await page.waitForTimeout(400);
+  const label = await pill(page).evaluate((el) => ({
+    clipped: el.scrollWidth > el.clientWidth + 1,
+    size: parseFloat(getComputedStyle(el).fontSize),
+  }));
+  expect(label.clipped).toBe(false);
+  expect(label.size).toBeCloseTo(14 * 1.25, 0);
+  expect(await titleIsWhole(page)).toBe(true);
+});
+
+test("at a large text size it stays a lit lantern, leaving the title room", async ({
+  page,
+}) => {
+  await setTextSize(page, 2);
+  await button(page).click();
+  await expect(button(page)).toHaveAttribute("aria-pressed", "true");
+  await page.waitForTimeout(400);
+  await expect(pill(page)).toBeHidden();
+  await expect.poll(async () => (await wakeLock(page)).held).toBe(1);
+  expect(await titleIsWhole(page)).toBe(true);
+  const cog = page.locator("ion-button[router-link='/settings']");
+  const pillBox = await button(page).boundingBox();
+  const cogBox = await cog.boundingBox();
+  expect(pillBox!.x + pillBox!.width).toBeLessThanOrEqual(cogBox!.x + 1);
+  expect(cogBox!.x + cogBox!.width).toBeLessThanOrEqual(
+    page.viewportSize()!.width
+  );
+});
