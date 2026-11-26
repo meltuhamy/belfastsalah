@@ -260,9 +260,16 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   ]);
 
   const stripRef = useRef<HTMLDivElement>(null);
+  // Asked again whenever the cells are new elements - the row redrawn for a
+  // new day, or the night's second day added - since only the ones there when
+  // it was asked are watched for a change of size, such as the highlight's
+  // bolder time moving onto them.
   const twoRows = useMeasured(stripRef, (el) => !stripFitsOneRow(el), [
     strip == null,
     uses24,
+    strip?.days[0][Prayer.Fajr].time.getTime(),
+    strip?.days.length,
+    offset,
   ]);
   // The column the highlight sits in: where the highlighted cell is on show.
   const nextColumn = nextIndex - offset;
