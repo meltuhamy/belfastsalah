@@ -220,9 +220,17 @@
 */
 .PrayerDayCard__timeline {
   position: relative;
+  /*
+    The row's 9px, plus the room above and below that a bead's glow needs: the
+    pulse while its adhan is being called is eleven pixels across, and this
+    box's clip - here so the line runs off the card's edge, out past the strip
+    - cut that glow into a flat band above and below it. The padding is taken
+    back by the margins, so the row sits where it did.
+  */
+  box-sizing: content-box;
   height: 9px;
-  margin: 0 -16px 8px;
-  padding: 0 16px;
+  margin: -14px -16px -6px;
+  padding: 14px 16px;
   overflow: hidden;
 }
 
@@ -572,6 +580,26 @@
   inset: 0;
   border-radius: inherit;
   overflow: hidden;
+  /*
+    The sun's halo reaches past this layer when it is at either end of its arc,
+    and the card's edge cut it off in a flat line. A short fade at each side
+    lets that light go out softly instead, and leaves the disc itself alone:
+    at Shuruq and Maghrib it sits about 11px in, outside the fade.
+  */
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 10px,
+    #000 calc(100% - 10px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 10px,
+    #000 calc(100% - 10px),
+    transparent 100%
+  );
   pointer-events: none;
 }
 
