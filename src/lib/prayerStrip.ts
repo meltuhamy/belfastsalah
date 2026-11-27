@@ -22,7 +22,7 @@ import { Prayer, PrayerDayTimes, PrayerTime } from "./PrayerTimes";
  * real progress catches up. Enough of the gap to read as passed, but short of
  * the next dot.
  */
-const PAST_DOT = 0.5;
+const PAST_DOT = 0.3;
 
 /**
  * Which part of the night or day it is, for the strip.

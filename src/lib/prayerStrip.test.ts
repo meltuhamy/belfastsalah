@@ -140,7 +140,7 @@ describe("stripProgress", () => {
       new Date(asr + minutes(5) + 1000)
     );
     expect(lastPassed).toBe(Prayer.Asr);
-    expect(progress).toBeCloseTo(Prayer.Asr + 0.5, 5);
+    expect(progress).toBeCloseTo(Prayer.Asr + 0.3, 5);
     // Never as far as the next prayer's dot.
     expect(progress).toBeLessThan(Prayer.Maghrib);
   });
