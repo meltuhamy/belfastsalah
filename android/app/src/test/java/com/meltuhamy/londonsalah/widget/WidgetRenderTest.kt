@@ -339,6 +339,32 @@ class WidgetRenderTest {
         assertEquals("Open the app", widget.text(R.id.widget_location))
     }
 
+    @Test
+    fun `the wide widget keeps the setting sun above the bottom prayer row`() {
+        // Wide widgets map the raw [0.24, 0.90] arc onto [0.28, 0.61].
+        assertEquals(0.28, SkyPainter.SunArc.WIDE.map(0.24), 1e-6)
+        assertEquals(0.61, SkyPainter.SunArc.WIDE.map(0.90), 1e-6)
+        assertEquals(0.90, SkyPainter.SunArc.RAW.map(0.90), 1e-6)
+        assertEquals(0.24, SkyPainter.SunArc.RAW.map(0.24), 1e-6)
+
+        val sunset = draw(
+            WidgetKind.WIDE, homeScreenSize(WidgetKind.WIDE), sky, nowMillis = PayloadFixture.SUNSET
+        ).skyPicture()!!
+        // At SUNSET (x ≈ 0.93), the sun brightens y ≈ 0.61 relative to the left side of the same row,
+        // and no longer sits in the bottom prayer row (y ≈ 0.90). The solid disc
+        // stays above the labels, which start around 75% down.
+        val xSun = (sunset.width * 0.93).toInt()
+        val xClear = (sunset.width * 0.15).toInt()
+        val ySun = (sunset.height * 0.61).toInt()
+        val yBottom = (sunset.height * 0.90).toInt()
+        assertTrue(Color.red(sunset.getPixel(xSun, ySun)) > Color.red(sunset.getPixel(xClear, ySun)) + 15)
+        assertTrue(
+            kotlin.math.abs(
+                Color.red(sunset.getPixel(xSun, yBottom)) - Color.red(sunset.getPixel(xClear, yBottom))
+            ) <= 2
+        )
+    }
+
     private fun clock(millis: Long): String {
         val minutes = (millis / 60_000) % (24 * 60)
         return "%02d:%02d".format(minutes / 60, minutes % 60)

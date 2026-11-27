@@ -360,8 +360,9 @@ bottom with the next one on a frosted pane, and open sky in between. It is tall
 on purpose - in the Sky theme the sun travels that space and the stars fill it.
 The Sky theme's colours, sun position and highlight panes (`--sky-glass`) all
 come from `skyProperties` in `src/lib/sky.ts`; the card squeezes the sun's arc
-into the open band so it never sits on the countdown, while the widgets draw
-sky.ts's arc as it is. The stars are `StarField`: a new random scatter
+into the open band so it never sits on the countdown, while most widgets draw
+sky.ts's arc as it is - the wide (Android) and medium (iOS) ones squeeze it
+above their prayer row (`SunArc`, MEL-354). The stars are `StarField`: a new random scatter
 (`src/lib/starfield.ts`) every time the card mounts, painted once into a canvas
 and turned slowly about the middle of the card's top edge - made on mount, not
 on render, or the once-a-second tick would reshuffle them. They sit at three

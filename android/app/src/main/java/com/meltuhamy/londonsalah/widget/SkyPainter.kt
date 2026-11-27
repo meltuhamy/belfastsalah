@@ -42,15 +42,35 @@ object SkyPainter {
     )
 
     /**
+     * Where the sun sits on a widget, as fractions of its height: [noonY] at
+     * the top of `WidgetSky`'s arc and [horizonY] at its ends. The arc itself
+     * runs from 0.24 to 0.9; [map] squeezes it into this range.
+     */
+    data class SunArc(val noonY: Double, val horizonY: Double) {
+        fun map(rawY: Double): Double =
+            noonY + (rawY - RAW.noonY) * (horizonY - noonY) / (RAW.horizonY - RAW.noonY)
+
+        companion object {
+            /** `WidgetSky`'s own arc, drawn as it is. */
+            val RAW = SunArc(0.24, 0.9)
+
+            /** Wide widgets: a touch lower at noon, and above the prayer row at sunset. */
+            val WIDE = SunArc(0.28, 0.61)
+        }
+    }
+
+    /**
      * The sky at `widthDp` x `heightDp`, drawn at up to `density` pixels a dp.
-     * `sunDp` is the sun's diameter: smaller on the narrow widgets.
+     * `sunDp` is the sun's diameter: smaller on the narrow widgets, and
+     * `sunArc` where it travels.
      */
     fun paint(
         sky: SkyState,
         widthDp: Int,
         heightDp: Int,
         density: Float,
-        sunDp: Float
+        sunDp: Float,
+        sunArc: SunArc = SunArc.RAW
     ): Bitmap {
         val w = max(widthDp, 1)
         val h = max(heightDp, 1)
@@ -143,7 +163,7 @@ object SkyPainter {
         // Maghrib, though the arc keeps it 45 minutes either side.
         sky.sun?.takeIf { light.sunOn > 0 }?.let { sun ->
             val cx = (sun.x * width).toFloat()
-            val cy = (sun.y * height).toFloat()
+            val cy = (sunArc.map(sun.y) * height).toFloat()
             val radius = sunDp / 2 * scale
             val base = colour(sun.colour)
             val on = light.sunOn.toFloat()
