@@ -117,10 +117,60 @@ describe("stripProgress", () => {
     expect(progress).toBeCloseTo(5.5);
   });
 
-  it("stops at the last time on hand", () => {
+  it("leaves the line at Asr's dot while its adhan is being called", () => {
     const cells = stripCells({ days: [feb15], offset: 0 });
-    const late = new Date(feb15[Prayer.Isha].time.getTime() + minutes(30));
-    expect(stripProgress(cells, late)).toEqual({ progress: 5, lastPassed: 5 });
+    const asr = feb15[Prayer.Asr].time.getTime();
+    const maghrib = feb15[Prayer.Maghrib].time.getTime();
+    const { progress, lastPassed } = stripProgress(
+      cells,
+      new Date(asr + minutes(4))
+    );
+    expect(lastPassed).toBe(Prayer.Asr);
+    expect(progress).toBeCloseTo(
+      Prayer.Asr + minutes(4) / (maghrib - asr),
+      5
+    );
+  });
+
+  it("holds the line a little past Asr's dot once its adhan ends", () => {
+    const cells = stripCells({ days: [feb15], offset: 0 });
+    const asr = feb15[Prayer.Asr].time.getTime();
+    const { progress, lastPassed } = stripProgress(
+      cells,
+      new Date(asr + minutes(5) + 1000)
+    );
+    expect(lastPassed).toBe(Prayer.Asr);
+    expect(progress).toBeCloseTo(Prayer.Asr + 0.3, 5);
+    // Never as far as the next prayer's dot.
+    expect(progress).toBeLessThan(Prayer.Maghrib);
+  });
+
+  it("returns to real progress once it has passed the extra bit", () => {
+    const cells = stripCells({ days: [feb15], offset: 0 });
+    const asr = feb15[Prayer.Asr].time.getTime();
+    const maghrib = feb15[Prayer.Maghrib].time.getTime();
+    const { progress, lastPassed } = stripProgress(
+      cells,
+      new Date(asr + minutes(120))
+    );
+    expect(lastPassed).toBe(Prayer.Asr);
+    expect(progress).toBeCloseTo(
+      Prayer.Asr + minutes(120) / (maghrib - asr),
+      5
+    );
+  });
+
+  it("stops at the last time on hand, even after its adhan", () => {
+    const cells = stripCells({ days: [feb15], offset: 0 });
+    const isha = feb15[Prayer.Isha].time.getTime();
+    expect(stripProgress(cells, new Date(isha + minutes(6)))).toEqual({
+      progress: Prayer.Isha,
+      lastPassed: Prayer.Isha,
+    });
+    expect(stripProgress(cells, new Date(isha + minutes(30)))).toEqual({
+      progress: Prayer.Isha,
+      lastPassed: Prayer.Isha,
+    });
   });
 });
 

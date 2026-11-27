@@ -14,7 +14,15 @@
  * by waiting.
  */
 
+import { ADHAN_WINDOW_MS } from "./adhanMoment";
 import { Prayer, PrayerDayTimes, PrayerTime } from "./PrayerTimes";
+
+/**
+ * How far past a prayer's dot the line is held once its adhan is over, until
+ * real progress catches up. Enough of the gap to read as passed, but short of
+ * the next dot.
+ */
+const PAST_DOT = 0.3;
 
 /**
  * Which part of the night or day it is, for the strip.
@@ -88,6 +96,12 @@ export function stripIndexOf(
  * How far along the row now is, in columns: 0 at the first Fajr's dot, 1 at
  * Shuruq's, and in between by time, through to the last time on hand. Null
  * before the first time. `lastPassed` is the last time that has come in.
+ *
+ * Through a prayer's adhan the line stays where time puts it, just off the
+ * dot. Once the adhan is over it is held a little past the dot, so the prayer
+ * reads as passed even when the next one is hours away. Real progress takes
+ * over again once it reaches that point, so the line never doubles back or
+ * runs into the next dot.
  */
 export function stripProgress(
   cells: ReadonlyArray<PrayerTime>,
@@ -100,11 +114,12 @@ export function stripProgress(
   if (lastPassed < 0) return { progress: null, lastPassed };
   const from = cells[lastPassed].time.getTime();
   const to = cells[lastPassed + 1]?.time.getTime();
-  const progress =
-    to === undefined
-      ? lastPassed
-      : lastPassed + Math.min(1, (now.getTime() - from) / (to - from));
-  return { progress, lastPassed };
+  if (to === undefined) return { progress: lastPassed, lastPassed };
+  const elapsed = now.getTime() - from;
+  const real = Math.min(1, elapsed / (to - from));
+  const fraction =
+    elapsed >= ADHAN_WINDOW_MS ? Math.max(real, PAST_DOT) : real;
+  return { progress: lastPassed + fraction, lastPassed };
 }
 
 /**
