@@ -179,12 +179,16 @@ class WidgetSettingsScreenshotTest {
 
     // The Pixel launcher's boxes on a Pixel 9 Pro XL turned on its side
     // (WidgetBoxes): drawn for that box, not grown for the upright one, which
-    // cut off the timetable's whole row.
+    // cut off the timetable's whole row. On a screen turned the same way: at
+    // 706dp they are wider than the upright test phone, whose edge cropped
+    // the picture to its first three prayers.
     @Test
+    @Config(qualifiers = WidgetHarness.PHONE_TURNED)
     fun pixelWideTurned() =
         shootAt("wide_pixel_turned_light", WidgetKind.WIDE, WidgetHarness.PIXEL_XL_WIDE_TURNED, light, ONE_PM)
 
     @Test
+    @Config(qualifiers = WidgetHarness.PHONE_TURNED)
     fun pixelCompactTurned() = shootAt(
         "compact_pixel_turned_sky_night", WidgetKind.COMPACT, WidgetHarness.PIXEL_XL_COMPACT_TURNED, sky,
         PayloadFixture.LATE_NIGHT

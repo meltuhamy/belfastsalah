@@ -34,6 +34,14 @@ object WidgetHarness {
      */
     const val PHONE = "w411dp-h891dp-xxhdpi"
 
+    /**
+     * A phone turned on its side, for screenshots of widgets wider than
+     * [PHONE]: drawn on the upright one they ran off its edge and the picture
+     * was cropped. The layout and fit checks never were - a widget is laid out
+     * at its own size whatever the screen.
+     */
+    const val PHONE_TURNED = "w960dp-h411dp-land-xxhdpi"
+
     /** The timetable as a 4 x 2 on a Galaxy S20 FE (One UI 5), in dp. */
     val SAMSUNG_WIDE = 374 to 221
 
