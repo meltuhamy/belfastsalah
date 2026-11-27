@@ -152,16 +152,167 @@ struct SkyBackground: View {
                 }
                 // The sun at the card's strength: none before Shuruq, fading
                 // after Maghrib, though the arc keeps it 45 minutes either side.
+                // A bloom, as the card draws it, then the card's lens flare
+                // held still. Both screen-blended, so they only brighten.
                 if let sun = sky.sun, sky.light.sunOn > 0 {
-                    Circle()
-                        .fill(Color(hex: sun.colour))
-                        .frame(width: 26, height: 26)
-                        .shadow(color: Color(hex: sun.colour).opacity(0.5), radius: 14)
-                        .position(x: sun.x * size.width, y: sunArc.map(sun.y) * size.height)
-                        .opacity(sky.light.sunOn)
+                    let centre = CGPoint(x: sun.x * size.width, y: sunArc.map(sun.y) * size.height)
+                    let on = sky.light.sunOn
+                    SunBloom(colour: sun.colour, diameter: Self.sunDiameter(size), on: on)
+                        .position(centre)
+                    LensFlare(
+                        sun: centre,
+                        middle: CGPoint(x: size.width / 2, y: size.height / 2),
+                        scale: min(1, max(0.35, min(size.width, size.height) / 200)),
+                        on: on
+                    )
                 }
             }
         }
+    }
+
+    /**
+     * The sun's diameter: 12% of the widget's shorter side, from 26 points up
+     * to the card's 40, so it is not lost on the large widget. Android's
+     * `WidgetRenderer.sunDiameterDp`.
+     */
+    static func sunDiameter(_ size: CGSize) -> Double {
+        min(40, max(26, (0.12 * min(size.width, size.height)).rounded()))
+    }
+}
+
+/**
+ * The sun as a bloom with no hard edge (PrayerDayCard.css): a wide, faint
+ * wash and a white-hot core fading through the sun's colour, sized for the
+ * card's 40-point sun and scaled to this one's. Android's `SkyPainter`.
+ */
+struct SunBloom: View {
+    let colour: String
+    let diameter: Double
+    let on: Double
+
+    var body: some View {
+        let k = diameter / 40
+        let c = Color(hex: colour)
+        let warm = Color(red: 1, green: 252 / 255, blue: 240 / 255)
+        ZStack {
+            Circle()
+                .fill(RadialGradient(
+                    stops: [
+                        .init(color: warm.opacity(0.22 * on), location: 0),
+                        .init(color: warm.opacity(0), location: 1),
+                    ],
+                    center: .center, startRadius: 0, endRadius: 130 * k
+                ))
+                .frame(width: 260 * k, height: 260 * k)
+                .blendMode(.screen)
+            Circle()
+                .fill(RadialGradient(
+                    stops: [
+                        .init(color: Color.white.opacity(on), location: 0),
+                        .init(color: Color.white.opacity(0.96 * on), location: 0.07),
+                        .init(color: c.opacity(0.92 * on), location: 0.13),
+                        .init(color: c.opacity(0.5 * on), location: 0.22),
+                        .init(color: c.opacity(0.22 * on), location: 0.36),
+                        .init(color: c.opacity(0.08 * on), location: 0.58),
+                        .init(color: c.opacity(0), location: 1),
+                    ],
+                    center: .center, startRadius: 0, endRadius: 75 * k
+                ))
+                .frame(width: 150 * k, height: 150 * k)
+                .blendMode(.screen)
+        }
+    }
+}
+
+/**
+ * The card's lens flare (LensFlare.tsx), held still since a widget cannot
+ * move: a faint veil about the sun, and five ghosts on the line from the sun
+ * through the widget's middle, a touch stronger than the card's. `scale` is
+ * the card's sizes to this widget's. Android's `SkyPainter.flare`.
+ */
+struct LensFlare: View {
+    let sun: CGPoint
+    let middle: CGPoint
+    let scale: Double
+    let on: Double
+
+    private struct Ghost {
+        let at: Double
+        let size: Double
+        let strength: Double
+        let tint: (Double, Double, Double)
+        var iris = false
+    }
+
+    private static let ghosts: [Ghost] = [
+        Ghost(at: 0.42, size: 9, strength: 0.2, tint: (255, 236, 196)),
+        Ghost(at: 0.78, size: 18, strength: 0.09, tint: (196, 255, 222), iris: true),
+        Ghost(at: 1.22, size: 36, strength: 0.07, tint: (176, 214, 255)),
+        Ghost(at: 1.58, size: 15, strength: 0.13, tint: (255, 208, 168)),
+        Ghost(at: 1.96, size: 26, strength: 0.06, tint: (214, 192, 255), iris: true),
+    ]
+
+    /** Stronger than the card's: there is no movement to catch the eye. */
+    private static let boost = 1.3
+
+    var body: some View {
+        let veil = Color(red: 1, green: 248 / 255, blue: 228 / 255)
+        ZStack {
+            Circle()
+                .fill(RadialGradient(
+                    stops: [
+                        .init(color: veil.opacity(0.12 * on), location: 0),
+                        .init(color: veil.opacity(0), location: 1),
+                    ],
+                    center: .center, startRadius: 0, endRadius: 110 * scale
+                ))
+                .frame(width: 220 * scale, height: 220 * scale)
+                .position(sun)
+                .blendMode(.screen)
+            ForEach(Array(Self.ghosts.enumerated()), id: \.offset) { _, ghost in
+                let d = max(5, ghost.size * scale)
+                let s = ghost.strength * Self.boost * on
+                let tint = Color(red: ghost.tint.0 / 255, green: ghost.tint.1 / 255, blue: ghost.tint.2 / 255)
+                let fill = RadialGradient(
+                    stops: [
+                        .init(color: tint.opacity(s * 0.55), location: 0),
+                        .init(color: tint.opacity(s * 0.7), location: 0.62),
+                        .init(color: tint.opacity(s), location: 0.82),
+                        .init(color: tint.opacity(0), location: 1),
+                    ],
+                    center: .center, startRadius: 0, endRadius: d / 2
+                )
+                Group {
+                    if ghost.iris {
+                        Rectangle().fill(fill).clipShape(Iris())
+                    } else {
+                        Circle().fill(fill)
+                    }
+                }
+                .frame(width: d, height: d)
+                .position(
+                    x: sun.x + (middle.x - sun.x) * ghost.at,
+                    y: sun.y + (middle.y - sun.y) * ghost.at
+                )
+                .blendMode(.screen)
+            }
+        }
+    }
+}
+
+/** The camera's iris, as the card clips it: a hexagon. */
+private struct Iris: Shape {
+    func path(in rect: CGRect) -> Path {
+        let p = { (x: Double, y: Double) in CGPoint(x: rect.minX + x * rect.width, y: rect.minY + y * rect.height) }
+        var path = Path()
+        path.move(to: p(0.25, 0.03))
+        path.addLine(to: p(0.75, 0.03))
+        path.addLine(to: p(1, 0.5))
+        path.addLine(to: p(0.75, 0.97))
+        path.addLine(to: p(0.25, 0.97))
+        path.addLine(to: p(0, 0.5))
+        path.closeSubpath()
+        return path
     }
 }
 
