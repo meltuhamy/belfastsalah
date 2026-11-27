@@ -85,6 +85,7 @@ const MonthPage: React.FC = () => {
               fill="clear"
               className="MonthPage__step"
               data-testid="previous-month"
+              aria-label={`Previous month, ${names[prev.month]} ${prev.year}`}
               disabled={!canGoBack}
               onClick={() => setShown(prev)}
             >
@@ -95,6 +96,7 @@ const MonthPage: React.FC = () => {
               fill="clear"
               className="MonthPage__step"
               data-testid="next-month"
+              aria-label={`Next month, ${names[next.month]} ${next.year}`}
               onClick={() => setShown(next)}
             >
               {names[next.month]}

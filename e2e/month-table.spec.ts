@@ -84,6 +84,13 @@ test("steps a month either way, across the turn of the year", async ({
   const next = page.getByTestId("next-month");
   await expect(previous).toHaveText("January");
   await expect(next).toHaveText("March");
+  // Named for which way they go, not just for the month they go to.
+  await expect(
+    page.getByRole("button", { name: "Previous month, January 2026" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Next month, March 2026" })
+  ).toBeVisible();
 
   await previous.click();
   await expect(page.getByTestId("month-title")).toHaveText("January 2026");
