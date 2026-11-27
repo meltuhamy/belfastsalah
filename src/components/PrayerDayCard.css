@@ -222,16 +222,18 @@
   position: relative;
   /*
     The row's 9px, plus the room above and below that a bead's glow needs: the
-    pulse while its adhan is being called is eleven pixels across, and this
-    box's clip - here so the line runs off the card's edge, out past the strip
-    - cut that glow into a flat band above and below it. The padding is taken
-    back by the margins, so the row sits where it did.
+    pulse while its adhan is being called reaches 11px out from the bead, and
+    this box's clip - here so the line runs off the card's edge, out past the
+    strip - cut that glow into a flat band above and below it. The padding is
+    taken back by the margins, so the row sits where it did. The padding now
+    lies over the bottom of the headline, so it lets taps through.
   */
   box-sizing: content-box;
   height: 9px;
   margin: -14px -16px -6px;
   padding: 14px 16px;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .PrayerDayCard__timeline-row {
