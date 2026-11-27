@@ -237,7 +237,7 @@ enum WidgetSky {
             top: sky.top,
             mid: sky.mid,
             horizon: sky.horizon,
-            lightText: lightText(sky.top, sky.mid),
+            lightText: lightText(sky),
             sun: sunUp ? SkySun(
                 x: 0.08 + clamp(progress, -0.1, 1.1) * 0.84,
                 y: 0.9 - elevation * 0.66,
@@ -385,9 +385,35 @@ enum WidgetSky {
         )
     }
 
-    private static func lightText(_ a: String, _ b: String) -> Bool {
-        func worst(_ text: String) -> Double { min(contrastRatio(text, a), contrastRatio(text, b)) }
+    /** The number of gradient samples toneForSky in sky.ts checks. */
+    private static let textSamples = 32
+
+    /**
+     * toneForSky in src/lib/sky.ts: the text colour that reads best across
+     * the painted sky, not just its stops. A gradient interpolates in sRGB,
+     * which is gamma-encoded, so a point between two stops can be darker
+     * than either - judging the stops left black text on the dusky sky.
+     * SkyBackground puts the middle stop at 60% of the widget.
+     */
+    private static func lightText(_ sky: SkyColours) -> Bool {
+        func worst(_ text: String) -> Double {
+            var min = Double.infinity
+            for i in 0...textSamples {
+                let f = Double(i) / Double(textSamples)
+                let mixed = f <= 0.6
+                    ? mixSrgb(sky.top, sky.mid, f / 0.6)
+                    : mixSrgb(sky.mid, sky.horizon, (f - 0.6) / 0.4)
+                min = Swift.min(min, contrastRatio(text, mixed))
+            }
+            return min
+        }
         return worst("#ffffff") >= worst("#000000")
+    }
+
+    /** A CSS gradient's sRGB interpolation, with each channel rounded to a byte. */
+    private static func mixSrgb(_ a: String, _ b: String, _ f: Double) -> String {
+        let x = channels(a), y = channels(b)
+        return toHex((0..<3).map { Double(x[$0]) + (Double(y[$0]) - Double(x[$0])) * f })
     }
 
     // MARK: Colour arithmetic, as in sky.ts

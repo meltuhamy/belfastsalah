@@ -145,6 +145,60 @@ final class SkyTests: XCTestCase {
         zip(WidgetSky.channels(a), WidgetSky.channels(b)).map { abs($0 - $1) }.max() ?? 0
     }
 
+    private func luminance(_ hex: String) -> Double {
+        func toLinear(_ c: Int) -> Double {
+            let v = Double(c) / 255
+            return v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4)
+        }
+        let c = WidgetSky.channels(hex).map(toLinear)
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+    }
+
+    private func contrast(_ a: String, _ b: String) -> Double {
+        let x = luminance(a), y = luminance(b)
+        return (max(x, y) + 0.05) / (min(x, y) + 0.05)
+    }
+
+    /** The colour painted at `f` down the widget's sky, mid stop at 60%. */
+    private func painted(_ sky: SkyState, _ f: Double) -> String {
+        func mix(_ a: String, _ b: String, _ t: Double) -> String {
+            let x = WidgetSky.channels(a), y = WidgetSky.channels(b)
+            return "#" + (0..<3).map { i in
+                String(format: "%02x", Int((Double(x[i]) + (Double(y[i]) - Double(x[i])) * t).rounded()))
+            }.joined()
+        }
+        return f <= 0.6 ? mix(sky.top, sky.mid, f / 0.6) : mix(sky.mid, sky.horizon, (f - 0.6) / 0.4)
+    }
+
+    /** Worst contrast of one text colour against the gradient it sits on. */
+    private func worst(_ text: String, _ sky: SkyState) -> Double {
+        (0...32).map { contrast(text, painted(sky, Double($0) / 32)) }.min() ?? 0
+    }
+
+    func testKeepsTextReadableFromDuskToFajr() throws {
+        let payload = Fixture.payload()
+        // 15 January 2026, London: Maghrib at 16:24Z, the next Fajr at 06:21Z.
+        // Judging only the gradient's stops left black text below AA in the
+        // last hour before sunset, because sRGB's middle is darker.
+        let maghrib = payload.days[0].sky[7]
+        let nextFajr = payload.days[1].sky[1]
+        var lowest = Double.infinity
+        var minute = -30
+        while maghrib + Int64(minute) * 60_000 < nextFajr {
+            let at = Date(timeIntervalSince1970: Double(maghrib + Int64(minute) * 60_000) / 1000)
+            let sky = try XCTUnwrap(payload.skyAt(at))
+            let white = worst("#ffffff", sky)
+            let black = worst("#000000", sky)
+            XCTAssertEqual(sky.lightText, white >= black, "minute \(minute) tone")
+            lowest = min(lowest, max(white, black))
+            XCTAssertGreaterThanOrEqual(lowest, 4.5, "minute \(minute) contrast")
+            minute += 5
+        }
+        XCTAssertGreaterThanOrEqual(lowest, 4.5)
+        let atMaghrib = Date(timeIntervalSince1970: Double(maghrib) / 1000)
+        XCTAssertTrue(try XCTUnwrap(payload.skyAt(atMaghrib)).lightText)
+    }
+
     func testDrawsTheSameSkyAsTheAppAtEverySample() throws {
         let payload = Fixture.payload()
         let samples = try JSONDecoder().decode(
