@@ -33,6 +33,12 @@ object WidgetHarness {
      */
     const val PHONE = "w411dp-h891dp-xxhdpi"
 
+    /** The timetable as a 4 x 2 on a Galaxy S20 FE (One UI 5), in dp. */
+    val SAMSUNG_WIDE = 374 to 221
+
+    /** The one-row widget as a 4 x 1 on the same phone. */
+    val SAMSUNG_COMPACT = 374 to 105
+
     /**
      * The sizes each widget is checked at, in dp.
      *
@@ -41,12 +47,18 @@ object WidgetHarness {
      * the wide one at three cells across and four, and the tall ones as
      * placed there. Launchers decide cell sizes, so these are one real phone's
      * rather than any kind of standard.
+     *
+     * The timetable and the row are also checked in Samsung One UI's taller
+     * cells (MEL-370), where they grow (WidgetGrowth): [SAMSUNG_WIDE] and
+     * [SAMSUNG_COMPACT], measured off a Galaxy S20 FE's home screen, the
+     * timetable made a row taller and the row a row taller, and a narrower
+     * phone's 4 x 2.
      */
     val SIZES: Map<WidgetKind, List<Pair<Int, Int>>> = mapOf(
         WidgetKind.TILE to listOf(77 to 87, 170 to 190),
-        WidgetKind.COMPACT to listOf(292 to 79, 390 to 79),
+        WidgetKind.COMPACT to listOf(292 to 79, 390 to 79, SAMSUNG_COMPACT, 374 to 221),
         WidgetKind.COLUMN to listOf(62 to 225),
-        WidgetKind.WIDE to listOf(295 to 139, 390 to 139),
+        WidgetKind.WIDE to listOf(295 to 139, 390 to 139, SAMSUNG_WIDE, 374 to 330, 330 to 200),
         WidgetKind.TALL to listOf(138 to 225)
     )
 

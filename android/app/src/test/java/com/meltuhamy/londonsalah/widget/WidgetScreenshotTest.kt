@@ -119,6 +119,64 @@ class WidgetSettingsScreenshotTest {
     @Test
     fun tileAtTwoByTwo() = shoot("tile_2x2", WidgetKind.TILE, 170 to 190, light)
 
+    // Samsung One UI's taller cells (MEL-370): the timetable and the row grow
+    // to fill them, and the Sky highlight is a solid block at every hour - a
+    // darker one by day and at dusk, a lighter one at night.
+    private val sky = WidgetConfig(palette = WidgetPalette.SKY)
+
+    private fun shootAt(name: String, kind: WidgetKind, size: Pair<Int, Int>, config: WidgetConfig, now: Long) {
+        draw(kind, size, config, now).backdrop.captureRoboImage("$SCREENSHOTS/$name.png")
+    }
+
+    @Test
+    fun samsungWideLight() =
+        shootAt("wide_samsung_light", WidgetKind.WIDE, WidgetHarness.SAMSUNG_WIDE, light, ONE_PM)
+
+    @Test
+    fun samsungWideSkyMorning() = shootAt(
+        "wide_samsung_sky_morning", WidgetKind.WIDE, WidgetHarness.SAMSUNG_WIDE, sky, PayloadFixture.BEFORE_SUNRISE
+    )
+
+    @Test
+    fun samsungWideSkyMidday() =
+        shootAt("wide_samsung_sky_midday", WidgetKind.WIDE, WidgetHarness.SAMSUNG_WIDE, sky, ONE_PM)
+
+    @Test
+    fun samsungWideSkySunset() = shootAt(
+        "wide_samsung_sky_sunset", WidgetKind.WIDE, WidgetHarness.SAMSUNG_WIDE, sky, PayloadFixture.SUNSET
+    )
+
+    @Test
+    fun samsungWideSkyNight() = shootAt(
+        "wide_samsung_sky_night", WidgetKind.WIDE, WidgetHarness.SAMSUNG_WIDE, sky, PayloadFixture.LATE_NIGHT
+    )
+
+    @Test
+    fun samsungWideThreeRows() =
+        shootAt("wide_samsung_4x3_sky_midday", WidgetKind.WIDE, 374 to 330, sky, ONE_PM)
+
+    @Test
+    fun samsungCompactLight() =
+        shootAt("compact_samsung_light", WidgetKind.COMPACT, WidgetHarness.SAMSUNG_COMPACT, light, ONE_PM)
+
+    @Test
+    fun samsungCompactSkyMidday() =
+        shootAt("compact_samsung_sky_midday", WidgetKind.COMPACT, WidgetHarness.SAMSUNG_COMPACT, sky, ONE_PM)
+
+    @Test
+    fun samsungCompactSkySunset() = shootAt(
+        "compact_samsung_sky_sunset", WidgetKind.COMPACT, WidgetHarness.SAMSUNG_COMPACT, sky, PayloadFixture.SUNSET
+    )
+
+    @Test
+    fun samsungCompactSkyNight() = shootAt(
+        "compact_samsung_sky_night", WidgetKind.COMPACT, WidgetHarness.SAMSUNG_COMPACT, sky, PayloadFixture.LATE_NIGHT
+    )
+
+    @Test
+    fun samsungCompactTwoRows() =
+        shootAt("compact_samsung_4x2_sky_midday", WidgetKind.COMPACT, 374 to 221, sky, ONE_PM)
+
     @Test
     fun tileAtTwoByTwoWithoutCity() =
         shoot("tile_2x2_no_city", WidgetKind.TILE, 170 to 190, light.copy(showLocation = false))

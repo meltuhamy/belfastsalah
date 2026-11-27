@@ -185,6 +185,25 @@ class HostedWidgetTest {
     }
 
     @Test
+    fun resizingTheTimetableToOneUiCellsGrowsItsText() {
+        // MEL-370: Samsung's 4 x 2 is 374 x 221dp. The timetable grows into
+        // it, by the width for its row, when the launcher says how big it is.
+        val wide = bind(PrayerTimesWidgetProvider::class.java, 295, 139)
+        waitUntil("the timetable to draw") { wide.text(R.id.prayer_time_3) == "14:01" }
+        val before = wide.textSize(R.id.prayer_time_3)
+
+        manager.updateAppWidgetOptions(wide.id, sizeOptions(374, 221))
+
+        val grown = before * 374f / 295f
+        waitUntil("the timetable to grow") { abs(wide.textSize(R.id.prayer_time_3) - grown) < 0.5f }
+        onMain {
+            wide.layOut(374, 221)
+            val problems = TextFit.problems(wide.content())
+            assertTrue(problems.joinToString("\n"), problems.isEmpty())
+        }
+    }
+
+    @Test
     fun savingTheAppearanceScreenRedrawsTheWidget() {
         val wide = bind(PrayerTimesWidgetProvider::class.java, 390, 139)
         waitUntil("the widget to draw") { wide.text(R.id.prayer_time_3) == "14:01" }
@@ -370,6 +389,23 @@ class HostedWidgetTest {
                 intArrayOf(
                     R.id.prayer_col_0, R.id.prayer_col_1, R.id.prayer_col_2,
                     R.id.prayer_col_3, R.id.prayer_col_4, R.id.prayer_col_5
+                )
+            ),
+            // Samsung One UI's taller cells (MEL-370), where both grow.
+            Case(
+                "wide in One UI's 4 x 2", PrayerTimesWidgetProvider::class.java, 374, 221,
+                R.id.prayer_time_3, "14:01",
+                intArrayOf(
+                    R.id.prayer_col_0, R.id.prayer_col_1, R.id.prayer_col_2,
+                    R.id.prayer_col_3, R.id.prayer_col_4, R.id.prayer_col_5
+                )
+            ),
+            Case(
+                "one row in One UI's 4 x 1", PrayerTimesCompactWidgetProvider::class.java, 374, 105,
+                R.id.compact_time_3, "14:01",
+                intArrayOf(
+                    R.id.compact_col_0, R.id.compact_col_1, R.id.compact_col_2,
+                    R.id.compact_col_3, R.id.compact_col_4, R.id.compact_col_5
                 )
             ),
             Case(

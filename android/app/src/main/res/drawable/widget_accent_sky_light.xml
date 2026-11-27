@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The next prayer's highlight on a night sky (MEL-370), where a darker block
+  would barely show: a lighter one instead, still with white text, which reads
+  on it at about 7:1.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#40FFFFFF" />
+    <corners android:radius="10dp" />
+</shape>

@@ -180,6 +180,18 @@ Things that will bite:
   runner and commits them back, and that commit's images are the review of
   the change. They have to come from the runner — another machine draws
   different pixels. CI skips the comparison on the commit that asks for it.
+- **The timetable and one-row widgets grow with their box** (`WidgetGrowth`,
+  MEL-370). Samsung One UI's cells are far taller than the 295 x 139 and
+  292 x 79 the layouts were drawn for, and with fixed sizes the timetable had
+  an empty band across it. Text and padding grow together, by the smaller of
+  the box's gains across and down, so a layout that fits its design box fits
+  any bigger one; the heading may follow the height a little further than the
+  row. Padding the renderer grows is set in code (`spaceOut`), so a padding
+  change in those two layouts has to be made there too. `WidgetHarness.SIZES`
+  has One UI's sizes, measured off a Galaxy S20 FE.
+- **The Sky highlight is a solid block, white text on it**: darker than the
+  sky, or lighter at night, where darker would not show
+  (`WidgetConfig.accentDrawable`).
 - **The emulator job builds `:app` only.** The root project's test APKs
   include Capacitor's own modules, and the Cordova plugins module does not
   assemble.

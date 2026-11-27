@@ -121,6 +121,9 @@ object PayloadFixture {
     /** 18:01 - after Isha, so the next prayer is tomorrow's Fajr, "12:18:00" away. */
     val AFTER_ISHA = on15th("18:01") - SPARE
 
+    /** 21:00 - full night, with the stars out: the Sky highlight's lighter block. */
+    val LATE_NIGHT = on15th("21:00") - SPARE
+
     /** The payload for the 15th, with tomorrow's Fajr as the last upcoming prayer. */
     fun forJan15(): String {
         val upcoming = NAMES.indices.map { i ->

@@ -117,23 +117,45 @@ data class WidgetConfig(
     private fun hasAccent() = accent >= 0 && accent < ACCENTS.size
 
     /**
-     * The rounded pill behind the next prayer, or 0 for no highlight. On the
-     * sky a coloured pill fights the gradient, so it is frosted glass instead,
-     * lighter or darker to suit the text on it.
+     * The rounded block behind the next prayer, or 0 for no highlight. On the
+     * sky a coloured block fights the gradient, so it is the sky itself made
+     * darker, with white text - a solid block that is found at a glance
+     * (MEL-370; it was a faint frosted pane). A night sky is too dark for a
+     * darker block to show, so there it is lighter instead.
      */
     fun accentDrawable(context: Context? = null, sky: SkyState? = null): Int = when {
         !hasAccent() -> 0
-        sky != null && context != null && lightText(context, sky) ->
-            R.drawable.widget_accent_glass_on_dark
-        sky != null -> R.drawable.widget_accent_glass_on_light
+        sky != null && opacity >= 50 && skyIsDarkBehindTimes(sky) ->
+            R.drawable.widget_accent_sky_light
+        sky != null -> R.drawable.widget_accent_sky_dark
         else -> ACCENTS[accent].drawable
     }
 
-    fun accentTextColor(context: Context, sky: SkyState? = null): Int =
-        if (!hasAccent() || sky != null) primaryTextColor(context, sky)
-        else ACCENTS[accent].onAccent
+    /**
+     * The text on the highlight. On the sky that is white whatever the rest
+     * of the widget uses: both of the sky's blocks are made for white.
+     */
+    fun accentTextColor(context: Context, sky: SkyState? = null): Int = when {
+        !hasAccent() -> primaryTextColor(context, sky)
+        sky != null -> LIGHT_TEXT
+        else -> ACCENTS[accent].onAccent
+    }
 
     data class Accent(val drawable: Int, val onAccent: Int, val label: Int)
+
+    /**
+     * Whether the sky where the times sit - between its middle and its
+     * horizon - is too dark for a darker block to stand out from it. Below
+     * this luminance, 50% black takes the sky to less than 1.5:1 against
+     * itself.
+     */
+    internal fun skyIsDarkBehindTimes(sky: SkyState): Boolean {
+        val mid = Color.parseColor(sky.mid)
+        val horizon = Color.parseColor(sky.horizon)
+        fun halfway(shift: Int) = (((mid shr shift) and 0xFF) + ((horizon shr shift) and 0xFF)) / 2
+        val behind = Color.rgb(halfway(16), halfway(8), halfway(0))
+        return Color.luminance(behind) < DARK_SKY_LUMINANCE
+    }
 
     companion object {
         const val NO_ACCENT = -1
@@ -145,6 +167,7 @@ data class WidgetConfig(
         private const val DARK_TEXT = 0xFF1B1B1B.toInt()
         private const val DARK_TEXT_MUTED = 0xFF5F6368.toInt()
         private const val SKY_DARK_TEXT = 0xFF000000.toInt()
+        private const val DARK_SKY_LUMINANCE = 0.035f
 
         /**
          * Highlights are drawables rather than plain colours so the pill keeps

@@ -1,12 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Resizes both ways (MEL-370). One UI's cells are tall, and a widget that only
+  resized across was stuck at whatever height two of them came to. No shorter
+  than minHeight, which is as short as it could be placed before: the heading
+  and the row need about that much.
+-->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:configure="com.meltuhamy.londonsalah.widget.WidgetConfigActivity"
     android:description="@string/widget_times_description"
     android:initialLayout="@layout/widget_prayer_times"
     android:minHeight="110dp"
+    android:minResizeHeight="110dp"
     android:minWidth="250dp"
     android:previewLayout="@layout/widget_prayer_times"
-    android:resizeMode="horizontal"
+    android:resizeMode="horizontal|vertical"
     android:targetCellHeight="2"
     android:targetCellWidth="4"
     android:updatePeriodMillis="1800000"

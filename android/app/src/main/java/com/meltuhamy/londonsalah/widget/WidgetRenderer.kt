@@ -144,9 +144,16 @@ object WidgetRenderer {
 
         paintSky(context, views, kind, config, sky, boxDp)
 
-        // The font scale, as far as this kind has room for (WidgetTextScale).
+        // The font scale, as far as this kind has room for (WidgetTextScale),
+        // and then as far as the launcher's box is bigger than the one the
+        // layout was drawn for (WidgetGrowth) - a Samsung 4 x 2 is half as tall
+        // again as the design's.
         val textScale = WidgetTextScale.scale(context, kind)
-        WidgetTextScale.apply(context, views, kind, textScale)
+        val growth = WidgetGrowth.of(kind, boxDp)
+        WidgetTextScale.apply(context, views, kind) { id ->
+            textScale * (if (id in HEADING_IDS) growth.heading else growth.body)
+        }
+        spaceOut(context, views, kind, growth.body)
 
         return when (kind) {
             WidgetKind.TILE ->
@@ -158,6 +165,34 @@ object WidgetRenderer {
             WidgetKind.COLUMN ->
                 renderInline(context, views, config, sky, day, next, COLUMN_IDS_INLINE, nowMillis)
             else -> renderTimetable(context, views, config, sky, payload, day, next, nowMillis)
+        }
+    }
+
+    /** The timetable's heading, which may grow further than its row. */
+    private val HEADING_IDS = setOf(
+        R.id.widget_next_label, R.id.widget_countdown, R.id.widget_location, R.id.widget_date
+    )
+
+    /**
+     * The padding the layouts were drawn with, grown with their text so that
+     * a bigger box is filled in proportion rather than only its text growing.
+     * The values are the layouts' own, in dp; keep them in step.
+     */
+    private fun spaceOut(context: Context, views: RemoteViews, kind: WidgetKind, growth: Float) {
+        val density = context.resources.displayMetrics.density
+        fun px(dp: Float) = (dp * growth * density).roundToInt()
+        when (kind) {
+            WidgetKind.WIDE -> {
+                val pad = px(12f)
+                views.setViewPadding(R.id.widget_root, pad, pad, pad, pad)
+                views.setViewPadding(R.id.widget_row, 0, px(10f), 0, 0)
+                for (cell in COLUMN_IDS) views.setViewPadding(cell, 0, px(6f), 0, px(6f))
+            }
+            WidgetKind.COMPACT -> {
+                views.setViewPadding(R.id.compact_root, px(6f), px(4f), px(6f), px(4f))
+                for (cell in COMPACT_IDS.cells) views.setViewPadding(cell, 0, px(4f), 0, px(4f))
+            }
+            else -> Unit
         }
     }
 
