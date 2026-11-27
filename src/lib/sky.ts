@@ -528,6 +528,18 @@ function fajrThreadProperties(thread: FajrThread): Record<string, string> {
 }
 
 /**
+ * The middle of the card's sun, a bloom with no hard edge: white-hot at the
+ * centre, fading through the sun's own colour into nothing. A whole
+ * background, since the oldest iOS the app runs on has no color-mix(). The
+ * widgets draw the same stops (SkyPainter.kt, SkyBackground).
+ */
+export function sunCore(colour: string): string {
+  const rgb = rgbList(colour);
+  const c = (alpha: number) => `rgba(${rgb}, ${alpha})`;
+  return `radial-gradient(circle closest-side, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.96) 7%, ${c(0.92)} 13%, ${c(0.5)} 22%, ${c(0.22)} 36%, ${c(0.08)} 58%, ${c(0)} 100%)`;
+}
+
+/**
  * Everything the Sky theme's stylesheet reads, as custom properties for
  * <html>. Computed here rather than with color-mix() in CSS, which the oldest
  * iOS the app supports does not have.
@@ -570,7 +582,7 @@ export function skyProperties(
     "--sky-dawn": light.dawn.toFixed(3),
     // The card's Fajr: the white thread in a haze (fajrThread).
     ...fajrThreadProperties(light.thread),
-    "--sky-sun-glow": sky.sun ? `rgba(${rgbList(sky.sun.colour)}, 0.5)` : "transparent",
+    "--sky-sun-core-bg": sky.sun ? sunCore(sky.sun.colour) : "none",
     "--sky-night": sky.night.toFixed(3),
     "--sky-page": tints.page,
     "--sky-page-rgb": rgbList(tints.page),

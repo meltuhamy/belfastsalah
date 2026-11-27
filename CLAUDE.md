@@ -408,6 +408,15 @@ sun through the card's middle, which the tilt shifts a little, so the line drift
 the sun. It fades with `--sky-sun-on`. The stars and the flare share one tilt
 listener's logic, `useTilt`, which also asks iOS for the readings.
 
+The sun is a bloom, never a disc (MEL-366): a white-hot core fading through
+the sun's colour (`--sky-sun-core-bg`, a whole gradient from `sunCore` in
+sky.ts) inside a wide, faint wash, screen-blended so it only brightens the
+sky. During Duhr's adhan moment, and no other, it gets turning rays
+(`src/lib/sunRays.ts`): three layers of streaks, turned by CSS animations
+whose strings never change, at a strength worked out from the clock each
+second - in within six seconds with a swell, out over the moment's last
+minute. Reduce motion stops the turning, not the rays.
+
 The card's sun is strictly from Shuruq (`--sky-sun-on`, rising in over three
 minutes) to ten minutes after Maghrib, though sky.ts's arc has it up 45
 minutes either side; the widgets draw their sun at the same strength. Before Shuruq the card shows
@@ -668,6 +677,12 @@ the one calculation the native side does itself:
   could see it. The prayer boundary's exact alarm is separate and unchanged.
 - **iOS gives a Sky timeline an entry every quarter hour**, each with its
   own `PrayerEntry.sky`. Sixty entries is about fifteen hours.
+- **The sun is the card's bloom, and the card's lens flare is drawn still**
+  on every home screen widget (`SkyPainter`, `SunBloom` and `LensFlare` in
+  `PrayerWidgetView.swift`), on the line from the sun through the widget's
+  middle, scaled by `clamp(min(w, h) / 200, 0.35, 1)`. The sun's diameter is
+  12% of the shorter side, 26 to 40 (`sunDiameterDp`); the one-row and
+  column widgets keep 20. No rays: those are the card's alone.
 - On the sky, text is black or white at full strength and the next prayer's
   highlight is frosted glass, whatever highlight colour was chosen.
 - **The light on the sky is ported too**: the sun's strength, the dawn glow

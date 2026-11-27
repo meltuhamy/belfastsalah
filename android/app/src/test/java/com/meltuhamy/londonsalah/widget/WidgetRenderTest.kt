@@ -351,19 +351,30 @@ class WidgetRenderTest {
             WidgetKind.WIDE, homeScreenSize(WidgetKind.WIDE), sky, nowMillis = PayloadFixture.SUNSET
         ).skyPicture()!!
         // At SUNSET (x ≈ 0.93), the sun brightens y ≈ 0.61 relative to the left side of the same row,
-        // and no longer sits in the bottom prayer row (y ≈ 0.90). The solid disc
-        // stays above the labels, which start around 75% down.
+        // and no longer sits in the bottom prayer row (y ≈ 0.90). The bloom has no edge, so its
+        // faint outer wash still reaches the row, but its bright middle stays above the labels,
+        // which start around 75% down.
         val xSun = (sunset.width * 0.93).toInt()
         val xClear = (sunset.width * 0.15).toInt()
         val ySun = (sunset.height * 0.61).toInt()
         val yBottom = (sunset.height * 0.90).toInt()
-        assertTrue(Color.red(sunset.getPixel(xSun, ySun)) > Color.red(sunset.getPixel(xClear, ySun)) + 15)
-        assertTrue(
-            kotlin.math.abs(
-                Color.red(sunset.getPixel(xSun, yBottom)) - Color.red(sunset.getPixel(xClear, yBottom))
-            ) <= 2
-        )
+        fun lift(y: Int) = brightness(sunset.getPixel(xSun, y)) - brightness(sunset.getPixel(xClear, y))
+        assertTrue(lift(ySun) > 40)
+        assertTrue(lift(yBottom) < lift(ySun) / 4)
     }
+
+    @Test
+    fun `the sun grows with the widget, between 26 and 40, and stays small on the narrow ones`() {
+        // 12% of the shorter side.
+        assertEquals(26f, WidgetRenderer.sunDiameterDp(295, 139, narrow = false))
+        assertEquals(26f, WidgetRenderer.sunDiameterDp(77, 87, narrow = false))
+        assertEquals(30f, WidgetRenderer.sunDiameterDp(400, 250, narrow = false))
+        assertEquals(40f, WidgetRenderer.sunDiameterDp(500, 500, narrow = false))
+        assertEquals(20f, WidgetRenderer.sunDiameterDp(292, 79, narrow = true))
+        assertEquals(20f, WidgetRenderer.sunDiameterDp(400, 400, narrow = true))
+    }
+
+    private fun brightness(pixel: Int): Int = Color.red(pixel) + Color.green(pixel) + Color.blue(pixel)
 
     private fun clock(millis: Long): String {
         val minutes = (millis / 60_000) % (24 * 60)

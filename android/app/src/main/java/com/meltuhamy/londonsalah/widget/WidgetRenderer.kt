@@ -11,6 +11,8 @@ import android.view.View
 import android.widget.RemoteViews
 import com.meltuhamy.londonsalah.MainActivity
 import com.meltuhamy.londonsalah.R
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 /**
  * The five arrangements, and the layout each draws into.
@@ -194,13 +196,22 @@ object WidgetRenderer {
                 widthDp,
                 heightDp,
                 context.resources.displayMetrics.density,
-                sunDp = if (narrow) 20f else 26f,
+                sunDp = sunDiameterDp(widthDp, heightDp, narrow),
                 sunArc = if (kind == WidgetKind.WIDE) SkyPainter.SunArc.WIDE else SkyPainter.SunArc.RAW
             )
         )
         views.setInt(R.id.sky_background, "setImageAlpha", config.alpha())
         views.setViewVisibility(R.id.sky_background, View.VISIBLE)
     }
+
+    /**
+     * The sun's diameter on a widget: 12% of its shorter side, from 26dp up to
+     * the card's 40, so it is not lost on a widget stretched large. The
+     * narrow ones, one row and one column, keep their 20.
+     */
+    internal fun sunDiameterDp(widthDp: Int, heightDp: Int, narrow: Boolean): Float =
+        if (narrow) 20f
+        else (0.12 * min(widthDp, heightDp)).roundToInt().coerceIn(26, 40).toFloat()
 
     /**
      * The whole timetable, with no room for a countdown of its own.

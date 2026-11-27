@@ -286,20 +286,116 @@ test("shows the sun on the card during the day", async ({ page }) => {
   await expect
     .poll(() =>
       page.evaluate(() => {
-        const sun = document.querySelector(".PrayerDayCard__sun")!;
-        const box = sun.getBoundingClientRect();
+        // The bloom's core, centred on the sun: its middle is white-hot.
+        const core = document.querySelector(".PrayerDayCard__sun-core")!;
+        const box = core.getBoundingClientRect();
         const bubble = document
           .querySelector(".PrayerDayCard")!
           .getBoundingClientRect();
+        const middle = (box.top + box.bottom) / 2;
         return (
           box.width > 0 &&
-          box.top >= bubble.top &&
-          box.bottom <= bubble.bottom &&
-          getComputedStyle(sun).backgroundColor !== "rgba(0, 0, 0, 0)"
+          middle >= bubble.top &&
+          middle <= bubble.bottom &&
+          getComputedStyle(core).backgroundImage.includes(
+            "rgb(255, 255, 255) 0%"
+          )
         );
       })
     )
     .toBe(true);
+});
+
+test("draws the sun as a bloom, with no disc", async ({ page }) => {
+  await pinDate(page, "2026-01-15T14:50:00Z");
+  await setUpWithSky(page);
+
+  const sun = page.getByTestId("sun");
+  await expect(sun).toHaveCSS("opacity", "1");
+  await expect(sun).toHaveCSS("mix-blend-mode", "screen");
+  // The sun itself is only a point; nothing of it has an edge.
+  await expect(sun).toHaveCSS("width", "0px");
+  await expect(sun).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(page.locator(".PrayerDayCard__sun-wash")).toHaveCSS("width", "260px");
+  await expect(page.locator(".PrayerDayCard__sun-core")).toHaveCSS("width", "150px");
+  // Not Duhr's moment: no rays.
+  await expect(page.getByTestId("sun-rays")).toHaveCount(0);
+});
+
+const rayOpacities = (page: Page) =>
+  page
+    .locator(".PrayerDayCard__ray")
+    .evaluateAll((els) => els.map((el) => Number(getComputedStyle(el).opacity)));
+
+test("turns rays about the sun while Duhr's adhan is called", async ({ page }) => {
+  // Ten seconds into Duhr's moment: the rays are in, past their swell.
+  await pinDate(page, "2026-01-15T12:15:10Z");
+  await setUpWithSky(page);
+
+  await expect(page.getByTestId("sun-rays")).toHaveCount(1);
+  await expect.poll(async () => (await rayOpacities(page)).length).toBe(3);
+  await expect
+    .poll(async () => Math.min(...(await rayOpacities(page))))
+    .toBeGreaterThan(0.6);
+  // Turning: the broad spokes one way, the streaks the other.
+  await expect(page.locator(".PrayerDayCard__ray--broad")).toHaveCSS(
+    "animation-name",
+    "PrayerDayCard-rays-ccw"
+  );
+  await expect(page.locator(".PrayerDayCard__ray--long")).toHaveCSS(
+    "animation-name",
+    "PrayerDayCard-rays-cw"
+  );
+  // The bloom has grown with them.
+  await expect
+    .poll(() =>
+      page
+        .locator(".PrayerDayCard__sun-core")
+        .evaluate((el) => el.getBoundingClientRect().width)
+    )
+    .toBeGreaterThan(160);
+});
+
+test("keeps the rays still when motion is reduced", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await pinDate(page, "2026-01-15T12:15:10Z");
+  await setUpWithSky(page);
+
+  await expect(page.getByTestId("sun-rays")).toHaveCount(1);
+  await expect(page.locator(".PrayerDayCard__ray--long")).toHaveCSS(
+    "animation-name",
+    "none"
+  );
+});
+
+test("gives no other prayer's adhan the rays", async ({ page }) => {
+  // Ten seconds into Asr's moment.
+  await pinDate(page, "2026-01-15T14:02:10Z");
+  await setUpWithSky(page);
+
+  await expect(page.getByTestId("adhan-now")).toBeVisible();
+  await expect(page.getByTestId("sun-rays")).toHaveCount(0);
+});
+
+test("takes the rays away when Duhr's moment ends", async ({ page }) => {
+  // Five and a half minutes after Duhr: the card counts down to Asr again.
+  await pinDate(page, "2026-01-15T12:20:30Z");
+  await setUpWithSky(page);
+
+  await expect(page.getByTestId("sun")).toHaveCSS("opacity", "1");
+  await expect(page.getByTestId("sun-rays")).toHaveCount(0);
+});
+
+test("shows no rays at Duhr in other themes", async ({ page }) => {
+  await pinDate(page, "2026-01-15T12:15:10Z");
+  await openSetup(page);
+  await chooseTheme(page, "Light");
+  await page.getByRole("button", { name: "Done" }).click();
+  await expect(page.locator(PRAYER_STRIP)).toBeVisible();
+
+  await expect(page.getByTestId("adhan-now")).toBeVisible();
+  await expect(page.getByTestId("sun")).toHaveCount(0);
+  await expect(page.getByTestId("sun-rays")).toHaveCount(0);
 });
 
 test("previews on the setup screen before it is saved", async ({ page }) => {

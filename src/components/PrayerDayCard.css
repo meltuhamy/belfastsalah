@@ -588,41 +588,128 @@
   position: absolute;
   left: var(--sun-left);
   top: var(--sun-top);
-  width: 40px;
-  height: 40px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: var(--sky-sun-colour);
+  width: 0;
+  height: 0;
   /*
     None before Shuruq, rising in from it, and fading out after Maghrib
-    (sky.ts); the minute's step is eased over.
+    (sky.ts); the minute's step is eased over. Screen-blended, so the bloom
+    only ever brightens the sky.
   */
   opacity: var(--sky-sun-on, 1);
+  mix-blend-mode: screen;
   transition: opacity 2s ease;
 }
 
 /*
-  The halo, drawn as the widgets draw it (SkyPainter.kt): the sun's colour at
-  half strength out to the disc's edge, fading evenly to nothing at 2.4 times
-  its radius. A wide, soft glow, where a blurred box-shadow made only a thin
-  fuzzy rim. Behind the disc, which covers its solid middle.
+  The bloom, which took over from a solid disc and its halo (MEL-365): no
+  hard edge anywhere, a white-hot core fading through the sun's colour into a
+  wide, faint wash. Each is centred on the sun, which is a point. While Duhr's
+  rays show, the bloom grows by up to a tenth (--sun-rays, 0 to about 1.3,
+  capped), eased over the once-a-second steps.
 */
-.PrayerDayCard__sun::before {
-  content: "";
+.PrayerDayCard__sun-wash,
+.PrayerDayCard__sun-core,
+.PrayerDayCard__ray {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 240%;
-  height: 240%;
+  left: 0;
+  top: 0;
   transform: translate(-50%, -50%);
   border-radius: 50%;
+  mix-blend-mode: screen;
+}
+
+.PrayerDayCard__sun-wash,
+.PrayerDayCard__sun-core {
+  --sun-grow: calc(1 + 0.1 * min(1, var(--sun-rays, 0)));
+  transition: width 1s linear, height 1s linear;
+}
+
+.PrayerDayCard__sun-wash {
+  width: calc(260px * var(--sun-grow));
+  height: calc(260px * var(--sun-grow));
   background: radial-gradient(
     circle closest-side,
-    var(--sky-sun-glow) 0%,
-    var(--sky-sun-glow) calc(100% / 2.4),
-    transparent 100%
+    rgba(255, 252, 240, 0.22) 0%,
+    rgba(255, 252, 240, 0) 100%
   );
-  z-index: -1;
+}
+
+.PrayerDayCard__sun-core {
+  width: calc(150px * var(--sun-grow));
+  height: calc(150px * var(--sun-grow));
+  background: var(--sky-sun-core-bg, none);
+}
+
+/*
+  Duhr's rays (sunRays.ts): three layers of uneven streaks, each a conic
+  gradient masked to fade outwards, turning slowly - the long ones clockwise
+  every three minutes, the fine ones every four, the broad spokes the other
+  way every five. Their strength comes from the clock each second, eased over.
+  The animation strings never change, so the once-a-second re-render leaves
+  the turning alone.
+*/
+.PrayerDayCard__rays {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.PrayerDayCard__ray {
+  transition: opacity 1s linear;
+  animation: PrayerDayCard-rays-cw 180s linear infinite;
+}
+
+.PrayerDayCard__ray--broad {
+  width: 210px;
+  height: 210px;
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 4%, rgba(0, 0, 0, 0.45) 30%, rgba(0, 0, 0, 0.12) 60%, transparent 100%);
+  mask-image: radial-gradient(circle closest-side, #000 4%, rgba(0, 0, 0, 0.45) 30%, rgba(0, 0, 0, 0.12) 60%, transparent 100%);
+  filter: blur(3px);
+  animation-name: PrayerDayCard-rays-ccw;
+  animation-duration: 300s;
+}
+
+.PrayerDayCard__ray--long {
+  width: 220px;
+  height: 220px;
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 3%, rgba(0, 0, 0, 0.6) 18%, rgba(0, 0, 0, 0.2) 48%, rgba(0, 0, 0, 0.05) 80%, transparent 100%);
+  mask-image: radial-gradient(circle closest-side, #000 3%, rgba(0, 0, 0, 0.6) 18%, rgba(0, 0, 0, 0.2) 48%, rgba(0, 0, 0, 0.05) 80%, transparent 100%);
+  filter: blur(0.7px);
+  animation-duration: 180s;
+}
+
+.PrayerDayCard__ray--short {
+  width: 140px;
+  height: 140px;
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 5%, rgba(0, 0, 0, 0.5) 30%, rgba(0, 0, 0, 0.1) 65%, transparent 100%);
+  mask-image: radial-gradient(circle closest-side, #000 5%, rgba(0, 0, 0, 0.5) 30%, rgba(0, 0, 0, 0.1) 65%, transparent 100%);
+  filter: blur(0.5px);
+  animation-duration: 240s;
+}
+
+@keyframes PrayerDayCard-rays-cw {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@keyframes PrayerDayCard-rays-ccw {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(-360deg);
+  }
+}
+
+/* Reduce motion: the rays still come and go, but do not turn. */
+@media (prefers-reduced-motion: reduce) {
+  .PrayerDayCard__ray {
+    animation: none;
+  }
 }
 
 /*

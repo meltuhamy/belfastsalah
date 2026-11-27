@@ -26,6 +26,7 @@ import StarField from "./StarField";
 import AdhanIcon from "./AdhanIcon";
 import { ADHAN_WINDOW_MS, prayerNow, upcomingPrayer } from "../lib/adhanMoment";
 import LensFlare from "./LensFlare";
+import { RAY_LAYERS, rayStrength } from "../lib/sunRays";
 import { useMeasured } from "../lib/useMeasured";
 import "./PrayerDayCard.css";
 
@@ -240,6 +241,13 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   const cells = strip == null ? null : stripCells(strip);
   const offset = strip?.offset ?? 0;
   const fajrArriving = current?.prayer === Prayer.Fajr;
+  // Duhr's adhan moment: the sun gets turning rays (sunRays.ts). Their
+  // strength is worked out from the clock, so opening the app partway
+  // through shows them as they would be by then.
+  const duhrCalling = current?.prayer === Prayer.Duhr;
+  const rays = duhrCalling
+    ? rayStrength((now.getTime() - current.time.getTime()) / 1000)
+    : 0;
   // The prayer still to come, which `next` is not for a moment after its time,
   // before the app has worked out the one after - the card used to go blank.
   const upcoming = upcomingPrayer(next, cells, now);
@@ -371,7 +379,35 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
               }`}
               data-testid="fajr-line"
             />
-            <span className="PrayerDayCard__sun" />
+            {/*
+          The sun: a bloom with no hard edge, a wide faint wash and a
+          white-hot core in the sun's colour. During Duhr's adhan the rays
+          turn between the two, and the bloom grows a little with them
+          (--sun-rays). The rays' turning is a CSS animation, so it runs on
+          the real clock and the once-a-second render does not restart it.
+        */}
+            <span
+              className="PrayerDayCard__sun"
+              data-testid="sun"
+              style={{ "--sun-rays": rays.toFixed(3) } as React.CSSProperties}
+            >
+              <span className="PrayerDayCard__sun-wash" />
+              {duhrCalling && (
+                <span className="PrayerDayCard__rays" data-testid="sun-rays">
+                  {RAY_LAYERS.map((layer) => (
+                    <span
+                      key={layer.name}
+                      className={`PrayerDayCard__ray PrayerDayCard__ray--${layer.name}`}
+                      style={{
+                        background: layer.background,
+                        opacity: Math.min(1, rays * layer.opacity).toFixed(3),
+                      }}
+                    />
+                  ))}
+                </span>
+              )}
+              <span className="PrayerDayCard__sun-core" />
+            </span>
             <LensFlare />
           </span>
         )}
