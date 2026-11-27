@@ -195,8 +195,7 @@ object WidgetRenderer {
                 heightDp,
                 context.resources.displayMetrics.density,
                 sunDp = if (narrow) 20f else 26f,
-                sunHorizonY = if (kind == WidgetKind.WIDE) SkyPainter.WIDE_SUN_HORIZON_Y else SkyPainter.DEFAULT_SUN_HORIZON_Y,
-                sunNoonY = if (kind == WidgetKind.WIDE) SkyPainter.WIDE_SUN_NOON_Y else SkyPainter.DEFAULT_SUN_NOON_Y
+                sunArc = if (kind == WidgetKind.WIDE) SkyPainter.SunArc.WIDE else SkyPainter.SunArc.RAW
             )
         )
         views.setInt(R.id.sky_background, "setImageAlpha", config.alpha())

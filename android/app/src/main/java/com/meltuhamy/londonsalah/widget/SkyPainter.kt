@@ -41,33 +41,28 @@ object SkyPainter {
         floatArrayOf(0.36f, 0.46f, 0.75f, 0.4f), floatArrayOf(0.84f, 0.52f, 0.75f, 0.4f)
     )
 
-    internal const val DEFAULT_SUN_HORIZON_Y = 0.9f
-    internal const val DEFAULT_SUN_NOON_Y = 0.24
-
-    /** Wide (and iOS medium) widgets: a little lower at noon, still above the prayer row at sunset. */
-    internal const val WIDE_SUN_NOON_Y = 0.28
-    internal const val WIDE_SUN_HORIZON_Y = 0.61f
-
     /**
-     * Maps the sun's vertical fraction from `WidgetSky`'s [0.24, 0.9] arc so
-     * widgets with a bottom prayer row keep the rising and setting sun above it.
-     * [sunNoonY] and [sunHorizonY] are the mapped positions at midday and at
-     * the horizon; the default values leave the raw arc unchanged.
+     * Where the sun sits on a widget, as fractions of its height: [noonY] at
+     * the top of `WidgetSky`'s arc and [horizonY] at its ends. The arc itself
+     * runs from 0.24 to 0.9; [map] squeezes it into this range.
      */
-    internal fun sunY(
-        rawY: Double,
-        sunHorizonY: Float = DEFAULT_SUN_HORIZON_Y,
-        sunNoonY: Double = DEFAULT_SUN_NOON_Y
-    ): Double =
-        if (sunHorizonY == DEFAULT_SUN_HORIZON_Y && sunNoonY == DEFAULT_SUN_NOON_Y) rawY
-        else sunNoonY + (rawY - DEFAULT_SUN_NOON_Y) *
-            ((sunHorizonY - sunNoonY) / (DEFAULT_SUN_HORIZON_Y - DEFAULT_SUN_NOON_Y))
+    data class SunArc(val noonY: Double, val horizonY: Double) {
+        fun map(rawY: Double): Double =
+            noonY + (rawY - RAW.noonY) * (horizonY - noonY) / (RAW.horizonY - RAW.noonY)
+
+        companion object {
+            /** `WidgetSky`'s own arc, drawn as it is. */
+            val RAW = SunArc(0.24, 0.9)
+
+            /** Wide widgets: a touch lower at noon, and above the prayer row at sunset. */
+            val WIDE = SunArc(0.28, 0.61)
+        }
+    }
 
     /**
      * The sky at `widthDp` x `heightDp`, drawn at up to `density` pixels a dp.
-     * `sunDp` is the sun's diameter: smaller on the narrow widgets.
-     * `sunHorizonY` / `sunNoonY` are where the sun sits at sunrise/sunset and
-     * at midday, as fractions of the widget's height (0.9 and 0.24 by default).
+     * `sunDp` is the sun's diameter: smaller on the narrow widgets, and
+     * `sunArc` where it travels.
      */
     fun paint(
         sky: SkyState,
@@ -75,8 +70,7 @@ object SkyPainter {
         heightDp: Int,
         density: Float,
         sunDp: Float,
-        sunHorizonY: Float = DEFAULT_SUN_HORIZON_Y,
-        sunNoonY: Double = DEFAULT_SUN_NOON_Y
+        sunArc: SunArc = SunArc.RAW
     ): Bitmap {
         val w = max(widthDp, 1)
         val h = max(heightDp, 1)
@@ -169,7 +163,7 @@ object SkyPainter {
         // Maghrib, though the arc keeps it 45 minutes either side.
         sky.sun?.takeIf { light.sunOn > 0 }?.let { sun ->
             val cx = (sun.x * width).toFloat()
-            val cy = (sunY(sun.y, sunHorizonY, sunNoonY) * height).toFloat()
+            val cy = (sunArc.map(sun.y) * height).toFloat()
             val radius = sunDp / 2 * scale
             val base = colour(sun.colour)
             val on = light.sunOn.toFloat()

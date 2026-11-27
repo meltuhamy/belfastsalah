@@ -342,10 +342,10 @@ class WidgetRenderTest {
     @Test
     fun `the wide widget keeps the setting sun above the bottom prayer row`() {
         // Wide widgets map the raw [0.24, 0.90] arc onto [0.28, 0.61].
-        assertEquals(0.28, SkyPainter.sunY(0.24, SkyPainter.WIDE_SUN_HORIZON_Y, SkyPainter.WIDE_SUN_NOON_Y), 1e-6)
-        assertEquals(0.61, SkyPainter.sunY(0.90, SkyPainter.WIDE_SUN_HORIZON_Y, SkyPainter.WIDE_SUN_NOON_Y), 1e-6)
-        assertEquals(0.90, SkyPainter.sunY(0.90), 1e-6)
-        assertEquals(0.24, SkyPainter.sunY(0.24), 1e-6)
+        assertEquals(0.28, SkyPainter.SunArc.WIDE.map(0.24), 1e-6)
+        assertEquals(0.61, SkyPainter.SunArc.WIDE.map(0.90), 1e-6)
+        assertEquals(0.90, SkyPainter.SunArc.RAW.map(0.90), 1e-6)
+        assertEquals(0.24, SkyPainter.SunArc.RAW.map(0.24), 1e-6)
 
         val sunset = draw(
             WidgetKind.WIDE, homeScreenSize(WidgetKind.WIDE), sky, nowMillis = PayloadFixture.SUNSET

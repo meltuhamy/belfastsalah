@@ -35,14 +35,29 @@ struct WidgetBackground: View {
 
     var body: some View {
         if let sky = colors.sky {
-            SkyBackground(
-                sky: sky,
-                sunHorizonY: family == .systemMedium ? 0.61 : 0.9,
-                sunNoonY: family == .systemMedium ? 0.28 : 0.24
-            )
+            SkyBackground(sky: sky, sunArc: family == .systemMedium ? .medium : .raw)
         } else {
             colors.background
         }
+    }
+}
+
+/**
+ * Where the sun sits, as fractions of the widget's height: `noonY` at the top
+ * of the sky arc and `horizonY` at its ends. The arc itself runs from 0.24 to
+ * 0.9; `map` squeezes it into this range. Android's `SkyPainter.SunArc`.
+ */
+struct SunArc {
+    let noonY: Double
+    let horizonY: Double
+
+    /** The sky's own arc, drawn as it is. */
+    static let raw = SunArc(noonY: 0.24, horizonY: 0.9)
+    /** Medium widgets: a touch lower at noon, and above the prayer row at sunset. */
+    static let medium = SunArc(noonY: 0.28, horizonY: 0.61)
+
+    func map(_ rawY: Double) -> Double {
+        noonY + (rawY - Self.raw.noonY) * (horizonY - noonY) / (Self.raw.horizonY - Self.raw.noonY)
     }
 }
 
@@ -52,8 +67,7 @@ struct WidgetBackground: View {
  */
 struct SkyBackground: View {
     let sky: SkyState
-    var sunHorizonY: Double = 0.9
-    var sunNoonY: Double = 0.24
+    var sunArc: SunArc = .raw
 
     /** Fractions across and down, a radius in points and a strength. */
     private static let stars: [(x: Double, y: Double, r: Double, o: Double)] = [
@@ -139,14 +153,11 @@ struct SkyBackground: View {
                 // The sun at the card's strength: none before Shuruq, fading
                 // after Maghrib, though the arc keeps it 45 minutes either side.
                 if let sun = sky.sun, sky.light.sunOn > 0 {
-                    let sunY = (sunHorizonY == 0.9 && sunNoonY == 0.24)
-                        ? sun.y
-                        : sunNoonY + (sun.y - 0.24) * ((sunHorizonY - sunNoonY) / (0.9 - 0.24))
                     Circle()
                         .fill(Color(hex: sun.colour))
                         .frame(width: 26, height: 26)
                         .shadow(color: Color(hex: sun.colour).opacity(0.5), radius: 14)
-                        .position(x: sun.x * size.width, y: sunY * size.height)
+                        .position(x: sun.x * size.width, y: sunArc.map(sun.y) * size.height)
                         .opacity(sky.light.sunOn)
                 }
             }
