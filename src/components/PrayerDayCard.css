@@ -220,10 +220,20 @@
 */
 .PrayerDayCard__timeline {
   position: relative;
+  /*
+    The row's 9px, plus the room above and below that a bead's glow needs: the
+    pulse while its adhan is being called reaches 11px out from the bead, and
+    this box's clip - here so the line runs off the card's edge, out past the
+    strip - cut that glow into a flat band above and below it. The padding is
+    taken back by the margins, so the row sits where it did. The padding now
+    lies over the bottom of the headline, so it lets taps through.
+  */
+  box-sizing: content-box;
   height: 9px;
-  margin: 0 -16px 8px;
-  padding: 0 16px;
+  margin: -14px -16px -6px;
+  padding: 14px 16px;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .PrayerDayCard__timeline-row {
@@ -576,6 +586,40 @@
 }
 
 /*
+  The sun's bloom reaches past the card when the sun is at either end of its
+  arc, and the card's edge cut it off in a flat line. A short fade at each side
+  lets that light go out softly instead, and leaves the white-hot middle
+  alone: at Shuruq and Maghrib it sits about 11px in, outside the fade. Only the sun's
+  layer is masked: a mask makes an isolated group, so on the whole sky it would
+  have cut the lens flare's screen blend off from the sky behind it (the ghosts
+  came out grey), and faded the dawn glow where it is brightest, at the edge.
+*/
+.PrayerDayCard__sun-layer {
+  position: absolute;
+  inset: 0;
+  /*
+    The mask makes this layer an isolated group, so the bloom inside it can
+    no longer screen onto the sky by itself; the layer as a whole does
+    instead, which keeps the bloom only ever brightening the sky.
+  */
+  mix-blend-mode: screen;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 10px,
+    #000 calc(100% - 10px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 10px,
+    #000 calc(100% - 10px),
+    transparent 100%
+  );
+}
+
+/*
   Moved along its arc by --sky-sun-x/y; parked below the card at night, where
   it is transparent anyway. sky.ts's arc spans the whole card, which here would
   put the noon sun on the countdown and the early-morning sun behind the times.
@@ -775,8 +819,7 @@
 
 /* As Fajr comes in, the thread brightens once, then breathes again. */
 .PrayerDayCard__fajr-line--arriving {
-  animation:
-    PrayerDayCard-thread-arrive 2.5s ease-out both,
+  animation: PrayerDayCard-thread-arrive 2.5s ease-out both,
     PrayerDayCard-thread-breathe 7s ease-in-out 2.5s infinite;
 }
 
