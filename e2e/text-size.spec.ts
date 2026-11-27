@@ -354,17 +354,54 @@ test("stops growing at twice the default size", async ({ page }) => {
   await expect(page.locator(PRAYER_STRIP)).toBeVisible();
 });
 
-test("keeps the place and date in the card on a 360px phone at the default size", async ({
-  page,
-}) => {
-  // The commonest Android width, at night: after Isha, Fajr is "11h 20m"
-  // away, as wide as the countdown gets, since its digits are tabular.
-  // The 16th, a Friday: the date is the widest thing beside the countdown,
-  // and at this width "Thu" or "Wed" leaves no room where "Fri" does.
-  await page.setViewportSize({ width: 360, height: 740 });
-  await pinDate(page, "2026-01-16T19:00:00Z");
-  await completeSetup(page);
-  await expect(page.getByTestId("countdown")).toContainText("11h");
-  await expect(page.getByTestId("day-meta-outside")).toHaveCount(0);
-  await expect(page.getByTestId("day-date")).toBeVisible();
+test.describe("on a 360px phone at the default size", () => {
+  // The commonest Android width (MEL-359). Whether the place and date sit
+  // beside the countdown used to depend on the weekday: "Fri" fitted where
+  // "Thu" did not, so the card changed layout from one day to the next. It
+  // is decided against the widest date now, and these nights have Fajr
+  // "11h" away, as wide as the countdown gets, its digits being tabular.
+  test.use({ viewport: { width: 360, height: 740 } });
+
+  /** Seven days in a row, and two of the widest months' names. */
+  const NIGHTS: Array<[string, string]> = [
+    ["2026-01-12T19:00:00Z", "Mon 12 Jan"],
+    ["2026-01-13T19:00:00Z", "Tue 13 Jan"],
+    ["2026-01-14T19:00:00Z", "Wed 14 Jan"],
+    ["2026-01-15T19:00:00Z", "Thu 15 Jan"],
+    ["2026-01-16T19:00:00Z", "Fri 16 Jan"],
+    ["2026-01-17T19:00:00Z", "Sat 17 Jan"],
+    ["2026-01-18T19:00:00Z", "Sun 18 Jan"],
+    ["2026-09-23T10:00:00Z", "Wed 23 Sept"],
+    ["2026-05-27T10:00:00Z", "Wed 27 May"],
+  ];
+
+  async function layoutAt(page: Page, [iso, date]: [string, string]) {
+    await page.clock.setFixedTime(new Date(iso));
+    await expect(page.getByTestId("day-date")).toHaveText(date);
+    await expect(page.getByTestId("countdown")).toContainText("h");
+    const outside = (await page.getByTestId("day-meta-outside").count()) > 0;
+    // Beside the countdown, the countdown never wraps to make room.
+    const countdown = page.getByTestId("countdown");
+    const lines = await countdown.evaluate(
+      (el) =>
+        el.getBoundingClientRect().height /
+        parseFloat(getComputedStyle(el).lineHeight || "0")
+    );
+    return { outside, lines };
+  }
+
+  test("lays the card out the same on every day of the week", async ({
+    page,
+  }) => {
+    await pinDate(page, NIGHTS[0][0]);
+    await completeSetup(page);
+    const layouts = [];
+    for (const night of NIGHTS) {
+      layouts.push(await layoutAt(page, night));
+    }
+    expect(new Set(layouts.map((l) => l.outside)).size).toBe(1);
+    for (const { lines } of layouts) {
+      expect(lines).toBeLessThan(1.5);
+    }
+  });
 });

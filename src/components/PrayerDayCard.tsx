@@ -64,29 +64,69 @@ function stripFitsOneRow(strip: HTMLElement): boolean {
 }
 
 /**
+ * Every weekday and month the date can show, for the fit probe, from the
+ * formatter that writes it: en-GB's September is "Sept", not "Sep".
+ */
+const dateParts = (date: Date) =>
+  formatDateInZone(date, "UTC").split(" ") as [string, string, string];
+const PROBE_WEEKDAYS = Array.from(
+  { length: 7 },
+  (_, i) => dateParts(new Date(Date.UTC(2026, 0, 5 + i, 12)))[0]
+);
+const PROBE_MONTHS = Array.from(
+  { length: 12 },
+  (_, m) => dateParts(new Date(Date.UTC(2026, m, 1, 12)))[2]
+);
+
+const widestOf = (elements: Iterable<Element>) => {
+  let widest = 0;
+  for (const el of elements) {
+    widest = Math.max(widest, el.getBoundingClientRect().width);
+  }
+  return widest;
+};
+
+/**
  * Whether the place and date fit beside the countdown in the card's top row,
- * read off the hidden probe: the widest countdown and the place and date at
- * their natural widths, neither of which depends on where they end up.
+ * read off the hidden probe: the widest countdown, and the place and date as
+ * wide as they ever get - the widest weekday and the widest month, measured
+ * in the font on screen (MEL-359). So the answer depends on the phone and
+ * the text size, never on the day: it used to be asked of today's date, and
+ * on a 360px phone the card changed layout from a Friday to a Thursday.
  */
 function metaFitsBeside(top: HTMLElement): boolean {
   const row = top.querySelector<HTMLElement>(".PrayerDayCard__fit-row");
   if (row == null || row.children.length < 2) return true;
   const [countdown, meta] = Array.from(row.children);
+  const line = meta.querySelector<HTMLElement>(".PrayerDayCard__fit-date");
+  const weekday = meta.querySelector(".PrayerDayCard__fit-weekday");
+  const month = meta.querySelector(".PrayerDayCard__fit-month");
+  let metaWidth = meta.getBoundingClientRect().width;
+  if (line != null && weekday != null && month != null) {
+    // The line as laid out, with its sample weekday and month swapped for
+    // the widest of each.
+    const widest =
+      line.getBoundingClientRect().width -
+      weekday.getBoundingClientRect().width -
+      month.getBoundingClientRect().width +
+      widestOf(meta.querySelectorAll(".PrayerDayCard__fit-weekdays > span")) +
+      widestOf(meta.querySelectorAll(".PrayerDayCard__fit-months > span"));
+    // Any other line - the zone caption - as it is.
+    const others = Array.from(meta.children).filter(
+      (child) => child !== line && !child.matches(".PrayerDayCard__fit-words")
+    );
+    metaWidth = Math.max(widest, widestOf(others));
+  }
   const style = getComputedStyle(top);
   const room =
     top.clientWidth -
     parseFloat(style.paddingLeft) -
     parseFloat(style.paddingRight);
-  // Half the row's gap is enough. The countdown's column has always given up
-  // part of the gap when it had to: on a 360px phone at the default size a
-  // two-digit countdown leaves 8px of the 12, and asking for all 12 took the
-  // place and date out of the card on the commonest Android width.
-  const gap = (parseFloat(style.columnGap) || 0) / 2;
+  // The whole gap: with only half of it, a borderline fit squeezed the
+  // countdown onto two lines, "11h" over "19m" (MEL-359).
+  const gap = parseFloat(style.columnGap) || 0;
   return (
-    countdown.getBoundingClientRect().width +
-      gap +
-      meta.getBoundingClientRect().width <=
-    room + 0.5
+    countdown.getBoundingClientRect().width + gap + metaWidth <= room + 0.5
   );
 }
 
@@ -261,10 +301,11 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
     </>
   );
   const topRef = useRef<HTMLDivElement>(null);
+  // Not the date: the probe is as wide as any date gets, so the layout is
+  // the same every day.
   const metaOutside = useMeasured(topRef, (top) => !metaFitsBeside(top), [
     locationName,
     showsOtherZone,
-    formatDateInZone(stripDay, timeZone),
   ]);
 
   const stripRef = useRef<HTMLDivElement>(null);
@@ -421,7 +462,27 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
                 <div className="PrayerDayCard__fit-row">
                   <p className="PrayerDayCard__remaining">23h 59m</p>
                   <div className="PrayerDayCard__meta">
-                    {withoutTestIds(metaContent)}
+                    <p className="PrayerDayCard__fit-date">
+                      {locationName !== null && <>{locationName} · </>}
+                      <span className="PrayerDayCard__fit-weekday">Wed</span>
+                      {" 28 "}
+                      <span className="PrayerDayCard__fit-month">Sept</span>
+                    </p>
+                    {showsOtherZone && locationName !== null && (
+                      <p>Showing {locationName} time</p>
+                    )}
+                    <p className="PrayerDayCard__fit-words">
+                      <span className="PrayerDayCard__fit-weekdays">
+                        {PROBE_WEEKDAYS.map((d) => (
+                          <span key={d}>{d}</span>
+                        ))}
+                      </span>
+                      <span className="PrayerDayCard__fit-months">
+                        {PROBE_MONTHS.map((m) => (
+                          <span key={m}>{m}</span>
+                        ))}
+                      </span>
+                    </p>
                   </div>
                 </div>
               </div>
