@@ -582,12 +582,21 @@
   inset: 0;
   border-radius: inherit;
   overflow: hidden;
-  /*
-    The sun's halo reaches past this layer when it is at either end of its arc,
-    and the card's edge cut it off in a flat line. A short fade at each side
-    lets that light go out softly instead, and leaves the disc itself alone:
-    at Shuruq and Maghrib it sits about 11px in, outside the fade.
-  */
+  pointer-events: none;
+}
+
+/*
+  The sun's halo reaches past the card when the sun is at either end of its
+  arc, and the card's edge cut it off in a flat line. A short fade at each side
+  lets that light go out softly instead, and leaves the disc itself alone: at
+  Shuruq and Maghrib it sits about 11px in, outside the fade. Only the sun's
+  layer is masked: a mask makes an isolated group, so on the whole sky it would
+  have cut the lens flare's screen blend off from the sky behind it (the ghosts
+  came out grey), and faded the dawn glow where it is brightest, at the edge.
+*/
+.PrayerDayCard__sun-layer {
+  position: absolute;
+  inset: 0;
   -webkit-mask-image: linear-gradient(
     90deg,
     transparent 0,
@@ -602,7 +611,6 @@
     #000 calc(100% - 10px),
     transparent 100%
   );
-  pointer-events: none;
 }
 
 /*
@@ -718,8 +726,7 @@
 
 /* As Fajr comes in, the thread brightens once, then breathes again. */
 .PrayerDayCard__fajr-line--arriving {
-  animation:
-    PrayerDayCard-thread-arrive 2.5s ease-out both,
+  animation: PrayerDayCard-thread-arrive 2.5s ease-out both,
     PrayerDayCard-thread-breathe 7s ease-in-out 2.5s infinite;
 }
 
