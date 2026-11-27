@@ -1,5 +1,6 @@
 import {
   AsrMethod,
+  Prayer,
   PrayerDayTimes,
   PrayerLocation,
   createPrayerTimes,
@@ -11,6 +12,7 @@ import {
   dayBand,
   dayFraction,
   mixOklab,
+  mixSrgb,
   skyAt,
   skyPoints,
   skyProperties,
@@ -63,14 +65,31 @@ function largestChange(a: string, b: string): number {
   return Math.max(...x.map((v, i) => Math.abs(v - y[i])));
 }
 
+/**
+ * How well the chosen text reads over the part of the sky it is drawn on.
+ *
+ * The card and the widgets paint an sRGB gradient between their stops, and
+ * sRGB is gamma-encoded: its middle can be darker than either stop. The text
+ * has to answer to the painted gradient, not to the colours it was made from.
+ */
+function bandWorst(text: string, a: string, b: string): number {
+  let worst = Infinity;
+  // Sixteen points is enough to find the trough of an sRGB segment: each
+  // channel's luminance is a smooth, single-bend function of the position.
+  for (let i = 0; i <= 16; i++) {
+    worst = Math.min(worst, contrastRatio(text, mixSrgb(a, b, i / 16)));
+  }
+  return worst;
+}
+
 /** How well the chosen text reads on the part of the sky it is drawn over. */
 function readability(now: Date, day: PrayerDayTimes) {
   const sky = skyAt(now, day);
   const upper = TEXT_COLOURS[sky.text];
   const lower = TEXT_COLOURS[sky.lowerText];
   return {
-    upper: Math.min(contrastRatio(upper, sky.top), contrastRatio(upper, sky.mid)),
-    lower: Math.min(contrastRatio(lower, sky.mid), contrastRatio(lower, sky.horizon)),
+    upper: bandWorst(upper, sky.top, sky.mid),
+    lower: bandWorst(lower, sky.mid, sky.horizon),
   };
 }
 
@@ -128,6 +147,27 @@ describe("skyAt", () => {
     expect(skyAt(new Date("2026-01-15T12:30:00Z"), day).text).toBe("dark");
     expect(skyAt(new Date("2026-01-15T21:00:00Z"), day).text).toBe("light");
     expect(skyAt(new Date("2026-01-15T16:40:00Z"), day).text).toBe("light");
+  });
+
+  // Istanbul, 27 November 2026: Maghrib at 17:45, and the report that started
+  // MEL-371 was at 17:28. Judging only the gradient's stops chose black there,
+  // though the sRGB gradient between them is darker than either stop: black
+  // fell below AA on the painted sky while white read at better than 4.5:1.
+  it("Should switch to light text on the dusky sky and keep it until Fajr", async () => {
+    const day = await istanbul.getDay(new Date("2026-11-27T12:00:00Z"));
+    const dusk = new Date("2026-11-27T14:28:00Z");
+    const sky = skyAt(dusk, day);
+    expect(sky.text).toBe("light");
+    expect(sky.lowerText).toBe("light");
+    expect(bandWorst("#ffffff", sky.top, sky.mid)).toBeGreaterThanOrEqual(4.5);
+    expect(bandWorst("#000000", sky.top, sky.mid)).toBeLessThan(4.5);
+
+    const fajr = day[Prayer.Fajr].time.getTime() + 24 * HOUR;
+    for (let t = dusk.getTime(); t <= fajr; t += MINUTE) {
+      const at = new Date(t);
+      expect(skyAt(at, day).text, at.toISOString()).toBe("light");
+      expect(readability(at, day).upper, at.toISOString()).toBeGreaterThanOrEqual(4.5);
+    }
   });
 
   it("Should only show the sun between sunrise and sunset, highest in between", async () => {

@@ -2,6 +2,10 @@ package com.meltuhamy.londonsalah.widget
 
 import java.io.File
 import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.pow
+import kotlin.math.roundToInt
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -61,9 +65,10 @@ class WidgetSkyTest {
                 assertNull("$label sun", sky.sun)
             } else {
                 val sun = expected.getJSONObject("sun")
-                assertEquals("$label sun x", sun.getDouble("x"), sky.sun!!.x, 1e-9)
-                assertEquals("$label sun y", sun.getDouble("y"), sky.sun!!.y, 1e-9)
-                assertTrue(distance(sky.sun!!.colour, sun.getString("colour")) <= 1)
+                val actualSun = sky.sun!!
+                assertEquals("$label sun x", sun.getDouble("x"), actualSun.x, 1e-9)
+                assertEquals("$label sun y", sun.getDouble("y"), actualSun.y, 1e-9)
+                assertTrue(distance(actualSun.colour, sun.getString("colour")) <= 1)
             }
 
             // The sun's strength, the dawn glow and Fajr's thread.
@@ -84,6 +89,61 @@ class WidgetSkyTest {
             }
             assertEquals("$label thread rgb", thread.getString("rgb"), actual.rgb)
         }
+    }
+
+    private fun luminance(hex: String): Double {
+        fun toLinear(c: Int): Double {
+            val v = c / 255.0
+            return if (v <= 0.04045) v / 12.92 else ((v + 0.055) / 1.055).pow(2.4)
+        }
+        val (r, g, b) = channels(hex).map(::toLinear)
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b
+    }
+
+    private fun contrast(a: String, b: String): Double {
+        val x = luminance(a)
+        val y = luminance(b)
+        return (max(x, y) + 0.05) / (min(x, y) + 0.05)
+    }
+
+    /** The colour painted at `f` down the widget's sky, mid stop at 60%. */
+    private fun painted(sky: SkyState, f: Double): String {
+        fun mix(a: String, b: String, t: Double): String {
+            val x = channels(a)
+            val y = channels(b)
+            return "#" + x.zip(y).joinToString("") { (c, d) ->
+                (c + (d - c) * t).roundToInt().coerceIn(0, 255).toString(16).padStart(2, '0')
+            }
+        }
+        return if (f <= 0.6) mix(sky.top, sky.mid, f / 0.6)
+        else mix(sky.mid, sky.horizon, (f - 0.6) / 0.4)
+    }
+
+    /** Worst contrast of one text colour against the gradient it sits on. */
+    private fun worst(text: String, sky: SkyState): Double =
+        (0..32).minOf { contrast(text, painted(sky, it.toDouble() / 32)) }
+
+    @Test
+    fun `chooses text by the painted gradient and keeps it readable from dusk to Fajr`() {
+        // 15 January 2026, London: sunset at 16:24Z, the next day's Fajr at
+        // 06:21Z. The old rule judged only the gradient's stops; sRGB is
+        // gamma-encoded, so its middle is darker and black slipped under AA
+        // in the last hour before sunset.
+        val maghrib = payload.days[0].sky[7]
+        val nextFajr = payload.days[1].sky[1]
+        var lowest = Double.MAX_VALUE
+        var minutes = -30
+        while (maghrib + minutes * 60_000 < nextFajr) {
+            val sky = payload.skyAt(maghrib + minutes * 60_000)!!
+            val white = worst("#ffffff", sky)
+            val black = worst("#000000", sky)
+            assertEquals("minute $minutes tone", white >= black, sky.lightText)
+            lowest = minOf(lowest, maxOf(white, black))
+            assertTrue("minute $minutes contrast $lowest", maxOf(white, black) >= 4.5)
+            minutes += 5
+        }
+        assertTrue("lowest contrast $lowest", lowest >= 4.5)
+        assertTrue("Maghrib text is light", payload.skyAt(maghrib)!!.lightText)
     }
 
     @Test

@@ -643,6 +643,12 @@ nowhere else.
   checks every five minutes of a year, and every minute of the clock-change
   days. Do not fade the card's secondary lines in this theme: the contrast
   only holds at full opacity.
+- **The tone is judged on the painted gradient** (`toneForSky`, MEL-371),
+  sampled in sRGB the way CSS and the widget bitmaps paint it, not on the
+  stops alone: sRGB's middle can be darker than either end, which left
+  black text under AA on the dusky sky. One tone covers the whole card and
+  every widget; `WidgetSky.kt` and `WidgetPayload.swift` port it with the
+  widgets' 60% mid stop (the card's is 62%).
 - **Setup has no times yet**, so `useTheme` stands London's day in for the
   preview.
 - **The day bar runs midnight to midnight in the timetable's zone**
