@@ -78,10 +78,3 @@ export function nextDays(
   }
   return entries;
 }
-
-/** "Fri 27 Nov – Thu 3 Dec", the card's subtitle. */
-export function nextDaysRange(entries: Array<NextDaysEntry>): string {
-  const days = entries.filter((e): e is NextDay => e.kind === "day");
-  if (days.length === 0) return "";
-  return `${days[0].label} – ${days[days.length - 1].label}`;
-}

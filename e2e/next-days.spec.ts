@@ -47,9 +47,6 @@ test.describe("on 31 December", () => {
     await expect(page.getByTestId("next-days-divider")).toHaveText([
       "January 2027",
     ]);
-    await expect(page.getByTestId("next-days")).toContainText(
-      "Thu 31 Dec – Wed 6 Jan"
-    );
   });
 
   test("shows today's row without scrolling", async ({ page }) => {

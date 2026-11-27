@@ -365,8 +365,10 @@ own screen, `/month` (`MonthPage`), behind the card's Month button, with a
 48 x 48 month picker and previous/next buttons that cross years.
 
 - **Matching cards.** Every card has the day card's 24px corners and 16px
-  side margins. Today, in both tables, is a tinted pane with a 1px edge and
-  semibold text, not a solid bar. Ionic's md card greys its text, so these
+  side margins. Today, in both tables, is a faint wash of the accent with no
+  outline and semibold times, not a solid bar - quieter than the design on
+  purpose, as is the Month button (no fill) and the card's missing date
+  range. Ionic's md card greys its text, so these
   cards set `color` back to `--ion-text-color`, which the light palette leaves
   unset - hence the `#000` fallbacks.
 - **Fit is measured.** Seven columns, a tighter seven, or each day as a

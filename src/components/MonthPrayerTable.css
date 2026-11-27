@@ -6,8 +6,8 @@
   --cell-font: calc(14px * var(--text-scale, 1));
   --mpt-text2: rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.68);
   --mpt-line: rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.08);
-  --mpt-today-bg: rgba(var(--ion-color-primary-rgb), 0.13);
-  --mpt-today-edge: rgba(var(--ion-color-primary-rgb), 0.4);
+  /* A shade stronger than Next 7 days' wash: here it sits among stripes. */
+  --mpt-today-bg: rgba(var(--ion-color-primary-rgb), 0.12);
   --mpt-today-text: var(--ion-color-primary-shade);
   table-layout: fixed;
   width: 100%;
@@ -128,16 +128,15 @@
 }
 
 /*
-  Today: a tinted pane with a 1px edge and semibold text, the same as on the
-  Next 7 days card, in place of the solid bar.
+  Today: a faint wash with no outline and semibold text, the same as on the
+  Next 7 days card, in place of the solid bar. Only the weekday is in the
+  accent.
 */
 .MonthPrayerTable__row--selected .MonthPrayerTable__col,
 .MonthPrayerTable__scroller--scrolls
   .MonthPrayerTable__row--selected
   .MonthPrayerTable__col--day {
   background: var(--mpt-today-bg);
-  border-color: var(--mpt-today-edge);
-  color: var(--mpt-today-text);
   font-weight: 600;
 }
 

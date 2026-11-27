@@ -358,9 +358,6 @@ test("lists the next seven days, today first", async ({ page }) => {
     ["20", "05:25", "07:02", "12:19", "14:53", "17:28", "18:57"],
     ["21", "05:23", "07:00", "12:19", "14:54", "17:30", "18:58"],
   ]);
-  await expect(page.getByTestId("next-days")).toContainText(
-    "Sun 15 Feb – Sat 21 Feb"
-  );
 });
 
 test("marks today's row, and only today's", async ({ page }) => {

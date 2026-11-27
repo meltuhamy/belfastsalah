@@ -10,10 +10,8 @@
   --nd-scale: var(--text-scale, 1);
   --nd-text2: rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.68);
   --nd-line: rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.08);
-  --nd-tint: rgba(var(--ion-color-primary-rgb), 0.1);
-  /* Today's pane: the day card's frosted pane, in the accent. */
-  --nd-today-bg: rgba(var(--ion-color-primary-rgb), 0.13);
-  --nd-today-edge: rgba(var(--ion-color-primary-rgb), 0.4);
+  /* Today's pane: a faint wash of the accent, with no edge. */
+  --nd-today-bg: rgba(var(--ion-color-primary-rgb), 0.07);
   --nd-today-text: var(--ion-color-primary-shade);
   /* The layout's sizes; the compact and stacked layouts change them. */
   --nd-date-col: calc(52px * var(--nd-scale));
@@ -62,42 +60,35 @@
   color: var(--ion-text-color, #000);
 }
 
-.NextDaysCard .NextDaysCard__range {
-  margin: 2px 0 0;
-  font-size: calc(13px * var(--nd-scale));
-  line-height: 1.35;
-  color: var(--nd-text2);
-}
-
 /*
-  At least 44px tall, labelled: the old calendar icon was a tap target of
-  its own about 18px across.
+  Quiet: the accent's text and icon with no fill, a tint only while pressed.
+  Still at least 44px tall to tap: the old calendar icon was a target of its
+  own about 18px across.
 */
 .NextDaysCard .NextDaysCard__month-button {
   flex: none;
-  margin: 0;
+  margin: 0 -4px 0 0;
   height: auto;
   min-height: 44px;
-  --background: var(--nd-tint);
-  --background-hover: rgba(var(--ion-color-primary-rgb), 0.16);
-  --background-activated: rgba(var(--ion-color-primary-rgb), 0.2);
-  --background-focused: rgba(var(--ion-color-primary-rgb), 0.2);
+  --background-hover: rgba(var(--ion-color-primary-rgb), 0.06);
+  --background-activated: rgba(var(--ion-color-primary-rgb), 0.12);
+  --background-focused: rgba(var(--ion-color-primary-rgb), 0.12);
   --color: var(--ion-color-primary);
   --box-shadow: none;
   --border-radius: 22px;
-  --padding-start: 14px;
-  --padding-end: 16px;
+  --padding-start: 10px;
+  --padding-end: 12px;
   --padding-top: 6px;
   --padding-bottom: 6px;
   font-size: calc(14px * var(--nd-scale));
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0;
   text-transform: none;
 }
 
 .NextDaysCard .NextDaysCard__month-button ion-icon {
-  margin-inline-end: 8px;
-  font-size: calc(20px * var(--nd-scale));
+  margin-inline-end: 6px;
+  font-size: calc(18px * var(--nd-scale));
 }
 
 .NextDaysCard__body {
@@ -167,14 +158,14 @@
 }
 
 /*
-  Today: a tinted pane set in from the card's edge by the card's 8px padding,
-  16px corners inside the card's 24px, a 1px edge, semibold. It replaces the
-  solid bar the month table had.
+  Today: a faint wash set in from the card's edge by the card's 8px padding,
+  16px corners inside the card's 24px, no outline, its times semibold in the
+  text colour and only "Today" in the accent. Quieter than the design's
+  edged pane on purpose: the day card above already shouts about today.
 */
 .NextDaysCard .NextDaysCard__today {
   background: var(--nd-today-bg);
-  border: 1px solid var(--nd-today-edge);
-  color: var(--nd-today-text);
+  border-color: transparent;
 }
 
 .NextDaysCard__today .NextDaysCard__time,
@@ -182,8 +173,7 @@
   font-weight: 600;
 }
 
-.NextDaysCard__today .NextDaysCard__weekday,
-.NextDaysCard__today .NextDaysCard__name {
+.NextDaysCard__today .NextDaysCard__weekday {
   color: var(--nd-today-text);
 }
 

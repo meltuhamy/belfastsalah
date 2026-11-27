@@ -13,7 +13,7 @@ import { formatClockTime } from "../lib/timeFormat";
 import { useDisplayTimeZone } from "../lib/useDisplayTimeZone";
 import { useUses24Hour } from "../lib/useTimeFormat";
 import { useMeasured } from "../lib/useMeasured";
-import { NextDay, nextDays, nextDaysRange } from "../lib/nextDays";
+import { NextDay, nextDays } from "../lib/nextDays";
 import "./NextDaysCard.css";
 
 /**
@@ -184,11 +184,11 @@ const NextDaysCard: React.FC = () => {
       <div className="NextDaysCard__header">
         <div className="NextDaysCard__heading">
           <h2 className="NextDaysCard__title">Next 7 days</h2>
-          <p className="NextDaysCard__range">{nextDaysRange(entries)}</p>
         </div>
         <IonButton
           className="NextDaysCard__month-button"
           routerLink="/month"
+          fill="clear"
           shape="round"
           data-testid="month-button"
         >

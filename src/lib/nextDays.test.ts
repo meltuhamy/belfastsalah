@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextDays, nextDaysRange, NextDay } from "./nextDays";
+import { nextDays, NextDay } from "./nextDays";
 
 const days = (entries: ReturnType<typeof nextDays>) =>
   entries.filter((e): e is NextDay => e.kind === "day");
@@ -40,7 +40,6 @@ describe("nextDays", () => {
       2,
       3,
     ]);
-    expect(nextDaysRange(entries)).toBe("Fri 27 Nov – Thu 3 Dec");
   });
 
   it("keeps today first on the 31st, and names the new year", () => {
