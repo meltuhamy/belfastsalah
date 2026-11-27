@@ -4,6 +4,7 @@ import {
   completeSetup,
   goHome,
   monthRows,
+  nextDaysRows,
   openSettings,
   pinDate,
   todayTimes,
@@ -36,9 +37,18 @@ test("writes the strip on a 12-hour clock without AM or PM", async ({
   });
 });
 
+test("writes the next seven days on a 12-hour clock too", async ({ page }) => {
+  await expect
+    .poll(async () => (await nextDaysRows(page))[0]?.slice(1) ?? [])
+    .toEqual(["5:35", "7:12", "12:20", "2:46", "5:19", "6:49"]);
+  const all = (await nextDaysRows(page)).flat().join(" ");
+  expect(all).not.toMatch(/AM|PM/);
+});
+
 test("writes the month table on a 12-hour clock without AM or PM", async ({
   page,
 }) => {
+  await page.getByTestId("month-button").click();
   await expect
     .poll(async () => (await monthRows(page))[14]?.slice(1) ?? [])
     .toEqual(["5:35", "7:12", "12:20", "2:46", "5:19", "6:49"]);

@@ -1,0 +1,26 @@
+/* 48 x 48, whatever Ionic's toolbar button would have made of it. */
+.MonthPicker.MonthPicker {
+  width: 48px;
+  height: 48px;
+  min-height: 48px;
+  margin: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --border-radius: 50%;
+  --color: var(--ion-color-primary);
+}
+
+.MonthPicker__circle {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(var(--ion-color-primary-rgb), 0.1);
+}
+
+.MonthPicker__circle ion-icon {
+  font-size: 22px;
+}

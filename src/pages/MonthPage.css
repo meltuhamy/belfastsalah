@@ -1,0 +1,39 @@
+.MonthPage__nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px 4px;
+}
+
+/* At least 44px tall, in the accent, without a fill. */
+.MonthPage .MonthPage__step {
+  margin: 0;
+  height: auto;
+  min-height: 44px;
+  --border-radius: 22px;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --color: var(--ion-color-primary);
+  font-size: calc(14px * var(--text-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.MonthPage .MonthPage__step ion-icon {
+  font-size: calc(20px * var(--text-scale, 1));
+}
+
+/*
+  The day card's corners and margins. Visible overflow, so the table's
+  header can stick to the top of the screen as the page scrolls.
+*/
+.MonthPage .MonthPage__card {
+  margin: 4px 16px 24px;
+  padding: 4px 8px 8px;
+  border-radius: 24px;
+  color: var(--ion-text-color, #000);
+  overflow: visible;
+  contain: none;
+}

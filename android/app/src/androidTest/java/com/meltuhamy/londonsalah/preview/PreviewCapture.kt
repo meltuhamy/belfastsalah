@@ -86,15 +86,16 @@ class PreviewCapture {
             settle()
             capture("app-today-$theme")
 
-            // Light only: the month table looks the same in both.
+            // Light only: the month screen looks the same in both. It is
+            // behind the Next 7 days card's Month button (MEL-363).
             if (theme == "light") {
-                runJs(
-                    scenario,
-                    "document.querySelector('.HomePage__month-card')" +
-                        ".scrollIntoView({block: 'start'})"
-                )
+                runJs(scenario, "document.querySelector(\"[data-testid=month-button]\").click()")
+                waitForJs(scenario, "location.pathname === '/month'")
                 settle()
                 capture("app-month-$theme")
+                runJs(scenario, "document.querySelector(\"ion-button[aria-label='Back']\").click()")
+                waitForJs(scenario, "location.pathname === '/'")
+                settle()
             }
 
             runJs(scenario, "document.querySelector(\"ion-button[aria-label='Settings']\").click()")

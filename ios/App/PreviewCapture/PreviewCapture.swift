@@ -227,20 +227,28 @@ final class PreviewCapture: XCTestCase {
     }
 
     private func captureMainScreens(theme: String) {
-        let app = launch(settings: settingsJSON(theme: theme))
-        let web = app.webViews.firstMatch
+        var app = launch(settings: settingsJSON(theme: theme))
+        var web = app.webViews.firstMatch
         XCTAssertTrue(web.staticTexts["Fajr"].waitForExistence(timeout: 30))
         settle()
         capture("app-today-\(theme)")
 
-        // Light only: the month table looks the same in both, and one fewer
-        // swipe is one fewer thing to go wrong.
-        if theme == "light" {
-            web.swipeUp(velocity: .slow)
+        // Light only: the month screen looks the same in both. It is behind
+        // the Next 7 days card's Month button (MEL-363).
+        if theme == "light", tapIfPresent(web.links["Month"], timeout: 10) {
             settle()
             capture("app-month-\(theme)")
-            web.swipeDown(velocity: .fast)
-            settle()
+            if tapIfPresent(web.links["Back"], timeout: 10) {
+                settle()
+            } else {
+                // Stuck on the month screen: start again at home, so the
+                // settings capture after this still has its link to tap.
+                app.terminate()
+                app = launch(settings: settingsJSON(theme: theme))
+                web = app.webViews.firstMatch
+                XCTAssertTrue(web.staticTexts["Fajr"].waitForExistence(timeout: 30))
+                settle()
+            }
         }
 
         web.links["Settings"].tap()

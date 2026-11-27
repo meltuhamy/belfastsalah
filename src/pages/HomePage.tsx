@@ -3,10 +3,6 @@ import {
   IonHeader,
   IonPage,
   IonToolbar,
-  IonCard,
-  IonCardHeader,
-  IonCardSubtitle,
-  IonCardContent,
   IonButtons,
   IonButton,
   IonIcon,
@@ -15,19 +11,15 @@ import {
 } from "@ionic/react";
 import React, { useState } from "react";
 import { usePrayerDay } from "../lib/usePrayerDay";
-import { getMonthNames } from "../lib/dateUtils";
-import MonthPrayerTable from "../components/MonthPrayerTable";
 import { settings } from "ionicons/icons";
-import { useInView } from "react-intersection-observer";
 import "./HomePage.css";
-import MonthPicker from "../components/MonthPicker";
+import NextDaysCard from "../components/NextDaysCard";
 import PrayerDayCard from "../components/PrayerDayCard";
 import CenteredMaxWidthContainer from "../components/CenteredMaxWidthContainer";
 import { App } from "@capacitor/app";
 import { SplashScreen } from "@capacitor/splash-screen";
-import { getZonedDateParts } from "../lib/timeZone";
 import { shouldPromptForZone } from "../lib/displayZone";
-import { locationNames, timetableZoneFor } from "../lib/PrayerTimeData";
+import { locationNames } from "../lib/PrayerTimeData";
 import { useSettings } from "../lib/useSettings";
 import TimeZoneNotice from "../components/TimeZoneNotice";
 import KeepAwakeButton from "../components/KeepAwakeButton";
@@ -44,17 +36,6 @@ const HomePage: React.FC = () => {
   const [{ today, next, prev }] = usePrayerDay();
   const [appSettings, setAppSettings] = useSettings();
   const now = new Date();
-  const [cardHeaderRef, inView] = useInView({
-    threshold: 0,
-    rootMargin: "-77px 0px 0px 0px",
-  });
-
-  // Month and year come from the timetable's calendar, so the table opens on
-  // the right page for someone whose device is on a different date.
-  const timetableZone = timetableZoneFor(appSettings?.location ?? null);
-  const timetableToday = getZonedDateParts(now, timetableZone);
-  const [selectedMonth, setSelectedMonth] = useState(timetableToday.month - 1);
-  const monthName = getMonthNames()[selectedMonth];
 
   // The toolbar's shadow is there to separate it from content passing beneath
   // it, so it only earns its place once something is. Resting at the top it is
@@ -105,7 +86,7 @@ const HomePage: React.FC = () => {
     <IonPage className="HomePage">
       <IonHeader className={scrolled ? undefined : "ion-no-border"}>
         <IonToolbar>
-          <PageTitle>{inView ? "Prayer Times" : monthName}</PageTitle>
+          <PageTitle>Prayer Times</PageTitle>
           <IonButtons slot="primary">
             <KeepAwakeButton on={keepAwake} onToggle={toggleKeepAwake} />
             <IonButton routerLink="/settings" aria-label="Settings">
@@ -118,7 +99,7 @@ const HomePage: React.FC = () => {
         scrollEvents={true}
         onIonScroll={(event) => setScrolled(event.detail.scrollTop > 0)}
       >
-        <CenteredMaxWidthContainer>
+        <CenteredMaxWidthContainer className="HomePage__container">
           {noticeLocation !== null && (
             <TimeZoneNotice
               locationName={locationNames[noticeLocation]}
@@ -126,30 +107,18 @@ const HomePage: React.FC = () => {
               onDismiss={() => answerNotice(false)}
             />
           )}
-          <PrayerDayCard today={today} next={next} prev={prev} now={now} />
-          <IonCard className="HomePage__month-card">
-            <IonCardHeader ref={cardHeaderRef}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div>
-                  <IonCardSubtitle>{monthName}</IonCardSubtitle>
-                </div>
-                <div>
-                  <MonthPicker
-                    now={now}
-                    timeZone={timetableZone}
-                    value={selectedMonth}
-                    onChange={(newMonth) => setSelectedMonth(newMonth)}
-                  />
-                </div>
-              </div>
-            </IonCardHeader>
-            <IonCardContent className="HomePage__month-card__content">
-              <MonthPrayerTable
-                month={selectedMonth}
-                year={timetableToday.year}
-              />
-            </IonCardContent>
-          </IonCard>
+          {/*
+            Side by side in a phone's landscape (HomePage.css); one column
+            everywhere else, the tablet's included.
+          */}
+          <div className="HomePage__cards">
+            <div className="HomePage__day">
+              <PrayerDayCard today={today} next={next} prev={prev} now={now} />
+            </div>
+            <div className="HomePage__week">
+              <NextDaysCard />
+            </div>
+          </div>
         </CenteredMaxWidthContainer>
       </IonContent>
     </IonPage>

@@ -5,10 +5,12 @@ import {
   highlightedDays,
   highlightedPrayer,
   monthRows,
+  nextDaysRows,
+  openMonth,
   pinDate,
   paintedHighlight,
   todayTimes,
-  waitForMonthTable,
+  waitForNextDays,
 } from "./support/app";
 
 // The home screen is the app. Everything here is asserted against the real
@@ -327,6 +329,9 @@ test("slides back to the start of the day as Fajr comes in", async ({
 });
 
 test("keeps the toolbar flat until something is under it", async ({ page }) => {
+  // Short enough that the page scrolls at all.
+  await page.setViewportSize({ width: 412, height: 560 });
+  await page.mouse.move(200, 300);
   const shadow = () =>
     page.locator("ion-header").evaluate((h) => getComputedStyle(h).boxShadow);
 
@@ -341,10 +346,40 @@ test("keeps the toolbar flat until something is under it", async ({ page }) => {
   await expect.poll(shadow).toBe("none");
 });
 
-test("opens the month table on the current month", async ({ page }) => {
-  await expect(page.getByText("February", { exact: true })).toBeVisible();
-  await waitForMonthTable(page);
+test("lists the next seven days, today first", async ({ page }) => {
+  await waitForNextDays(page);
+  // london-2026.json, 15 to 21 February.
+  expect(await nextDaysRows(page)).toEqual([
+    ["15", "05:35", "07:12", "12:20", "14:46", "17:19", "18:49"],
+    ["16", "05:33", "07:10", "12:20", "14:47", "17:21", "18:51"],
+    ["17", "05:31", "07:08", "12:20", "14:49", "17:22", "18:51"],
+    ["18", "05:29", "07:06", "12:20", "14:50", "17:24", "18:53"],
+    ["19", "05:27", "07:04", "12:19", "14:51", "17:26", "18:55"],
+    ["20", "05:25", "07:02", "12:19", "14:53", "17:28", "18:57"],
+    ["21", "05:23", "07:00", "12:19", "14:54", "17:30", "18:58"],
+  ]);
+});
 
+test("marks today's row, and only today's", async ({ page }) => {
+  const today = page.locator("[data-testid=next-day][data-today=true]");
+  await expect(today).toHaveCount(1);
+  await expect(today).toHaveAttribute("data-day", "15");
+  await expect(today).toContainText("Today");
+});
+
+test("agrees with the today card row for row", async ({ page }) => {
+  await waitForNextDays(page);
+  const [, ...todayRow] = (await nextDaysRows(page))[0];
+  expect(todayRow).toEqual(Object.values(LONDON_15_FEB));
+});
+
+test("opens the whole month from the Month button", async ({ page }) => {
+  // At least 44 tall: the old calendar icon was an 18px target (MEL-363).
+  const button = (await page.getByTestId("month-button").boundingBox())!;
+  expect(button.height).toBeGreaterThanOrEqual(44);
+
+  await openMonth(page);
+  await expect(page.getByTestId("month-title")).toHaveText("February 2026");
   const rows = await monthRows(page);
   // February 2026 has 28 days. The timetable file carries a 29th - every
   // non-leap year in src/prayer_data does, duplicating the 28th - so this is
@@ -368,17 +403,7 @@ test("opens the month table on the current month", async ({ page }) => {
     "17:42",
     "19:09",
   ]);
-});
-
-test("marks today in the month table, and only today", async ({ page }) => {
-  await waitForMonthTable(page);
   expect(await highlightedDays(page)).toEqual(["15"]);
-});
-
-test("agrees with the today card row for row", async ({ page }) => {
-  await waitForMonthTable(page);
-  const [, ...todayRow] = (await monthRows(page))[14];
-  expect(todayRow).toEqual(Object.values(LONDON_15_FEB));
 });
 
 test("puts the settings screen one tap away and comes back", async ({
@@ -400,3 +425,4 @@ test("names the settings and home links", async ({ page }) => {
   await page.getByRole("link", { name: "Home" }).click();
   await expect(page.locator(PRAYER_STRIP)).toBeVisible();
 });
+

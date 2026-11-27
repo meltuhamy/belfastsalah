@@ -6,7 +6,11 @@ import {
   Prayer,
   PrayerLocation
 } from "./PrayerTimes";
-import { getAvailableYears, getPrayerData } from "./PrayerTimeData";
+import {
+  firstTimetableYear,
+  getAvailableYears,
+  getPrayerData,
+} from "./PrayerTimeData";
 
 const londonShafi = new LondonPrayerTimes(AsrMethod.Shafi);
 const londonHanafi = new LondonPrayerTimes(AsrMethod.Hanafi);
@@ -455,5 +459,13 @@ describe("Timezone independence", () => {
 
     expect(next.prayer).toEqual(Prayer.Fajr);
     expect(next.time).toEqual(utc(2026, 3, 29, 4, 7));
+  });
+});
+
+describe("firstTimetableYear", () => {
+  it("is a location's first file, or none for one that calculates every year", () => {
+    expect(firstTimetableYear(PrayerLocation.London)).toBe(2022);
+    expect(firstTimetableYear(PrayerLocation.Belfast)).toBe(2019);
+    expect(firstTimetableYear(PrayerLocation.Istanbul)).toBeNull();
   });
 });

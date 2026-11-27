@@ -132,12 +132,52 @@ export async function paintedHighlight(page: Page): Promise<string | null> {
   });
 }
 
+/**
+ * Opens the whole month from the Month button on the Next 7 days card, and
+ * waits for its times.
+ */
+export async function openMonth(page: Page) {
+  await page.getByTestId("month-button").click();
+  await expect(page.getByTestId("month-title")).toBeVisible();
+  await waitForMonthTable(page);
+}
+
+/**
+ * The Next 7 days card's days, each as [day of the month, ...six times], in
+ * either of its layouts.
+ */
+export async function nextDaysRows(
+  page: Page
+): Promise<Array<Array<string>>> {
+  return page
+    .locator("[data-testid=next-day]")
+    .evaluateAll((rows) =>
+      rows.map((row) => [
+        row.getAttribute("data-day")!,
+        ...Array.from(row.querySelectorAll("[data-testid=next-day-time]")).map(
+          (cell) => cell.textContent!.trim()
+        ),
+      ])
+    );
+}
+
+/** Waits for the Next 7 days card to hold real times. */
+export async function waitForNextDays(page: Page) {
+  await expect
+    .poll(async () => (await nextDaysRows(page))[0]?.[1] ?? "")
+    .toMatch(/^\d{1,2}:\d{2}$/);
+}
+
 /** The month table's rows, each as [day, ...six times]. */
 export async function monthRows(page: Page): Promise<Array<Array<string>>> {
   return page.locator(".MonthPrayerTable tbody").evaluate((body) =>
     Array.from(body.querySelectorAll("tr")).map((row) =>
-      Array.from(row.querySelectorAll("td")).map((cell) =>
-        cell.textContent!.trim()
+      Array.from(row.querySelectorAll("td")).map((cell, i) =>
+        // The day's cell also names the weekday, "15 Su"; just the day.
+        (i === 0
+          ? cell.querySelector(".MonthPrayerTable__date") ?? cell
+          : cell
+        ).textContent!.trim()
       )
     )
   );
@@ -158,6 +198,8 @@ export async function highlightedDays(page: Page): Promise<Array<string>> {
   return page
     .locator(".MonthPrayerTable__row--selected")
     .evaluateAll((rows) =>
-      rows.map((row) => row.querySelector("td")!.textContent!.trim())
+      rows.map((row) =>
+        row.querySelector(".MonthPrayerTable__date")!.textContent!.trim()
+      )
     );
 }

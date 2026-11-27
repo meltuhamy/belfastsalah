@@ -1,17 +1,21 @@
 import React from "react";
-import { IonIcon, useIonPicker } from "@ionic/react";
-import { calendar, refresh } from "ionicons/icons";
+import { IonButton, IonIcon, useIonPicker } from "@ionic/react";
+import { calendarClearOutline } from "ionicons/icons";
 import { getMonthNames } from "../lib/dateUtils";
-import { getZonedDateParts } from "../lib/timeZone";
+import "./MonthPicker.css";
 
 type Props = {
   onChange: (value: number) => void;
+  /** 0 for January. */
   value: number;
-  now: Date;
-  /** The timetable's zone, whose calendar says which month is now. */
-  timeZone: string;
 };
-const MonthPicker: React.FC<Props> = ({ value, onChange, now, timeZone }) => {
+
+/**
+ * The month screen's month picker: a 48 x 48 round button, a 22px icon on a
+ * 40px tinted circle (MEL-363). The icon used to be its own tap target, about
+ * 18px across.
+ */
+const MonthPicker: React.FC<Props> = ({ value, onChange }) => {
   const [present] = useIonPicker();
 
   const options = getMonthNames().map((text, i) => ({
@@ -20,40 +24,35 @@ const MonthPicker: React.FC<Props> = ({ value, onChange, now, timeZone }) => {
     selected: i === value,
   }));
 
-  const nowMonth = getZonedDateParts(now, timeZone).month - 1;
-
   return (
-    <>
-      <IonIcon
-        icon={calendar}
-        onClick={() => {
-          present({
-            buttons: [
-              {
-                text: "Save",
-                handler: (v) => {
-                  onChange(v.Month.value);
-                },
+    <IonButton
+      className="MonthPicker"
+      fill="clear"
+      aria-label="Choose month"
+      data-testid="month-picker"
+      onClick={() => {
+        present({
+          buttons: [
+            {
+              text: "Save",
+              handler: (v) => {
+                onChange(v.Month.value);
               },
-            ],
-            columns: [
-              {
-                name: "Month",
-                options,
-              },
-            ],
-          });
-        }}
-      />
-      {nowMonth !== value ? (
-        <IonIcon
-          icon={refresh}
-          onClick={() => {
-            onChange(nowMonth);
-          }}
-        />
-      ) : null}
-    </>
+            },
+          ],
+          columns: [
+            {
+              name: "Month",
+              options,
+            },
+          ],
+        });
+      }}
+    >
+      <span className="MonthPicker__circle">
+        <IonIcon icon={calendarClearOutline} aria-hidden="true" />
+      </span>
+    </IonButton>
   );
 };
 
