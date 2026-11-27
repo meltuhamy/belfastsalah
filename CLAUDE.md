@@ -305,7 +305,9 @@ Text follows the phone's text size (MEL-105) through one number,
   rather than switching at a scale: the day card's strip goes to two rows of
   three, the place and date leave the card for a centred line under it
   (measured against the widest countdown, "23h 59m", so the minute's tick
-  cannot flip it), the month table scrolls sideways. Measure content widths, which the
+  cannot flip it, and against the widest date - the widest weekday and month
+  in the formatter's own words, en-GB's "Sept" included - so the day cannot
+  either, MEL-359), the month screen's table scrolls sideways. Measure content widths, which the
   layout chosen does not change, or it flips back and forth. Settings' selects
   put their label above their value from 1.3 (`useLargeText`, `text-large` on
   `<html>`), and the toolbar titles wrap (`PageTitle`).
