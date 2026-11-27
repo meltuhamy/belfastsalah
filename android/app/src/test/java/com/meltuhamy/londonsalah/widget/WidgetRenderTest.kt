@@ -341,19 +341,21 @@ class WidgetRenderTest {
 
     @Test
     fun `the wide widget keeps the setting sun above the bottom prayer row`() {
-        // Midday is unchanged; the horizon moves from 0.90 to 0.52 on WIDE only.
-        assertEquals(0.24, SkyPainter.sunY(0.24, 0.52f), 1e-6)
-        assertEquals(0.52, SkyPainter.sunY(0.90, 0.52f), 1e-6)
+        // Wide widgets map the raw [0.24, 0.90] arc onto [0.28, 0.61].
+        assertEquals(0.28, SkyPainter.sunY(0.24, SkyPainter.WIDE_SUN_HORIZON_Y, SkyPainter.WIDE_SUN_NOON_Y), 1e-6)
+        assertEquals(0.61, SkyPainter.sunY(0.90, SkyPainter.WIDE_SUN_HORIZON_Y, SkyPainter.WIDE_SUN_NOON_Y), 1e-6)
         assertEquals(0.90, SkyPainter.sunY(0.90), 1e-6)
+        assertEquals(0.24, SkyPainter.sunY(0.24), 1e-6)
 
         val sunset = draw(
             WidgetKind.WIDE, homeScreenSize(WidgetKind.WIDE), sky, nowMillis = PayloadFixture.SUNSET
         ).skyPicture()!!
-        // At SUNSET (x ≈ 0.93), the sun brightens y ≈ 0.53 relative to the left side of the same row,
-        // and no longer sits in the bottom prayer row (y ≈ 0.90).
+        // At SUNSET (x ≈ 0.93), the sun brightens y ≈ 0.61 relative to the left side of the same row,
+        // and no longer sits in the bottom prayer row (y ≈ 0.90). The solid disc
+        // stays above the labels, which start around 75% down.
         val xSun = (sunset.width * 0.93).toInt()
         val xClear = (sunset.width * 0.15).toInt()
-        val ySun = (sunset.height * 0.53).toInt()
+        val ySun = (sunset.height * 0.61).toInt()
         val yBottom = (sunset.height * 0.90).toInt()
         assertTrue(Color.red(sunset.getPixel(xSun, ySun)) > Color.red(sunset.getPixel(xClear, ySun)) + 15)
         assertTrue(

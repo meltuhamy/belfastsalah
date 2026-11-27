@@ -35,7 +35,11 @@ struct WidgetBackground: View {
 
     var body: some View {
         if let sky = colors.sky {
-            SkyBackground(sky: sky, sunHorizonY: family == .systemMedium ? 0.52 : 0.9)
+            SkyBackground(
+                sky: sky,
+                sunHorizonY: family == .systemMedium ? 0.61 : 0.9,
+                sunNoonY: family == .systemMedium ? 0.28 : 0.24
+            )
         } else {
             colors.background
         }
@@ -49,6 +53,7 @@ struct WidgetBackground: View {
 struct SkyBackground: View {
     let sky: SkyState
     var sunHorizonY: Double = 0.9
+    var sunNoonY: Double = 0.24
 
     /** Fractions across and down, a radius in points and a strength. */
     private static let stars: [(x: Double, y: Double, r: Double, o: Double)] = [
@@ -134,9 +139,9 @@ struct SkyBackground: View {
                 // The sun at the card's strength: none before Shuruq, fading
                 // after Maghrib, though the arc keeps it 45 minutes either side.
                 if let sun = sky.sun, sky.light.sunOn > 0 {
-                    let sunY = sunHorizonY == 0.9
+                    let sunY = (sunHorizonY == 0.9 && sunNoonY == 0.24)
                         ? sun.y
-                        : 0.24 + (sun.y - 0.24) * ((sunHorizonY - 0.24) / (0.9 - 0.24))
+                        : sunNoonY + (sun.y - 0.24) * ((sunHorizonY - sunNoonY) / (0.9 - 0.24))
                     Circle()
                         .fill(Color(hex: sun.colour))
                         .frame(width: 26, height: 26)
