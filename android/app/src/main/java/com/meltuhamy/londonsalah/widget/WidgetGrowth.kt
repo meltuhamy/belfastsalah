@@ -26,7 +26,15 @@ data class WidgetGrowth(
     /** The prayer row: its text, the cells' padding and the widget's own. */
     val body: Float,
     /** The timetable's heading - countdown, label, city and date. */
-    val heading: Float
+    val heading: Float,
+    /**
+     * Below 1 when the box is smaller than the design box, by as much as its
+     * tighter side: the Pixel launcher's 4 x 1 turned on its side is 65dp
+     * tall, not 79. The font scale cap (WidgetTextScale) was found in the
+     * design box, so in a smaller one it is lowered by this much, and so is
+     * the padding. Growth and room are never both away from 1.
+     */
+    val room: Float = 1f
 ) {
     companion object {
         val NONE = WidgetGrowth(1f, 1f)
@@ -64,7 +72,8 @@ data class WidgetGrowth(
             val down = heightDp.toFloat() / design.second
             val body = min(min(across, down), MAX_GROWTH).coerceAtLeast(1f)
             val heading = min(min(down, across * HEADING_ROOM), MAX_GROWTH).coerceAtLeast(body)
-            return WidgetGrowth(body, heading)
+            val room = min(min(across, down), 1f)
+            return WidgetGrowth(body, heading, room)
         }
     }
 }

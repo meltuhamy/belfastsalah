@@ -177,6 +177,19 @@ class WidgetSettingsScreenshotTest {
     fun samsungCompactTwoRows() =
         shootAt("compact_samsung_4x2_sky_midday", WidgetKind.COMPACT, 374 to 221, sky, ONE_PM)
 
+    // The Pixel launcher's boxes on a Pixel 9 Pro XL turned on its side
+    // (WidgetBoxes): drawn for that box, not grown for the upright one, which
+    // cut off the timetable's whole row.
+    @Test
+    fun pixelWideTurned() =
+        shootAt("wide_pixel_turned_light", WidgetKind.WIDE, WidgetHarness.PIXEL_XL_WIDE_TURNED, light, ONE_PM)
+
+    @Test
+    fun pixelCompactTurned() = shootAt(
+        "compact_pixel_turned_sky_night", WidgetKind.COMPACT, WidgetHarness.PIXEL_XL_COMPACT_TURNED, sky,
+        PayloadFixture.LATE_NIGHT
+    )
+
     @Test
     fun tileAtTwoByTwoWithoutCity() =
         shoot("tile_2x2_no_city", WidgetKind.TILE, 170 to 190, light.copy(showLocation = false))

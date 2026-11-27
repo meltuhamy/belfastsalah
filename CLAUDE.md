@@ -189,6 +189,25 @@ Things that will bite:
   row. Padding the renderer grows is set in code (`spaceOut`), so a padding
   change in those two layouts has to be made there too. `WidgetHarness.SIZES`
   has One UI's sizes, measured off a Galaxy S20 FE.
+- **A widget is drawn once per box its launcher reports** (`WidgetBoxes`,
+  `WidgetRenderer.renderPlaced`), and the launcher picks as it turns or
+  folds: from `OPTION_APPWIDGET_SIZES` on Android 12 and later, as a
+  portrait/landscape pair before. Launchers work out the turned box even when
+  the home screen never turns (the Pixel launcher's 4 x 1 is 396 x 117
+  upright, 706 x 65 turned), so drawing once for the upright box clipped the
+  turned one - the 4 x 2 lost its whole row - and drawing once for the
+  smallest would cost Samsung its growth. Near-duplicate sizes fold together
+  and at most four are drawn; the Sky pictures share one budget
+  (`SkyPainter.MAX_PIXELS`), since they cross to the launcher in one
+  transaction.
+- **A box smaller than the design box lowers the font scale cap**
+  (`WidgetGrowth.room`): the caps in `WidgetTextScale` were found in the
+  design box. KISS gives every widget 375 x 83dp, and the turned Pixel 4 x 1
+  is 65dp tall, not 79.
+- **Every redraw logs the launcher's options** under the `PrayerWidget` tag
+  (`WidgetSizeLog`), and a debuggable build shows the last few at the bottom
+  of the appearance screen as selectable text, for a tester to copy. The sizes
+  real launchers reported are in `WidgetBoxesTest` and `WidgetHarness`.
 - **The Sky highlight is a solid block, white text on it**: darker than the
   sky, or lighter at night, where darker would not show
   (`WidgetConfig.accentDrawable`).

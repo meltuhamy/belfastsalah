@@ -41,6 +41,16 @@ object WidgetHarness {
     val SAMSUNG_COMPACT = 374 to 105
 
     /**
+     * The Pixel launcher's 4 x 2 and 4 x 1 on a Pixel 9 Pro XL (Android 16),
+     * upright and turned, as it reports them in OPTION_APPWIDGET_SIZES. Each
+     * is drawn for separately (WidgetBoxes): grown upright, not turned.
+     */
+    val PIXEL_XL_WIDE = 396 to 250
+    val PIXEL_XL_WIDE_TURNED = 706 to 140
+    val PIXEL_XL_COMPACT = 396 to 117
+    val PIXEL_XL_COMPACT_TURNED = 706 to 65
+
+    /**
      * The sizes each widget is checked at, in dp.
      *
      * Measured off the home screen the widgets were designed on, where a cell
@@ -53,13 +63,20 @@ object WidgetHarness {
      * cells (MEL-370), where they grow (WidgetGrowth): [SAMSUNG_WIDE] and
      * [SAMSUNG_COMPACT], measured off a Galaxy S20 FE's home screen, the
      * timetable made a row taller and the row a row taller, and a narrower
-     * phone's 4 x 2.
+     * phone's 4 x 2. And in the Pixel launcher's boxes, upright and turned,
+     * the turned ones being what the first growth clipped.
      */
     val SIZES: Map<WidgetKind, List<Pair<Int, Int>>> = mapOf(
         WidgetKind.TILE to listOf(77 to 87, 170 to 190),
-        WidgetKind.COMPACT to listOf(292 to 79, 390 to 79, SAMSUNG_COMPACT, 374 to 221),
+        WidgetKind.COMPACT to listOf(
+            292 to 79, 390 to 79, SAMSUNG_COMPACT, 374 to 221,
+            PIXEL_XL_COMPACT, PIXEL_XL_COMPACT_TURNED
+        ),
         WidgetKind.COLUMN to listOf(62 to 225),
-        WidgetKind.WIDE to listOf(295 to 139, 390 to 139, SAMSUNG_WIDE, 374 to 330, 330 to 200),
+        WidgetKind.WIDE to listOf(
+            295 to 139, 390 to 139, SAMSUNG_WIDE, 374 to 330, 330 to 200,
+            PIXEL_XL_WIDE, PIXEL_XL_WIDE_TURNED
+        ),
         WidgetKind.TALL to listOf(138 to 225)
     )
 

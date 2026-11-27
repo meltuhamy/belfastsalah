@@ -23,14 +23,14 @@ abstract class RenderedWidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         for (id in appWidgetIds) {
-            redraw(context, appWidgetManager, id, appWidgetManager.getAppWidgetOptions(id))
+            redraw(context, appWidgetManager, id, appWidgetManager.getAppWidgetOptions(id), "update")
         }
         WidgetAlarms.scheduleNextBoundary(context)
     }
 
     /**
-     * Nothing but the Sky palette's picture depends on the size, but that is
-     * drawn to the widget's proportions, so a resize redraws it.
+     * A resize, a fold or the launcher's sizes changing: the widget is drawn
+     * again for each box it may now be shown in (WidgetBoxes).
      */
     override fun onAppWidgetOptionsChanged(
         context: Context,
@@ -38,22 +38,22 @@ abstract class RenderedWidgetProvider : AppWidgetProvider() {
         appWidgetId: Int,
         newOptions: Bundle
     ) {
-        redraw(context, appWidgetManager, appWidgetId, newOptions)
+        redraw(context, appWidgetManager, appWidgetId, newOptions, "options")
     }
 
     private fun redraw(
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetId: Int,
-        options: Bundle?
+        options: Bundle?,
+        event: String
     ) {
+        val boxes = WidgetBoxes.of(options)
+        WidgetSizeLog.record(context, appWidgetId, kind, event, options, boxes.all)
         appWidgetManager.updateAppWidget(
             appWidgetId,
-            WidgetRenderer.render(
-                context,
-                kind,
-                WidgetConfig.load(context, appWidgetId),
-                boxDp = widgetBoxDp(options)
+            WidgetRenderer.renderPlaced(
+                context, kind, WidgetConfig.load(context, appWidgetId), boxes
             )
         )
     }
@@ -64,5 +64,6 @@ abstract class RenderedWidgetProvider : AppWidgetProvider() {
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         WidgetConfig.delete(context, appWidgetIds)
+        WidgetSizeLog.delete(context, appWidgetIds)
     }
 }

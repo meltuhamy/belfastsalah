@@ -11,6 +11,7 @@ import android.widget.CheckBox
 import android.widget.FrameLayout
 import android.widget.RadioGroup
 import android.widget.SeekBar
+import android.widget.TextView
 import com.meltuhamy.londonsalah.R
 
 /**
@@ -108,6 +109,21 @@ class WidgetConfigActivity : Activity() {
         preview.post { refreshPreview() }
 
         findViewById<Button>(R.id.config_save).setOnClickListener { save() }
+        showSizeLog()
+    }
+
+    /**
+     * What the launcher has told this widget about its size, newest first,
+     * for a tester to copy (WidgetSizeLog). Debuggable builds only.
+     */
+    private fun showSizeLog() {
+        if (!WidgetSizeLog.shown(this)) return
+        val entries = WidgetSizeLog.entries(this, appWidgetId)
+        findViewById<TextView>(R.id.config_size_log).apply {
+            text = "Widget $appWidgetId size log\n" +
+                entries.ifEmpty { listOf("(nothing yet)") }.joinToString("\n")
+            visibility = View.VISIBLE
+        }
     }
 
     /**

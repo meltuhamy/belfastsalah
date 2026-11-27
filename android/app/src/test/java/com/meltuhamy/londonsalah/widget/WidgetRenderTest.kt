@@ -365,10 +365,17 @@ class WidgetRenderTest {
     }
 
     @Test
-    fun `growth follows the smaller of the box's two gains, and never shrinks`() {
+    fun `growth follows the smaller of the box's two gains, and never shrinks the text by itself`() {
         assertEquals(WidgetGrowth.NONE, WidgetGrowth.of(WidgetKind.WIDE, 295 to 139))
         assertEquals(WidgetGrowth.NONE, WidgetGrowth.of(WidgetKind.WIDE, null))
-        assertEquals(WidgetGrowth.NONE, WidgetGrowth.of(WidgetKind.WIDE, 280 to 139))
+        // Smaller than the design box: no growth, and the room it is short by,
+        // which lowers the font scale's cap there.
+        assertEquals(WidgetGrowth(1f, 1f, 280 / 295f), WidgetGrowth.of(WidgetKind.WIDE, 280 to 139))
+        assertEquals(
+            65 / 79f,
+            WidgetGrowth.of(WidgetKind.COMPACT, WidgetHarness.PIXEL_XL_COMPACT_TURNED).room,
+            0.001f
+        )
         // A Pixel-style 4 x 2, wider but no taller, is left as it was.
         assertEquals(WidgetGrowth.NONE, WidgetGrowth.of(WidgetKind.WIDE, 390 to 139))
         // Samsung's 4 x 2: the row by the width, the heading a little further.

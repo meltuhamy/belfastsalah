@@ -1,11 +1,11 @@
 package com.meltuhamy.londonsalah.widget
 
 import android.app.PendingIntent
-import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
-import android.os.Bundle
+import android.os.Build
 import android.os.SystemClock
+import android.util.SizeF
 import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
@@ -125,6 +125,9 @@ object WidgetRenderer {
      * `boxDp` is the widget's width and height, for the Sky palette's picture
      * to be drawn in the right proportions. Null draws it in the kind's usual
      * shape, cropped to fit.
+     *
+     * `pictures` is how many of these go to the launcher together
+     * ([renderPlaced]), which share the Sky pictures' budget.
      */
     fun render(
         context: Context,
@@ -132,7 +135,8 @@ object WidgetRenderer {
         config: WidgetConfig,
         sizeDp: Int? = null,
         nowMillis: Long = System.currentTimeMillis(),
-        boxDp: Pair<Int, Int>? = null
+        boxDp: Pair<Int, Int>? = null,
+        pictures: Int = 1
     ): RemoteViews {
         val views = RemoteViews(context.packageName, kind.layoutId)
         val payload = WidgetPayload.parse(WidgetStore.read(context))
@@ -142,18 +146,21 @@ object WidgetRenderer {
             if (config.palette == WidgetPalette.SKY && next != null) payload?.skyAt(nowMillis)
             else null
 
-        paintSky(context, views, kind, config, sky, boxDp)
+        paintSky(context, views, kind, config, sky, boxDp, pictures)
 
         // The font scale, as far as this kind has room for (WidgetTextScale),
         // and then as far as the launcher's box is bigger than the one the
         // layout was drawn for (WidgetGrowth) - a Samsung 4 x 2 is half as tall
         // again as the design's.
-        val textScale = WidgetTextScale.scale(context, kind)
+        // In a box smaller than the design's, the font scale only goes as far
+        // as the design box's cap shrunk to fit it (WidgetGrowth.room).
         val growth = WidgetGrowth.of(kind, boxDp)
+        val textScale = WidgetTextScale.scale(context, kind)
+            .let { if (growth.room < 1f) min(it, WidgetTextScale.cap(kind) * growth.room) else it }
         WidgetTextScale.apply(context, views, kind) { id ->
             textScale * (if (id in HEADING_IDS) growth.heading else growth.body)
         }
-        spaceOut(context, views, kind, growth.body)
+        spaceOut(context, views, kind, growth.body * growth.room)
 
         return when (kind) {
             WidgetKind.TILE ->
@@ -165,6 +172,38 @@ object WidgetRenderer {
             WidgetKind.COLUMN ->
                 renderInline(context, views, config, sky, day, next, COLUMN_IDS_INLINE, nowMillis)
             else -> renderTimetable(context, views, config, sky, payload, day, next, nowMillis)
+        }
+    }
+
+    /**
+     * A placed widget, drawn for each box its launcher may show it in
+     * (WidgetBoxes), for the launcher to pick from as it turns or unfolds.
+     * The tile's text is sized from each box's smaller side.
+     */
+    fun renderPlaced(
+        context: Context,
+        kind: WidgetKind,
+        config: WidgetConfig,
+        boxes: WidgetBoxes,
+        nowMillis: Long = System.currentTimeMillis()
+    ): RemoteViews {
+        val pictures = boxes.all.size.coerceAtLeast(1)
+        fun at(box: Pair<Int, Int>?) = render(
+            context, kind, config, box?.let { min(it.first, it.second) }, nowMillis, box, pictures
+        )
+        return when (boxes) {
+            is WidgetBoxes.Sized ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    RemoteViews(
+                        boxes.boxes.associate { box ->
+                            SizeF(box.first.toFloat(), box.second.toFloat()) to at(box)
+                        }
+                    )
+                } else {
+                    at(boxes.boxes.first())
+                }
+            is WidgetBoxes.Oriented -> RemoteViews(at(boxes.landscape), at(boxes.portrait))
+            is WidgetBoxes.Single -> at(boxes.box)
         }
     }
 
@@ -216,7 +255,8 @@ object WidgetRenderer {
         kind: WidgetKind,
         config: WidgetConfig,
         sky: SkyState?,
-        boxDp: Pair<Int, Int>?
+        boxDp: Pair<Int, Int>?,
+        pictures: Int
     ) {
         if (sky == null) {
             views.setViewVisibility(R.id.sky_background, View.GONE)
@@ -232,7 +272,8 @@ object WidgetRenderer {
                 heightDp,
                 context.resources.displayMetrics.density,
                 sunDp = sunDiameterDp(widthDp, heightDp, narrow),
-                sunArc = if (kind == WidgetKind.WIDE) SkyPainter.SunArc.WIDE else SkyPainter.SunArc.RAW
+                sunArc = if (kind == WidgetKind.WIDE) SkyPainter.SunArc.WIDE else SkyPainter.SunArc.RAW,
+                maxPixels = SkyPainter.MAX_PIXELS / pictures.coerceAtLeast(1)
             )
         )
         views.setInt(R.id.sky_background, "setImageAlpha", config.alpha())
@@ -481,16 +522,4 @@ object WidgetRenderer {
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-}
-
-/**
- * A placed widget's width and height in dp, as its launcher reports them, or
- * null when it has not. In portrait a widget is about its minimum width and
- * maximum height, which is what is taken - the Sky palette's picture is
- * cropped to fit anyway, so close is enough.
- */
-fun widgetBoxDp(options: Bundle?): Pair<Int, Int>? {
-    val width = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) ?: 0
-    val height = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0) ?: 0
-    return if (width > 0 && height > 0) width to height else null
 }
