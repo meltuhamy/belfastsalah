@@ -4,8 +4,10 @@ import {
   openSettings,
   pinDate,
   PRAYER_STRIP,
+  nextDaysRows,
+  openMonth,
   todayTimes,
-  waitForMonthTable,
+  waitForNextDays,
 } from "./support/app";
 
 // The system text size (MEL-105). On the web that is the browser's own font
@@ -41,6 +43,46 @@ async function cellBoxes(page: Page) {
     })
   );
 }
+
+/**
+ * Whether any two of the Next 7 days card's columns overlap: each time's box
+ * against its neighbour's, row by row.
+ */
+async function columnsOverlap(page: Page) {
+  return page.locator("[data-testid=next-day]").evaluateAll((rows) =>
+    rows.some((row) => {
+      const cells = Array.from(
+        row.querySelectorAll(".NextDaysCard__time, .NextDaysCard__date")
+      ).map((cell) => {
+        const range = document.createRange();
+        range.selectNodeContents(cell);
+        return range.getBoundingClientRect();
+      });
+      return cells.some(
+        (cell, i) => i > 0 && cell.left < cells[i - 1].right - 0.5
+      );
+    })
+  );
+}
+
+/** Whether anything has made the page scroll sideways. */
+async function widerThanPage(page: Page) {
+  return page.evaluate(() => {
+    const content = document.querySelector("ion-content");
+    const scroller = content?.shadowRoot?.querySelector(".inner-scroll");
+    return (
+      document.documentElement.scrollWidth > window.innerWidth + 1 ||
+      (scroller != null && scroller.scrollWidth > scroller.clientWidth + 1)
+    );
+  });
+}
+
+/** The Next 7 days card's text and boxes, leaving out its hidden probes. */
+const NEXT_DAYS_TEXT = [
+  ".NextDaysCard__header *",
+  ".NextDaysCard__blocks *",
+  ".NextDaysCard__table *",
+].join(", ");
 
 /** Text in the strip or the month table that does not fit its box. */
 async function clippedText(page: Page, selector: string) {
@@ -91,8 +133,42 @@ test.describe("at the default text size", () => {
     expect(date.x).toBeGreaterThan(card.x + card.width / 2);
   });
 
+  test("keeps the next seven days in seven columns", async ({ page }) => {
+    await waitForNextDays(page);
+    await expect(page.locator("[data-layout=normal]")).toHaveCount(1);
+    expect(
+      await clippedText(page, ".NextDaysCard__name, .NextDaysCard__time")
+    ).toEqual([]);
+  });
+
+  test("keeps seven columns on a 375pt phone, a little tighter", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await waitForNextDays(page);
+    await expect(
+      page.locator("[data-layout=normal], [data-layout=compact]")
+    ).toHaveCount(1);
+    await expect(page.locator("[data-layout=stacked]")).toHaveCount(0);
+    expect(await columnsOverlap(page)).toBe(false);
+  });
+
+  test("stacks each day 3 x 2 on a 320pt phone, and clips nothing", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await expect(page.locator("[data-layout=stacked]")).toHaveCount(1);
+    await waitForNextDays(page);
+    expect((await nextDaysRows(page))[0]).toEqual([
+      "15",
+      ...Object.values(TIMES),
+    ]);
+    expect(await clippedText(page, NEXT_DAYS_TEXT)).toEqual([]);
+    expect(await widerThanPage(page)).toBe(false);
+  });
+
   test("does not make the month table scroll", async ({ page }) => {
-    await waitForMonthTable(page);
+    await openMonth(page);
     await expect(
       page.locator(".MonthPrayerTable__scroller--scrolls")
     ).toHaveCount(0);
@@ -191,10 +267,36 @@ test.describe("at twice the text size", () => {
     await expect.poll(offset).toBeLessThan(2);
   });
 
+  test("stacks each day of the next seven, and clips nothing", async ({
+    page,
+  }) => {
+    await expect(page.locator("[data-layout=stacked]")).toHaveCount(1);
+    await waitForNextDays(page);
+    expect((await nextDaysRows(page))[0]).toEqual([
+      "15",
+      ...Object.values(TIMES),
+    ]);
+    expect(await clippedText(page, NEXT_DAYS_TEXT)).toEqual([]);
+    expect(await widerThanPage(page)).toBe(false);
+    // The Month button grows with the text, and its label is whole.
+    const button = (await page.getByTestId("month-button").boundingBox())!;
+    expect(button.height).toBeGreaterThanOrEqual(44);
+  });
+
+  test("stacks them at 320pt too, without widening the page", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await waitForNextDays(page);
+    await expect(page.locator("[data-layout=stacked]")).toHaveCount(1);
+    expect(await clippedText(page, NEXT_DAYS_TEXT)).toEqual([]);
+    expect(await widerThanPage(page)).toBe(false);
+  });
+
   test("scrolls the month table sideways rather than breaking its times", async ({
     page,
   }) => {
-    await waitForMonthTable(page);
+    await openMonth(page);
     const scroller = page.locator(".MonthPrayerTable__scroller--scrolls");
     await expect(scroller).toHaveCount(1);
     expect(

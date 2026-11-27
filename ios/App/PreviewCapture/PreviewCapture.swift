@@ -233,14 +233,14 @@ final class PreviewCapture: XCTestCase {
         settle()
         capture("app-today-\(theme)")
 
-        // Light only: the month table looks the same in both, and one fewer
-        // swipe is one fewer thing to go wrong.
-        if theme == "light" {
-            web.swipeUp(velocity: .slow)
+        // Light only: the month screen looks the same in both. It is behind
+        // the Next 7 days card's Month button (MEL-363).
+        if theme == "light", tapIfPresent(web.links["Month"], timeout: 10) {
             settle()
             capture("app-month-\(theme)")
-            web.swipeDown(velocity: .fast)
-            settle()
+            if tapIfPresent(web.links["Back"], timeout: 10) {
+                settle()
+            }
         }
 
         web.links["Settings"].tap()

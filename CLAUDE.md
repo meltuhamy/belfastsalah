@@ -352,6 +352,31 @@ Screen Wake Lock API on the web (`src/lib/keepAwake.ts`).
   affected. Take screenshots of the animation without pinning the clock; the
   specs read computed styles, which are right either way.
 
+## Next 7 days and the month screen
+
+Home has the day card and, under it, Next 7 days (`NextDaysCard`, MEL-363):
+today and the six days after it, every column, with today always the first
+row so it is on screen on the 31st as on the 1st. `src/lib/nextDays.ts` lays
+out the days and the dividers before a new month ("January 2027" when the
+year turns too), from the timetable's calendar date. The whole month is its
+own screen, `/month` (`MonthPage`), behind the card's Month button, with a
+48 x 48 month picker and previous/next buttons that cross years.
+
+- **Matching cards.** Every card has the day card's 24px corners and 16px
+  side margins. Today, in both tables, is a tinted pane with a 1px edge and
+  semibold text, not a solid bar. Ionic's md card greys its text, so these
+  cards set `color` back to `--ion-text-color`, which the light palette leaves
+  unset - hence the `#000` fallbacks.
+- **Fit is measured.** Seven columns, a tighter seven, or each day as a
+  block of six labelled times three across (two across if even that does not
+  fit, as at 2x on 320pt): hidden probes hold the widest time and name in
+  each layout's fonts, so the answer never depends on the layout chosen. The
+  month screen keeps its sideways scroll.
+- **Landscape** on a phone (short and wide, `HomePage.css`) puts the two
+  cards side by side; a tablet keeps one centred column.
+- e2e: `nextDaysRows` and `openMonth` in `e2e/support/app.ts`;
+  `e2e/next-days.spec.ts` pins the 31st.
+
 ## The day card
 
 `PrayerDayCard` is one card, laid out like the home screen widget: the

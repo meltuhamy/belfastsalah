@@ -5,8 +5,9 @@ import {
   openSettings,
   openSetup,
   pinDate,
+  openMonth,
   toggle,
-  waitForMonthTable,
+  waitForNextDays,
 } from "./support/app";
 
 /**
@@ -62,7 +63,7 @@ async function settle(page: Page) {
 test("home screen", async ({ page }) => {
   await pinDate(page, WHEN);
   await completeSetup(page);
-  await waitForMonthTable(page);
+  await waitForNextDays(page);
   await settle(page);
   await page.screenshot({ path: `${OUT}/1-today.png` });
 });
@@ -70,10 +71,8 @@ test("home screen", async ({ page }) => {
 test("month table", async ({ page }) => {
   await pinDate(page, WHEN);
   await completeSetup(page);
-  await waitForMonthTable(page);
   await settle(page);
-  // Scroll the month card up so the table fills the frame.
-  await page.locator(".HomePage__month-card").scrollIntoViewIfNeeded();
+  await openMonth(page);
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${OUT}/2-month.png` });
 });
@@ -84,7 +83,7 @@ test("dark mode", async ({ page }) => {
   await openSettings(page);
   await chooseFromSelect(page, "[data-testid=theme-select]", "Dark");
   await page.locator("ion-button[router-link='/']").click();
-  await waitForMonthTable(page);
+  await waitForNextDays(page);
   await settle(page);
   await page.screenshot({ path: `${OUT}/3-dark.png` });
 });

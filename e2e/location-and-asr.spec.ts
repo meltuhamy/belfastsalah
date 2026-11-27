@@ -5,11 +5,11 @@ import {
   completeSetup,
   goHome,
   monthRows,
+  openMonth,
   openSettings,
   pinDate,
   todayTimes,
   toggle,
-  waitForMonthTable,
 } from "./support/app";
 
 // The two settings that change which numbers the app shows. Both are asserted
@@ -62,7 +62,7 @@ test("switches the whole app to Belfast's timetable", async ({ page }) => {
   await expect.poll(() => todayTimes(page)).toEqual(BELFAST);
 
   // The month table is a separate lookup, so it gets its own check.
-  await waitForMonthTable(page);
+  await openMonth(page);
   const [, ...belfastRow] = (await monthRows(page))[14];
   expect(belfastRow).toEqual(Object.values(BELFAST));
 });
@@ -93,7 +93,7 @@ test("carries the Hanafi choice into the month table", async ({ page }) => {
   await toggle(page, "Use Hanafi Asr");
   await goHome(page);
 
-  await waitForMonthTable(page);
+  await openMonth(page);
   await expect.poll(async () => (await monthRows(page))[14][4]).toBe(
     LONDON_HANAFI_ASR
   );

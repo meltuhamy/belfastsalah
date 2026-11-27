@@ -28,6 +28,22 @@ const MonthPrayerTableCol: React.FC<{
   );
 };
 
+const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+/** "27" over a small "Fr": the day, and which day of the week it is. */
+const DayLabel: React.FC<{ year: number; month: number; day: number }> = ({
+  year,
+  month,
+  day,
+}) => (
+  <span className="MonthPrayerTable__day">
+    <span className="MonthPrayerTable__date">{day}</span>
+    <span className="MonthPrayerTable__weekday" aria-hidden="true">
+      {WEEKDAYS[new Date(Date.UTC(year, month, day, 12)).getUTCDay()]}
+    </span>
+  </span>
+);
+
 type Props = { month: number; year: number };
 
 const MonthPrayerTable: React.FC<Props> = ({ month, year }) => {
@@ -41,10 +57,10 @@ const MonthPrayerTable: React.FC<Props> = ({ month, year }) => {
     now,
     timetableZoneFor(state.settings.value?.location ?? null)
   );
-  const nowMonth = today.month - 1;
-  const nowDate = today.day;
+  const isToday = (i: number) =>
+    year === today.year && month === today.month - 1 && i + 1 === today.day;
   const getClassNameForRow = (i: number) => {
-    return month === nowMonth && i + 1 === nowDate
+    return isToday(i)
       ? "MonthPrayerTable__row MonthPrayerTable__row--selected"
       : "MonthPrayerTable__row";
   };
@@ -75,7 +91,7 @@ const MonthPrayerTable: React.FC<Props> = ({ month, year }) => {
   const monthLoading = Array.from({ length: 30 }).map((_, index) => (
     <tr className="MonthPrayerTable__row" key={index}>
       <td className="MonthPrayerTable__col MonthPrayerTable__col--day">
-        {index + 1}
+        <DayLabel year={year} month={month} day={index + 1} />
       </td>
       <td className="MonthPrayerTable__col">
         <IonSkeletonText />
@@ -134,9 +150,13 @@ const MonthPrayerTable: React.FC<Props> = ({ month, year }) => {
           {monthData == null
             ? monthLoading
             : monthData.map((dayData, i) => (
-                <tr className={getClassNameForRow(i)} key={i}>
+                <tr
+                  className={getClassNameForRow(i)}
+                  key={i}
+                  aria-current={isToday(i) ? "date" : undefined}
+                >
                   <td className="MonthPrayerTable__col MonthPrayerTable__col--day">
-                    {i + 1}
+                    <DayLabel year={year} month={month} day={i + 1} />
                   </td>
                   {dayData.map((p) => (
                     <MonthPrayerTableCol

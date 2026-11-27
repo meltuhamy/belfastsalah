@@ -12,6 +12,7 @@ import {
 import { useDeviceUses24Hour } from "./lib/useTimeFormat";
 import { locationTimeZones, timetableZoneFor } from "./lib/PrayerTimeData";
 import HomePage from "./pages/HomePage";
+import MonthPage from "./pages/MonthPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage";
 import PrayerReminderPage from "./pages/PrayerReminderPage";
@@ -373,6 +374,7 @@ const App: React.FC = () => {
       <IonReactRouter>
         <IonRouterOutlet>
           <Route path="/" component={HomePage} exact={true} />
+          <Route path="/month" component={MonthPage} exact={true} />
           <Route path="/settings" component={SettingsPage} exact={true} />
           <Route
             path="/settings/notifications"

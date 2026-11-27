@@ -5,11 +5,11 @@ import {
   completeSetup,
   goHome,
   monthRows,
+  openMonth,
   openSettings,
   pinDate,
   todayTimes,
   toggle,
-  waitForMonthTable,
 } from "./support/app";
 
 // Istanbul is calculated with Diyanet's method, and shown on Istanbul's own
@@ -56,7 +56,7 @@ test.describe("on a phone set to UK time", () => {
 
     await expect.poll(() => todayTimes(page)).toEqual(ISTANBUL);
 
-    await waitForMonthTable(page);
+    await openMonth(page);
     const [, ...row] = (await monthRows(page))[14];
     expect(row).toEqual(Object.values(ISTANBUL));
   });

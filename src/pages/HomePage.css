@@ -1,24 +1,39 @@
-.HomePage__month-card {
-  overflow: visible;
-}
+/*
+  The day card and Next 7 days, one above the other (MEL-363). The gap
+  between them is the week card's top margin, which collapses with the day
+  card's bottom one.
+*/
 
-.HomePage__month-card {
-  transition: margin 0.2s ease-in-out;
-}
+/*
+  A phone on its side: the two cards side by side, so neither is stretched
+  across the screen and today's row is in view beside the countdown. Short
+  and wide is a phone; a tablet either way up is taller than this, and keeps
+  the single centred column.
+*/
+@media (orientation: landscape) and (max-height: 540px) and (min-width: 600px) {
+  .HomePage .HomePage__container {
+    max-width: 1000px;
+    padding: 0 32px;
+  }
 
-.HomePage__month-card__content {
-  transition: padding 0.2s ease-in-out;
-}
+  .HomePage__cards {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+  }
 
-.HomePage .HomePage__month-card {
-  margin-left: 0;
-  margin-right: 0;
-  /* Sets the month table apart from the day above it. Collapses with the day
-     card's own bottom margin rather than adding to it, so this is the gap. */
-  margin-top: 44px;
-}
+  .HomePage__day,
+  .HomePage__week {
+    flex: 1 1 0;
+    min-width: 0;
+  }
 
-.HomePage .HomePage__month-card__content {
-  padding-left: 4px;
-  padding-right: 4px;
+  /* Both cards start level, 16px apart: each keeps half of the gutter. */
+  .HomePage .HomePage__day .PrayerDayCard {
+    margin: 4px 8px 16px 16px;
+  }
+
+  .HomePage .HomePage__week .NextDaysCard {
+    margin: 4px 16px 16px 8px;
+  }
 }

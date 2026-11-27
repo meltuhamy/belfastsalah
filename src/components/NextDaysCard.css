@@ -1,0 +1,318 @@
+/*
+  Next 7 days (MEL-363). The day card's corners, margins and type: 24px
+  corners, 16px from the screen's sides, tabular figures. Text sizes follow
+  the system text size (MEL-105) through --text-scale.
+
+  Doubled up on the card throughout: Ionic styles text inside a card by
+  element, which outweighs a single class of ours.
+*/
+.NextDaysCard {
+  --nd-scale: var(--text-scale, 1);
+  --nd-text2: rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.68);
+  --nd-line: rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.08);
+  --nd-tint: rgba(var(--ion-color-primary-rgb), 0.1);
+  /* Today's pane: the day card's frosted pane, in the accent. */
+  --nd-today-bg: rgba(var(--ion-color-primary-rgb), 0.13);
+  --nd-today-edge: rgba(var(--ion-color-primary-rgb), 0.4);
+  --nd-today-text: var(--ion-color-primary-shade);
+  /* The layout's sizes; the compact and stacked layouts change them. */
+  --nd-date-col: calc(52px * var(--nd-scale));
+  --nd-name: calc(11.5px * var(--nd-scale));
+  --nd-time: calc(14.5px * var(--nd-scale));
+  --nd-date: calc(15px * var(--nd-scale));
+  --nd-weekday: calc(10.5px * var(--nd-scale));
+
+  position: relative;
+  /* Ionic's md card greys its text; the day card's is full strength. */
+  color: var(--ion-text-color, #000);
+  margin: 16px 16px 16px;
+  padding: 12px 8px 8px;
+  border-radius: 24px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ion-palette-dark .NextDaysCard {
+  --nd-today-text: var(--ion-color-primary-tint);
+}
+
+/* The Sky theme's shade and tint are the accent itself (sky.css). */
+.sky-theme .NextDaysCard {
+  --nd-today-text: var(--ion-color-primary);
+}
+
+.NextDaysCard__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 0 4px 0 12px;
+}
+
+.NextDaysCard__heading {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.NextDaysCard .NextDaysCard__title {
+  margin: 0;
+  font-size: calc(15px * var(--nd-scale));
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ion-text-color, #000);
+}
+
+.NextDaysCard .NextDaysCard__range {
+  margin: 2px 0 0;
+  font-size: calc(13px * var(--nd-scale));
+  line-height: 1.35;
+  color: var(--nd-text2);
+}
+
+/*
+  At least 44px tall, labelled: the old calendar icon was a tap target of
+  its own about 18px across.
+*/
+.NextDaysCard .NextDaysCard__month-button {
+  flex: none;
+  margin: 0;
+  height: auto;
+  min-height: 44px;
+  --background: var(--nd-tint);
+  --background-hover: rgba(var(--ion-color-primary-rgb), 0.16);
+  --background-activated: rgba(var(--ion-color-primary-rgb), 0.2);
+  --background-focused: rgba(var(--ion-color-primary-rgb), 0.2);
+  --color: var(--ion-color-primary);
+  --box-shadow: none;
+  --border-radius: 22px;
+  --padding-start: 14px;
+  --padding-end: 16px;
+  --padding-top: 6px;
+  --padding-bottom: 6px;
+  font-size: calc(14px * var(--nd-scale));
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.NextDaysCard .NextDaysCard__month-button ion-icon {
+  margin-inline-end: 8px;
+  font-size: calc(20px * var(--nd-scale));
+}
+
+.NextDaysCard__body {
+  position: relative;
+  margin-top: 6px;
+}
+
+.NextDaysCard__body--compact {
+  --nd-date-col: calc(46px * var(--nd-scale));
+  --nd-name: calc(10.5px * var(--nd-scale));
+  --nd-time: calc(13px * var(--nd-scale));
+  --nd-date: calc(14px * var(--nd-scale));
+}
+
+/* ---- Seven columns ---- */
+
+.NextDaysCard__row {
+  display: grid;
+  grid-template-columns: var(--nd-date-col) repeat(6, minmax(0, 1fr));
+  align-items: center;
+  min-height: 44px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  text-align: center;
+  color: var(--ion-text-color, #000);
+}
+
+.NextDaysCard__row--head {
+  align-items: end;
+  min-height: 34px;
+  padding-bottom: 6px;
+  border: 0;
+}
+
+.NextDaysCard__name {
+  font-size: var(--nd-name);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  color: var(--nd-text2);
+}
+
+.NextDaysCard__time {
+  font-size: var(--nd-time);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.NextDaysCard__date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+}
+
+.NextDaysCard__weekday {
+  font-size: var(--nd-weekday);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--nd-text2);
+}
+
+.NextDaysCard__day {
+  font-size: var(--nd-date);
+  font-weight: 600;
+}
+
+/*
+  Today: a tinted pane set in from the card's edge by the card's 8px padding,
+  16px corners inside the card's 24px, a 1px edge, semibold. It replaces the
+  solid bar the month table had.
+*/
+.NextDaysCard .NextDaysCard__today {
+  background: var(--nd-today-bg);
+  border: 1px solid var(--nd-today-edge);
+  color: var(--nd-today-text);
+}
+
+.NextDaysCard__today .NextDaysCard__time,
+.NextDaysCard__time--today {
+  font-weight: 600;
+}
+
+.NextDaysCard__today .NextDaysCard__weekday,
+.NextDaysCard__today .NextDaysCard__name {
+  color: var(--nd-today-text);
+}
+
+/* A new month, or a new year. */
+.NextDaysCard__divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 26px;
+  padding: 0 12px;
+  font-size: var(--nd-name);
+  font-weight: 600;
+  color: var(--nd-text2);
+}
+
+.NextDaysCard__divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--nd-line);
+}
+
+.NextDaysCard__skeleton {
+  width: 70%;
+  margin: 0 auto;
+}
+
+/* ---- Three by two, when seven columns do not fit ---- */
+
+.NextDaysCard__blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.NextDaysCard__blocks .NextDaysCard__divider {
+  min-height: 30px;
+}
+
+.NextDaysCard__block {
+  padding: 10px 12px 12px;
+  border: 1px solid var(--nd-line);
+  border-radius: 16px;
+  color: var(--ion-text-color, #000);
+}
+
+.NextDaysCard .NextDaysCard__block-heading {
+  margin: 0;
+  font-size: calc(13px * var(--nd-scale));
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--nd-text2);
+}
+
+.NextDaysCard__today .NextDaysCard__block-heading {
+  color: var(--nd-today-text);
+}
+
+.NextDaysCard__block-times {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 4px;
+  margin-top: 6px;
+}
+
+.NextDaysCard__blocks--two .NextDaysCard__block-times {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.NextDaysCard__block-cell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.NextDaysCard__block-cell .NextDaysCard__name,
+.NextDaysCard__probe--stacked .NextDaysCard__name {
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.NextDaysCard__block-cell .NextDaysCard__time,
+.NextDaysCard__probe--stacked .NextDaysCard__time {
+  font-size: calc(16px * var(--nd-scale));
+}
+
+/* ---- What the layout is chosen by ---- */
+
+/*
+  A box of no size that clips what it holds, so a probe wider than the screen
+  never widens the page. Each probe sets its own layout's sizes.
+*/
+.NextDaysCard__probe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+  display: block;
+  white-space: nowrap;
+}
+
+.NextDaysCard__probe > * {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.NextDaysCard__probe .NextDaysCard__probe-date {
+  width: var(--nd-date-col);
+}
+
+.NextDaysCard__probe--stacked {
+  --nd-name: calc(11.5px * var(--nd-scale));
+}
+
+.NextDaysCard__probe--normal {
+  --nd-date-col: calc(52px * var(--nd-scale));
+  --nd-name: calc(11.5px * var(--nd-scale));
+  --nd-time: calc(14.5px * var(--nd-scale));
+}
+
+.NextDaysCard__probe--compact {
+  --nd-date-col: calc(46px * var(--nd-scale));
+  --nd-name: calc(10.5px * var(--nd-scale));
+  --nd-time: calc(13px * var(--nd-scale));
+}

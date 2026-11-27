@@ -1,22 +1,39 @@
 /*
-  The cells' size, set here so em below means it. Grows with the system text
-  size (MEL-105).
+  The whole month, on its own screen (MEL-363). The cells' size is set here
+  so em below means it; it grows with the system text size (MEL-105).
 */
 .MonthPrayerTable {
   --cell-font: calc(14px * var(--text-scale, 1));
+  --mpt-text2: rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.68);
+  --mpt-line: rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.08);
+  --mpt-today-bg: rgba(var(--ion-color-primary-rgb), 0.13);
+  --mpt-today-edge: rgba(var(--ion-color-primary-rgb), 0.4);
+  --mpt-today-text: var(--ion-color-primary-shade);
   table-layout: fixed;
   width: 100%;
   /*
-    Never narrower than seven columns of times need: a day number, then six
-    times of about 2.8em each with a little room. At the default size that is
-    well inside any phone; at a large size it is wider than the screen, and
-    the scroller below lets it scroll sideways rather than wrapping "06:26"
-    into "06:2" over "6". MonthPrayerTable.tsx compares this width, not the
-    table's, with the screen's, so the choice does not depend on itself.
+    Never narrower than seven columns of times need: the day and its weekday,
+    then six times of about 2.8em each with a little room. At the default
+    size that is well inside any phone; at a large size it is wider than the
+    screen, and the scroller below lets it scroll sideways rather than
+    wrapping "06:26" into "06:2" over "6". MonthPrayerTable.tsx compares this
+    width, not the table's, with the screen's, so the choice does not depend
+    on itself.
   */
-  min-width: calc(1.45em + 6 * 3.3em);
-  border-collapse: collapse;
+  min-width: calc(3.3em + 6 * 3.3em);
+  /* Separate, so a row's ends can be rounded and today's edge drawn. */
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: var(--cell-font);
+  font-variant-numeric: tabular-nums;
+}
+
+.ion-palette-dark .MonthPrayerTable {
+  --mpt-today-text: var(--ion-color-primary-tint);
+}
+
+.sky-theme .MonthPrayerTable {
+  --mpt-today-text: var(--ion-color-primary);
 }
 
 .MonthPrayerTable__scroller--scrolls {
@@ -44,12 +61,6 @@
   background: var(--ion-card-background, #fff);
 }
 
-.MonthPrayerTable__scroller--scrolls
-  .MonthPrayerTable__row:nth-child(even)
-  .MonthPrayerTable__col--day {
-  background: var(--ion-color-light);
-}
-
 .MonthPrayerTable thead tr:nth-child(1) th {
   /* The table sits in a card, and this header sticks over its own rows, so it
      has to be opaque in whichever palette is active. One variable rather than
@@ -57,42 +68,103 @@
   background: var(--ion-card-background, #fff);
   position: sticky;
   top: 0;
+  z-index: 2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding: 8px 0 6px;
+  font-size: calc(var(--cell-font) * 0.82);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--mpt-text2);
+  border-bottom: 1px solid var(--mpt-line);
 }
 
 .MonthPrayerTable__col {
   text-align: center;
-  padding: 4px 0 4px 0;
+  height: 34px;
+  padding: 0;
   white-space: nowrap;
+  border: 1px solid transparent;
+  border-width: 1px 0;
 }
 
 .MonthPrayerTable__col--day {
-  width: 1.45em;
+  width: 3.3em;
 }
 
-.MonthPrayerTable__row:nth-child(even) {
+.MonthPrayerTable__day {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 3px;
+}
+
+.MonthPrayerTable__date {
+  font-weight: 600;
+}
+
+.MonthPrayerTable__weekday {
+  min-width: 1.4em;
+  text-align: left;
+  font-size: 0.75em;
+  font-weight: 500;
+  color: var(--mpt-text2);
+}
+
+/* Stripes, rounded at their ends like the day card's panes. */
+.MonthPrayerTable__row:nth-child(even) .MonthPrayerTable__col {
   background: var(--ion-color-light);
 }
 
-.MonthPrayerTable__row--selected .MonthPrayerTable__col {
-  background: var(--ion-color-primary) !important;
-  color: var(--ion-color-primary-contrast);
+.MonthPrayerTable__row .MonthPrayerTable__col:first-child {
+  border-left-width: 1px;
+  border-radius: 12px 0 0 12px;
 }
 
-.MonthPrayerTable__row--selected .MonthPrayerTable__col:first-child {
-  /* top-left | top-right | bottom-right | bottom-left */
-  border-radius: 8px 0 0 8px;
+.MonthPrayerTable__row .MonthPrayerTable__col:last-child {
+  border-right-width: 1px;
+  border-radius: 0 12px 12px 0;
 }
 
-.MonthPrayerTable__row--selected .MonthPrayerTable__col:last-child {
-  /* top-left | top-right | bottom-right | bottom-left */
-  border-radius: 0 8px 8px 0;
+/*
+  Today: a tinted pane with a 1px edge and semibold text, the same as on the
+  Next 7 days card, in place of the solid bar.
+*/
+.MonthPrayerTable__row--selected .MonthPrayerTable__col,
+.MonthPrayerTable__scroller--scrolls
+  .MonthPrayerTable__row--selected
+  .MonthPrayerTable__col--day {
+  background: var(--mpt-today-bg);
+  border-color: var(--mpt-today-edge);
+  color: var(--mpt-today-text);
+  font-weight: 600;
+}
+
+/*
+  Pinned while scrolling sideways, today's date cell has to be opaque too:
+  the card under the tint, so the times passing beneath do not show through.
+*/
+.MonthPrayerTable__scroller--scrolls
+  .MonthPrayerTable__row--selected
+  .MonthPrayerTable__col--day {
+  background:
+    linear-gradient(var(--mpt-today-bg), var(--mpt-today-bg)),
+    var(--ion-card-background, #fff);
+}
+
+.MonthPrayerTable__scroller--scrolls
+  .MonthPrayerTable__row:nth-child(even):not(.MonthPrayerTable__row--selected)
+  .MonthPrayerTable__col--day {
+  background: var(--ion-color-light);
+}
+
+.MonthPrayerTable__row--selected .MonthPrayerTable__weekday {
+  color: var(--mpt-today-text);
 }
 
 @media (max-width: 375px) {
   .MonthPrayerTable {
-    --cell-font: calc(12px * var(--text-scale, 1));
+    --cell-font: calc(13px * var(--text-scale, 1));
   }
 }
