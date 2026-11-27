@@ -227,8 +227,8 @@ final class PreviewCapture: XCTestCase {
     }
 
     private func captureMainScreens(theme: String) {
-        let app = launch(settings: settingsJSON(theme: theme))
-        let web = app.webViews.firstMatch
+        var app = launch(settings: settingsJSON(theme: theme))
+        var web = app.webViews.firstMatch
         XCTAssertTrue(web.staticTexts["Fajr"].waitForExistence(timeout: 30))
         settle()
         capture("app-today-\(theme)")
@@ -239,6 +239,14 @@ final class PreviewCapture: XCTestCase {
             settle()
             capture("app-month-\(theme)")
             if tapIfPresent(web.links["Back"], timeout: 10) {
+                settle()
+            } else {
+                // Stuck on the month screen: start again at home, so the
+                // settings capture after this still has its link to tap.
+                app.terminate()
+                app = launch(settings: settingsJSON(theme: theme))
+                web = app.webViews.firstMatch
+                XCTAssertTrue(web.staticTexts["Fajr"].waitForExistence(timeout: 30))
                 settle()
             }
         }

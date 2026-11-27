@@ -65,9 +65,12 @@ const MonthPrayerTable: React.FC<Props> = ({ month, year }) => {
       : "MonthPrayerTable__row";
   };
 
-  const [monthData, setMonthData] = useState<Array<PrayerDayTimes> | null>(
-    null
-  );
+  // Kept with the month it is for, so a month still loading shows its
+  // skeleton rather than the last month's rows under the new title.
+  const [loaded, setLoaded] = useState<{
+    key: string;
+    data: Array<PrayerDayTimes>;
+  } | null>(null);
 
   const settings = state.settings.value;
   let location: PrayerLocation | null = null;
@@ -78,15 +81,24 @@ const MonthPrayerTable: React.FC<Props> = ({ month, year }) => {
     asrMethod = settings.asrMethod;
   }
 
-  useEffect(() => {
-    if (location !== null && asrMethod !== null) {
-      const times = createPrayerTimes(location, asrMethod);
+  const monthKey = `${year}-${month}-${location}-${asrMethod}`;
+  const monthData = loaded?.key === monthKey ? loaded.data : null;
 
-      times.getMonth(month, year).then((data) => {
-        setMonthData(data);
-      });
-    }
-  }, [month, year, location, asrMethod]);
+  useEffect(() => {
+    if (location === null || asrMethod === null) return;
+    // Stepping quickly from month to month, an earlier month's lookup - a
+    // year's file still being imported - can finish after a later one's.
+    let cancelled = false;
+    const times = createPrayerTimes(location, asrMethod);
+    times.getMonth(month, year).then((data) => {
+      if (!cancelled) setLoaded({ key: monthKey, data });
+    });
+    return () => {
+      cancelled = true;
+    };
+    // `monthKey` covers the month, the year, the place and the Asr.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monthKey]);
 
   const monthLoading = Array.from({ length: 30 }).map((_, index) => (
     <tr className="MonthPrayerTable__row" key={index}>

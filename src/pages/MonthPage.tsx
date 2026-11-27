@@ -16,7 +16,7 @@ import CenteredMaxWidthContainer from "../components/CenteredMaxWidthContainer";
 import PageTitle from "../components/PageTitle";
 import { getMonthNames } from "../lib/dateUtils";
 import { getZonedDateParts } from "../lib/timeZone";
-import { timetableZoneFor } from "../lib/PrayerTimeData";
+import { firstTimetableYear, timetableZoneFor } from "../lib/PrayerTimeData";
 import { useSettings } from "../lib/useSettings";
 import "./MonthPage.css";
 
@@ -48,6 +48,13 @@ const MonthPage: React.FC = () => {
   const names = getMonthNames();
   const prev = step(shown, -1);
   const next = step(shown, 1);
+  // Not back past the location's first timetable: before it, the file
+  // after would be shown under the wrong year.
+  const firstYear =
+    appSettings?.location != null
+      ? firstTimetableYear(appSettings.location)
+      : null;
+  const canGoBack = firstYear == null || prev.year >= firstYear;
 
   return (
     <IonPage className="MonthPage">
@@ -78,6 +85,7 @@ const MonthPage: React.FC = () => {
               fill="clear"
               className="MonthPage__step"
               data-testid="previous-month"
+              disabled={!canGoBack}
               onClick={() => setShown(prev)}
             >
               <IonIcon slot="start" icon={chevronBack} aria-hidden="true" />

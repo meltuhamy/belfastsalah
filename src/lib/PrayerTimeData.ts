@@ -141,6 +141,18 @@ export function getAvailableYears(location: PrayerLocation): Array<number> {
     .sort((a, b) => a - b);
 }
 
+/**
+ * The first year a location's month screen can step back to, or null for
+ * none. Before its first file a location would be served the file above
+ * (chooseYear), so its times would show under a year they are not for.
+ * After it there is no limit: London and Istanbul calculate later years,
+ * and Belfast's one timetable is the one it uses every year, this one
+ * included.
+ */
+export function firstTimetableYear(location: PrayerLocation): number | null {
+  return getAvailableYears(location)[0] ?? null;
+}
+
 // London's times after its last file are calculated on the device, the way
 // the timetable itself calculates them (londonCalculation.ts). The files that
 // remain, 2022 to 2026, came from older spreadsheets that differ from the

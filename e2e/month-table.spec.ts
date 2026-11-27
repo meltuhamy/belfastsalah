@@ -91,8 +91,8 @@ test("steps a month either way, across the turn of the year", async ({
   await expect(page.getByTestId("month-title")).toHaveText("December 2025");
   // london-2025.json, 1 December.
   await expect
-    .poll(async () => (await monthRows(page))[0]?.[0])
-    .toBe("1");
+    .poll(async () => (await monthRows(page))[0])
+    .toEqual(["1", "05:58", "07:40", "11:54", "13:38", "15:58", "17:35"]);
   await expect.poll(async () => (await monthRows(page)).length).toBe(31);
   await expect.poll(() => highlightedDays(page)).toEqual([]);
 
