@@ -371,7 +371,14 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
               }`}
               data-testid="fajr-line"
             />
-            <span className="PrayerDayCard__sun" />
+            {/*
+          The sun on a layer of its own, which fades its halo out at the
+          card's sides. Not the whole sky: a mask isolates what it covers,
+          and the lens flare's screen blend would no longer reach the sky.
+        */}
+            <span className="PrayerDayCard__sun-layer">
+              <span className="PrayerDayCard__sun" />
+            </span>
             <LensFlare />
           </span>
         )}
