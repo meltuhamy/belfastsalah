@@ -339,6 +339,30 @@ class WidgetRenderTest {
         assertEquals("Open the app", widget.text(R.id.widget_location))
     }
 
+    @Test
+    fun `the wide widget keeps the setting sun above the bottom prayer row`() {
+        // Midday is unchanged; the horizon moves from 0.90 to 0.52 on WIDE only.
+        assertEquals(0.24, SkyPainter.sunY(0.24, 0.52f), 1e-6)
+        assertEquals(0.52, SkyPainter.sunY(0.90, 0.52f), 1e-6)
+        assertEquals(0.90, SkyPainter.sunY(0.90), 1e-6)
+
+        val sunset = draw(
+            WidgetKind.WIDE, homeScreenSize(WidgetKind.WIDE), sky, nowMillis = PayloadFixture.SUNSET
+        ).skyPicture()!!
+        // At SUNSET (x ≈ 0.93), the sun brightens y ≈ 0.53 relative to the left side of the same row,
+        // and no longer sits in the bottom prayer row (y ≈ 0.90).
+        val xSun = (sunset.width * 0.93).toInt()
+        val xClear = (sunset.width * 0.15).toInt()
+        val ySun = (sunset.height * 0.53).toInt()
+        val yBottom = (sunset.height * 0.90).toInt()
+        assertTrue(Color.red(sunset.getPixel(xSun, ySun)) > Color.red(sunset.getPixel(xClear, ySun)) + 15)
+        assertTrue(
+            kotlin.math.abs(
+                Color.red(sunset.getPixel(xSun, yBottom)) - Color.red(sunset.getPixel(xClear, yBottom))
+            ) <= 2
+        )
+    }
+
     private fun clock(millis: Long): String {
         val minutes = (millis / 60_000) % (24 * 60)
         return "%02d:%02d".format(minutes / 60, minutes % 60)

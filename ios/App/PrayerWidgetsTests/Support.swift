@@ -136,7 +136,7 @@ struct WidgetFrame: View {
             } else {
                 PrayerWidgetContent(entry: entry, family: family, colors: colors)
                     .padding(16)
-                    .background(WidgetBackground(colors: colors))
+                    .background(WidgetBackground(colors: colors, family: family))
                     .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             }
         }

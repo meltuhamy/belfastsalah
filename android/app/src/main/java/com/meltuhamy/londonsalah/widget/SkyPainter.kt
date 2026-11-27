@@ -41,16 +41,30 @@ object SkyPainter {
         floatArrayOf(0.36f, 0.46f, 0.75f, 0.4f), floatArrayOf(0.84f, 0.52f, 0.75f, 0.4f)
     )
 
+    internal const val DEFAULT_SUN_HORIZON_Y = 0.9f
+    private const val SUN_NOON_Y = 0.24
+
+    /**
+     * Maps the sun's vertical fraction from `WidgetSky`'s [0.24, 0.9] arc so
+     * widgets with a bottom prayer row keep the rising and setting sun above it.
+     */
+    internal fun sunY(rawY: Double, sunHorizonY: Float = DEFAULT_SUN_HORIZON_Y): Double =
+        if (sunHorizonY == DEFAULT_SUN_HORIZON_Y) rawY
+        else SUN_NOON_Y + (rawY - SUN_NOON_Y) * ((sunHorizonY - SUN_NOON_Y) / (DEFAULT_SUN_HORIZON_Y - SUN_NOON_Y))
+
     /**
      * The sky at `widthDp` x `heightDp`, drawn at up to `density` pixels a dp.
      * `sunDp` is the sun's diameter: smaller on the narrow widgets.
+     * `sunHorizonY` is where the sun sits at sunrise and sunset, as a fraction
+     * of the widget's height (0.9 by default).
      */
     fun paint(
         sky: SkyState,
         widthDp: Int,
         heightDp: Int,
         density: Float,
-        sunDp: Float
+        sunDp: Float,
+        sunHorizonY: Float = DEFAULT_SUN_HORIZON_Y
     ): Bitmap {
         val w = max(widthDp, 1)
         val h = max(heightDp, 1)
@@ -143,7 +157,7 @@ object SkyPainter {
         // Maghrib, though the arc keeps it 45 minutes either side.
         sky.sun?.takeIf { light.sunOn > 0 }?.let { sun ->
             val cx = (sun.x * width).toFloat()
-            val cy = (sun.y * height).toFloat()
+            val cy = (sunY(sun.y, sunHorizonY) * height).toFloat()
             val radius = sunDp / 2 * scale
             val base = colour(sun.colour)
             val on = light.sunOn.toFloat()

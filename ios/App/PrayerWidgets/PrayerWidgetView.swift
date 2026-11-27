@@ -22,7 +22,7 @@ struct PrayerWidgetEntryView: View {
                 switch family {
                 case .accessoryCircular: AccessoryWidgetBackground()
                 case .accessoryRectangular, .accessoryInline: Color.clear
-                default: WidgetBackground(colors: colors)
+                default: WidgetBackground(colors: colors, family: family)
                 }
             }
     }
@@ -31,10 +31,11 @@ struct PrayerWidgetEntryView: View {
 /** The widget's background: the sky for the Sky palette, else a plain colour. */
 struct WidgetBackground: View {
     let colors: WidgetColors
+    let family: WidgetFamily
 
     var body: some View {
         if let sky = colors.sky {
-            SkyBackground(sky: sky)
+            SkyBackground(sky: sky, sunHorizonY: family == .systemMedium ? 0.52 : 0.9)
         } else {
             colors.background
         }
@@ -47,6 +48,7 @@ struct WidgetBackground: View {
  */
 struct SkyBackground: View {
     let sky: SkyState
+    var sunHorizonY: Double = 0.9
 
     /** Fractions across and down, a radius in points and a strength. */
     private static let stars: [(x: Double, y: Double, r: Double, o: Double)] = [
@@ -132,11 +134,14 @@ struct SkyBackground: View {
                 // The sun at the card's strength: none before Shuruq, fading
                 // after Maghrib, though the arc keeps it 45 minutes either side.
                 if let sun = sky.sun, sky.light.sunOn > 0 {
+                    let sunY = sunHorizonY == 0.9
+                        ? sun.y
+                        : 0.24 + (sun.y - 0.24) * ((sunHorizonY - 0.24) / (0.9 - 0.24))
                     Circle()
                         .fill(Color(hex: sun.colour))
                         .frame(width: 26, height: 26)
                         .shadow(color: Color(hex: sun.colour).opacity(0.5), radius: 14)
-                        .position(x: sun.x * size.width, y: sun.y * size.height)
+                        .position(x: sun.x * size.width, y: sunY * size.height)
                         .opacity(sky.light.sunOn)
                 }
             }
