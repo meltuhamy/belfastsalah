@@ -60,23 +60,27 @@ describe("nextDays", () => {
   it("follows the calendar's own February, not the timetable file's", () => {
     // Every non-leap year's file carries a 29 February; the calendar does not.
     const entries = nextDays({ year: 2026, month: 2, day: 27 });
-    expect(entries.map((e) => (e.kind === "day" ? e.label : e.label))).toEqual(
-      [
-        "Fri 27 Feb",
-        "Sat 28 Feb",
-        "March",
-        "Sun 1 Mar",
-        "Mon 2 Mar",
-        "Tue 3 Mar",
-        "Wed 4 Mar",
-        "Thu 5 Mar",
-      ]
-    );
+    expect(entries.map((e) => (e.kind === "day" ? e.label : e.label))).toEqual([
+      "Fri 27 Feb",
+      "Sat 28 Feb",
+      "March",
+      "Sun 1 Mar",
+      "Mon 2 Mar",
+      "Tue 3 Mar",
+      "Wed 4 Mar",
+      "Thu 5 Mar",
+    ]);
     expect(days(nextDays({ year: 2028, month: 2, day: 28 }))[1].day).toBe(29);
   });
 
   it("gives every row a key of its own", () => {
     const entries = nextDays({ year: 2026, month: 12, day: 28 });
     expect(new Set(entries.map((e) => e.key)).size).toBe(entries.length);
+  });
+
+  it("writes months as the day card does", () => {
+    expect(days(nextDays({ year: 2026, month: 9, day: 1 }))[0].label).toBe(
+      "Tue 1 Sept"
+    );
   });
 });

@@ -1,5 +1,5 @@
 import { getMonthNames } from "./dateUtils";
-import { ZonedDateParts } from "./timeZone";
+import { formatDateInZone, ZonedDateParts } from "./timeZone";
 
 /**
  * The days the home screen's Next 7 days card shows, from today (MEL-363).
@@ -37,7 +37,12 @@ export type NextDaysDivider = {
 export type NextDaysEntry = NextDay | NextDaysDivider;
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const SHORT_MONTHS = getMonthNames().map((name) => name.slice(0, 3));
+// From the formatter the day card writes its date with, so both cards say
+// "Sept" for September, as en-GB does.
+const SHORT_MONTHS = getMonthNames().map(
+  (_, m) =>
+    formatDateInZone(new Date(Date.UTC(2026, m, 1, 12)), "UTC").split(" ")[2]
+);
 
 function pad(n: number): string {
   return String(n).padStart(2, "0");
@@ -52,7 +57,9 @@ export function nextDays(
   for (let i = 0; i < count; i++) {
     // Midday UTC on the calendar day, so the arithmetic never meets a clock
     // change; Date.UTC rolls the day over into the next month and year.
-    const date = new Date(Date.UTC(today.year, today.month - 1, today.day + i, 12));
+    const date = new Date(
+      Date.UTC(today.year, today.month - 1, today.day + i, 12)
+    );
     const year = date.getUTCFullYear();
     const month = date.getUTCMonth();
     const day = date.getUTCDate();
