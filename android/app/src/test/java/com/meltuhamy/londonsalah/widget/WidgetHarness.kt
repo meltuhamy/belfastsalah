@@ -14,6 +14,7 @@ import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import com.meltuhamy.londonsalah.R
 import org.robolectric.Robolectric
+import org.robolectric.android.controller.ActivityController
 import org.robolectric.Shadows.shadowOf
 import kotlin.math.min
 
@@ -117,6 +118,9 @@ object WidgetHarness {
         )
     )
 
+    /** The activity the last widget was drawn in, closed by the next draw. */
+    private var lastActivity: ActivityController<Activity>? = null
+
     /** Roughly a wallpaper, so a see-through widget has something behind it. */
     const val WALLPAPER = 0xFF33475B.toInt()
 
@@ -135,7 +139,15 @@ object WidgetHarness {
     ): DrawnWidget {
         WidgetStore.write(ApplicationProvider.getApplicationContext(), payload ?: "")
 
-        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        // The last draw's activity goes first. Left open, each one keeps its
+        // window and native surface, and somewhere past sixty in one test
+        // Robolectric's renderer stops answering and the test hangs - which
+        // the One UI sizes (MEL-370), larger and more of them, first reached.
+        // What the tests read off a widget is laid out already and stays.
+        lastActivity?.pause()?.stop()?.destroy()
+        val controller = Robolectric.buildActivity(Activity::class.java).setup()
+        lastActivity = controller
+        val activity = controller.get()
         val (widthDp, heightDp) = size
 
         // The tile sizes its text from the smaller side, as its provider does

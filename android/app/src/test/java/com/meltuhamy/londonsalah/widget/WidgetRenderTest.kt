@@ -371,10 +371,10 @@ class WidgetRenderTest {
         assertEquals(WidgetGrowth.NONE, WidgetGrowth.of(WidgetKind.WIDE, 280 to 139))
         // A Pixel-style 4 x 2, wider but no taller, is left as it was.
         assertEquals(WidgetGrowth.NONE, WidgetGrowth.of(WidgetKind.WIDE, 390 to 139))
-        // Samsung's 4 x 2: the row by the width, the heading by the height.
+        // Samsung's 4 x 2: the row by the width, the heading a little further.
         val samsung = WidgetGrowth.of(WidgetKind.WIDE, WidgetHarness.SAMSUNG_WIDE)
         assertEquals(374 / 295f, samsung.body, 0.001f)
-        assertEquals(221 / 139f, samsung.heading, 0.001f)
+        assertEquals(374 / 295f * WidgetGrowth.HEADING_ROOM, samsung.heading, 0.001f)
         // However big, no more than MAX_GROWTH.
         val huge = WidgetGrowth.of(WidgetKind.WIDE, 900 to 600)
         assertEquals(WidgetGrowth.MAX_GROWTH, huge.body)
