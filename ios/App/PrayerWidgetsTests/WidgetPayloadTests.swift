@@ -150,8 +150,11 @@ final class SkyTests: XCTestCase {
             let v = Double(c) / 255
             return v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4)
         }
-        let c = WidgetSky.channels(hex).map(toLinear)
-        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+        let c: [Double] = WidgetSky.channels(hex).map(toLinear)
+        let r: Double = 0.2126 * c[0]
+        let g: Double = 0.7152 * c[1]
+        let b: Double = 0.0722 * c[2]
+        return r + g + b
     }
 
     private func contrast(_ a: String, _ b: String) -> Double {
@@ -162,17 +165,28 @@ final class SkyTests: XCTestCase {
     /** The colour painted at `f` down the widget's sky, mid stop at 60%. */
     private func painted(_ sky: SkyState, _ f: Double) -> String {
         func mix(_ a: String, _ b: String, _ t: Double) -> String {
-            let x = WidgetSky.channels(a), y = WidgetSky.channels(b)
-            return "#" + (0..<3).map { i in
-                String(format: "%02x", Int((Double(x[i]) + (Double(y[i]) - Double(x[i])) * t).rounded()))
-            }.joined()
+            let x: [Int] = WidgetSky.channels(a)
+            let y: [Int] = WidgetSky.channels(b)
+            var hex = "#"
+            for i in 0..<3 {
+                let from = Double(x[i])
+                let to = Double(y[i])
+                let value: Double = from + (to - from) * t
+                let byte: Int = max(0, min(255, Int(value.rounded())))
+                hex += String(format: "%02x", byte)
+            }
+            return hex
         }
         return f <= 0.6 ? mix(sky.top, sky.mid, f / 0.6) : mix(sky.mid, sky.horizon, (f - 0.6) / 0.4)
     }
 
     /** Worst contrast of one text colour against the gradient it sits on. */
     private func worst(_ text: String, _ sky: SkyState) -> Double {
-        (0...32).map { contrast(text, painted(sky, Double($0) / 32)) }.min() ?? 0
+        var lowest = Double.infinity
+        for i in 0...32 {
+            lowest = min(lowest, contrast(text, painted(sky, Double(i) / 32)))
+        }
+        return lowest
     }
 
     func testKeepsTextReadableFromDuskToFajr() throws {
@@ -184,8 +198,10 @@ final class SkyTests: XCTestCase {
         let nextFajr = payload.days[1].sky[1]
         var lowest = Double.infinity
         var minute = -30
-        while maghrib + Int64(minute) * 60_000 < nextFajr {
-            let at = Date(timeIntervalSince1970: Double(maghrib + Int64(minute) * 60_000) / 1000)
+        while true {
+            let millis: Int64 = maghrib + Int64(minute) * 60_000
+            if millis >= nextFajr { break }
+            let at = Date(timeIntervalSince1970: Double(millis) / 1000)
             let sky = try XCTUnwrap(payload.skyAt(at))
             let white = worst("#ffffff", sky)
             let black = worst("#000000", sky)

@@ -412,8 +412,15 @@ enum WidgetSky {
 
     /** A CSS gradient's sRGB interpolation, with each channel rounded to a byte. */
     private static func mixSrgb(_ a: String, _ b: String, _ f: Double) -> String {
-        let x = channels(a), y = channels(b)
-        return toHex((0..<3).map { Double(x[$0]) + (Double(y[$0]) - Double(x[$0])) * f })
+        let x: [Int] = channels(a)
+        let y: [Int] = channels(b)
+        var mixed: [Double] = []
+        for i in 0..<3 {
+            let from = Double(x[i])
+            let to = Double(y[i])
+            mixed.append(from + (to - from) * f)
+        }
+        return toHex(mixed)
     }
 
     // MARK: Colour arithmetic, as in sky.ts
