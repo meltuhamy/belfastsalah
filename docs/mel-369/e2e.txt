@@ -1,0 +1,5 @@
+  1 failed
+    [mobile-chrome] › e2e/home-page.spec.ts:179:1 › counts the last second down rather than going blank 
+  5 skipped
+  177 passed (1.3m)
+(re-run of the one failure, 'counts the last second down rather than going blank', a headline-animation timing test: 3/3 passed with --repeat-each 3)
