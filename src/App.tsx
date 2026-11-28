@@ -79,6 +79,8 @@ import {
   removeSaveListener,
 } from "./lib/settings";
 import { refreshWidgets } from "./lib/widgets";
+import { useThemePreview } from "./lib/themePreview";
+import DayCardPreviewPage from "./pages/DayCardPreviewPage";
 import FullPageSpinner from "./components/FullPageSpinner";
 import SetupPage from "./pages/SetupPage";
 
@@ -104,11 +106,15 @@ const App: React.FC = () => {
   const [setupTheme, setSetupTheme] = useState<Theme>(
     getDefaultSettings().theme
   );
+  // The day card preview, in debug mode, paints its own theme and moment
+  // while it is open (themePreview.ts).
+  const preview = useThemePreview();
   useTheme(
-    settings?.theme ?? setupTheme,
-    next === null ? null : next.prayer,
-    today,
-    timetableZoneFor(settings?.location ?? null)
+    preview?.theme ?? settings?.theme ?? setupTheme,
+    preview != null ? preview.nextPrayer : next === null ? null : next.prayer,
+    preview != null ? preview.today : today,
+    preview?.timeZone ?? timetableZoneFor(settings?.location ?? null),
+    preview?.now
   );
 
   // Every screen, not just home: the setting is about the app being open.
@@ -376,6 +382,11 @@ const App: React.FC = () => {
           <Route path="/" component={HomePage} exact={true} />
           <Route path="/month" component={MonthPage} exact={true} />
           <Route path="/settings" component={SettingsPage} exact={true} />
+          <Route
+            path="/settings/debug/day-card"
+            component={DayCardPreviewPage}
+            exact={true}
+          />
           <Route
             path="/settings/notifications"
             component={NotificationSettingsPage}

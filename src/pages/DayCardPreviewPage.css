@@ -1,0 +1,128 @@
+/*
+  The day card preview's controls (DayCardPreviewPage). Plain inputs and
+  buttons rather than Ionic's, which the once-a-second re-render would
+  clobber mid-drag; sized for a thumb, at the app's text size.
+*/
+.DayCardPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 4px 16px 32px;
+  color: var(--ion-text-color, #000);
+  font-size: calc(14px * var(--text-scale, 1));
+}
+
+.DayCardPreview__clock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.DayCardPreview__time {
+  font-size: calc(32px * var(--text-scale, 1));
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.DayCardPreview__date,
+.DayCardPreview__label,
+.DayCardPreview__note,
+.DayCardPreview legend {
+  color: var(--ion-color-medium, #666);
+}
+
+.DayCardPreview__label {
+  margin-bottom: -8px;
+}
+
+.DayCardPreview input[type="range"] {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--ion-color-primary);
+}
+
+.DayCardPreview__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.DayCardPreview input[type="date"] {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--ion-color-step-250, #ccc);
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.DayCardPreview button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--ion-color-step-250, #ccc);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.DayCardPreview button[aria-pressed="true"] {
+  border-color: var(--ion-color-primary);
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
+}
+
+.DayCardPreview__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.DayCardPreview__chips legend {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.DayCardPreview__jumps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.DayCardPreview__jump {
+  display: grid;
+  grid-template-columns: minmax(5em, 1fr) repeat(3, minmax(0, 1.2fr));
+  gap: 6px;
+  align-items: center;
+}
+
+.DayCardPreview__jump button {
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.DayCardPreview__prayer {
+  display: flex;
+  flex-direction: column;
+  font-weight: 500;
+}
+
+.DayCardPreview__prayer small {
+  color: var(--ion-color-medium, #666);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.DayCardPreview__note {
+  margin: 0;
+  font-size: calc(12px * var(--text-scale, 1));
+}

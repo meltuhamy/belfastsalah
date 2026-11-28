@@ -518,6 +518,40 @@ which use ids 0 up to `notificationLimit` in `src/lib/reminderSchedule.ts`
 (181 on Android, 64 elsewhere). The test day's notifications use 9900 up;
 a reschedule leaves every id from 9900 alone.
 
+## Version and debug mode
+
+Settings ends with a Version row (`VersionRow`, `src/components/DebugSettings.tsx`):
+the store version and build, read back from the native app (`App.getInfo`;
+the files say 0.0.0 on purpose), or "Web", and the short commit the bundle
+was built from - `__APP_COMMIT__`, defined in `vite.config.ts` from
+`git rev-parse` (`APP_COMMIT` overrides it).
+
+- **Seven taps on it, then a press held for seven seconds, turns debug mode
+  on** (`src/lib/debugUnlock.ts`, tested against a made-up clock). Nothing on
+  screen gives it away until it has. A long press there must not select text
+  or open a callout, hence `settings-list__version`.
+- **Debug mode** (`src/lib/debugMode.ts`) is its own Preferences key, not a
+  setting: nothing migrates or syncs it. It adds a Debug section at the foot
+  of settings (`DebugSection`) - the place for any tool not meant for
+  everyone; each is a screen under `/settings/debug` - and a row to turn it
+  off.
+- **Day card preview** (`/settings/debug/day-card`, `DayCardPreviewPage`):
+  the day card for any place, theme and moment, on a clock of its own
+  (`src/lib/previewClock.ts`): a time slider, a date, speeds up to a day in
+  40 seconds, and for each prayer a jump to a minute before, two seconds
+  before (to watch it come in) and a minute after its adhan moment. It
+  changes nothing real: the card reads the chosen place and theme through
+  `SettingsOverride` (useSettings.ts, read-only), the app paints the theme
+  and moment through `themePreview.ts` while the screen is open (useTheme
+  stays the only thing touching the palette), and reminders and widgets go on
+  from the stored settings and the real clock. No global clock is patched.
+  A link opens it onto a scenario on the web, debug mode or not:
+  `/settings/debug/day-card?location=istanbul&theme=skyV2&at=2026-11-27T17:44&speed=0`
+  (`at` is the place's wall clock, or any ISO instant; `speed` is preview
+  seconds per second).
+- e2e: `e2e/debug-mode.spec.ts`. Ionic keeps the home page, and its card,
+  in the DOM behind the preview, so the spec tells the two cards apart.
+
 ## Prayer reminders
 
 Settings has one switch, Prayer Notifications (`notify`), and under it a

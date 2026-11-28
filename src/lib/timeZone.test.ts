@@ -7,6 +7,7 @@ import {
   formatTimeInZone,
   formatDateInZone,
   describeTimeZone,
+  zonedTime,
 } from "./timeZone";
 
 describe("getZonedDateParts", () => {
@@ -177,5 +178,26 @@ describe("formatDateInZone", () => {
     const instant = new Date("2026-08-05T23:30:00Z");
     expect(formatDateInZone(instant, UK_TIME_ZONE)).toEqual("Thu 6 Aug");
     expect(formatDateInZone(instant, "America/Los_Angeles")).toEqual("Wed 5 Aug");
+  });
+});
+
+describe("zonedTime", () => {
+  it("reads a wall-clock time in the zone", () => {
+    expect(zonedTime(2026, 11, 27, 15 * 60 + 28, "Europe/Istanbul").toISOString()).toBe(
+      "2026-11-27T12:28:00.000Z"
+    );
+    expect(zonedTime(2026, 2, 15, 10 * 60, "Europe/London").toISOString()).toBe(
+      "2026-02-15T10:00:00.000Z"
+    );
+  });
+
+  it("uses each side's offset on the day the clocks change", () => {
+    // London goes to BST at 01:00 GMT on 29 March 2026.
+    expect(zonedTime(2026, 3, 29, 30, "Europe/London").toISOString()).toBe(
+      "2026-03-29T00:30:00.000Z"
+    );
+    expect(zonedTime(2026, 3, 29, 12 * 60, "Europe/London").toISOString()).toBe(
+      "2026-03-29T11:00:00.000Z"
+    );
   });
 });

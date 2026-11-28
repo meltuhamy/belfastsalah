@@ -85,3 +85,10 @@
   margin-inline-end: 32px;
   opacity: 0.54;
 }
+
+/* The Version row takes a long press (DebugSettings.tsx): no text selection or callout. */
+.settings-list__version {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}

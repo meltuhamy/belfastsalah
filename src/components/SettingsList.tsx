@@ -51,6 +51,7 @@ import {
 } from "../lib/widgets";
 import { useLongPress } from "../lib/useLongPress";
 import "./SettingsList.css";
+import { DebugSection, VersionRow } from "./DebugSettings";
 import { useLargeText } from "../lib/textScale";
 
 type Props = {
@@ -451,6 +452,8 @@ const SettingsList: React.FC<Props> = ({
         </IonLabel>
         <IonIcon icon={openOutline} slot="end" size="small" />
       </IonItem>
+      <VersionRow />
+      <DebugSection />
 
       <IonToast
         data-testid="test-notification-toast"

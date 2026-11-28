@@ -1,9 +1,29 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { execSync } from "node:child_process";
+
+/**
+ * The commit this build is made from, short, for the Version row in
+ * settings. APP_COMMIT wins where the checkout is not the commit wanted -
+ * a pull request's merge commit, say.
+ */
+function commit(): string {
+  if (process.env.APP_COMMIT) return process.env.APP_COMMIT.slice(0, 7);
+  try {
+    return execSync("git rev-parse --short=7 HEAD", { stdio: ["ignore", "pipe", "ignore"] })
+      .toString()
+      .trim();
+  } catch {
+    return "unknown";
+  }
+}
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __APP_COMMIT__: JSON.stringify(commit()),
+  },
   build: {
     // Capacitor copies from here into the native projects.
     outDir: "build",

@@ -94,6 +94,24 @@ export function shiftZonedDay(
   return new Date(Date.UTC(year, month - 1, day + days, 12));
 }
 
+/**
+ * The instant a wall-clock time is in `timeZone`: `minutes` after midnight
+ * on the given date (month 1 to 12). Twice over, so a time on the far side of
+ * a clock change gets that side's offset.
+ */
+export function zonedTime(
+  year: number,
+  month: number,
+  day: number,
+  minutes: number,
+  timeZone: string
+): Date {
+  const wall = Date.UTC(year, month - 1, day, 0, minutes);
+  let instant = wall - getZoneOffsetMinutes(new Date(wall), timeZone) * 60_000;
+  instant = wall - getZoneOffsetMinutes(new Date(instant), timeZone) * 60_000;
+  return new Date(instant);
+}
+
 /** An instant inside the given calendar day, for zones near UTC. */
 export function middayOn(year: number, month: number, day: number): Date {
   return new Date(Date.UTC(year, month, day, 12));

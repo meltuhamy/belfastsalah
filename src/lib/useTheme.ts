@@ -96,10 +96,12 @@ export function useTheme(
   nextPrayer: Prayer | null,
   today: PrayerDayTimes | null,
   /** The timetable's zone, which decides where its day starts and ends. */
-  timeZone: string
+  timeZone: string,
+  /** The moment to paint: now, except in the day card preview. */
+  at: Date = new Date()
 ): void {
   const prefersDark = useSystemPrefersDark();
-  const now = new Date();
+  const now = at;
   const sky = isSkyTheme(theme);
   const skyDay = useSkyDay(sky, today, now);
   // London's zone goes with London's stand-in day.
