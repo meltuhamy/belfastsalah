@@ -262,6 +262,51 @@ class WidgetRenderTest {
         assertEquals(Color.WHITE, widget.textColor(R.id.widget_countdown))
     }
 
+    @Test
+    fun `every strip cell but the next is faded, by day and after Isha`() {
+        // The app fades the whole cell to 0.6, name and time together, in both
+        // the ordinary daytime row and the night row. The next cell keeps its
+        // full-strength text; which one that is moves with the clock.
+        for ((now, nextIndex) in listOf(ONE_PM to ASR, AFTER_ISHA to NIGHT_TIMES.lastIndex)) {
+            for (kind in timetables) {
+                val widget = draw(kind, homeScreenSize(kind), nowMillis = now)
+                val names = WidgetHarness.NAME_VIEWS.getValue(kind)
+                val times = WidgetHarness.TIME_VIEWS.getValue(kind)
+                for (i in 0..5) {
+                    val alpha = if (i == nextIndex) 255 else 153
+                    for (id in listOf(names[i], times[i])) {
+                        assertEquals(
+                            "$kind at ${clock(now)} cell $i view $id",
+                            alpha,
+                            Color.alpha(widget.textColor(id))
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `the fade keeps the sky's black and white underneath it`() {
+        // MEL-371 still decides the colour; the 0.6 is composed onto it.
+        for (kind in timetables) {
+            val widget = draw(kind, homeScreenSize(kind), sky, nowMillis = ONE_PM)
+            val next = widget.highlighted(CELLS.getValue(kind)).single()
+            for (i in 0..5) {
+                val time = widget.textColor(WidgetHarness.TIME_VIEWS.getValue(kind)[i])
+                // MEL-371: the sky's own text is black, but the solid highlight
+                // takes white on top of it. Both are now under the same fade.
+                val rgb = if (i == next) Color.WHITE else Color.BLACK
+                assertEquals("$kind cell $i colour", rgb and 0x00FFFFFF, time and 0x00FFFFFF)
+                assertEquals(
+                    "$kind cell $i alpha",
+                    if (i == next) 255 else 153,
+                    Color.alpha(time)
+                )
+            }
+        }
+    }
+
     // --- The Sky palette -------------------------------------------------------
 
     private val sky = WidgetConfig(palette = WidgetPalette.SKY)

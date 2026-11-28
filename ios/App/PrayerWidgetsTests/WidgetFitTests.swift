@@ -94,6 +94,17 @@ final class WidgetFitTests: XCTestCase {
         window.isHidden = true
     }
 
+    /**
+     * The app fades every strip cell but the next to 0.6, name and time
+     * together. SwiftUI's colours cannot be read back from a view here, so
+     * this pins the one value both home-screen strips apply; the snapshots
+     * check where it lands on the actual pixels.
+     */
+    func testEveryStripCellButTheNextIsFaded() {
+        XCTAssertEqual(stripCellOpacity(isNext: true), 1)
+        XCTAssertEqual(stripCellOpacity(isNext: false), 0.6)
+    }
+
     private final class Box {
         var values: [String: FitMeasurement] = [:]
     }

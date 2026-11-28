@@ -3,6 +3,7 @@ package com.meltuhamy.londonsalah.widget
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.os.Build
 import android.os.SystemClock
 import android.util.SizeF
@@ -290,6 +291,16 @@ object WidgetRenderer {
         else (0.12 * min(widthDp, heightDp)).roundToInt().coerceIn(26, 40).toFloat()
 
     /**
+     * The app fades every strip cell but the next prayer to 0.6, name and time
+     * together (PrayerDayCard.css). RemoteViews cannot set a view's alpha, so
+     * the widget composes the same 0.6 into each cell's two text colours. The
+     * Sky palette's black or white is kept underneath it rather than replaced.
+     */
+    internal fun stripTextColor(color: Int, isNext: Boolean): Int =
+        if (isNext) color
+        else (color and 0x00FFFFFF) or ((Color.alpha(color) * 0.6f).roundToInt() shl 24)
+
+    /**
      * The whole timetable, with no room for a countdown of its own.
      *
      * One row one cell high, or one narrow column - either way there is no
@@ -339,11 +350,11 @@ object WidgetRenderer {
             val onHighlight = highlight != 0
             views.setTextColor(
                 ids.names[i],
-                if (onHighlight) onAccent else secondary
+                stripTextColor(if (onHighlight) onAccent else secondary, isNext)
             )
             views.setTextColor(
                 ids.times[i],
-                if (onHighlight) onAccent else primary
+                stripTextColor(if (onHighlight) onAccent else primary, isNext)
             )
 
             if (isNext && next != null && config.countdown == CountdownMode.SECONDS) {
@@ -496,17 +507,17 @@ object WidgetRenderer {
 
             // Matched by name because that is what both sides agree on: the
             // upcoming list and today's rows come from the same source.
-            val highlight =
-                if (prayer.name == next.name) config.accentDrawable(context, sky) else 0
+            val isNext = prayer.name == next.name
+            val highlight = if (isNext) config.accentDrawable(context, sky) else 0
             views.setInt(COLUMN_IDS[i], "setBackgroundResource", highlight)
             val onHighlight = highlight != 0
             views.setTextColor(
                 NAME_IDS[i],
-                if (onHighlight) onAccent else secondary
+                stripTextColor(if (onHighlight) onAccent else secondary, isNext)
             )
             views.setTextColor(
                 TIME_IDS[i],
-                if (onHighlight) onAccent else primary
+                stripTextColor(if (onHighlight) onAccent else primary, isNext)
             )
         }
 

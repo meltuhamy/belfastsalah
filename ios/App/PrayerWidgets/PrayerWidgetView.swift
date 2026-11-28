@@ -442,6 +442,14 @@ private struct NextPill: View {
     }
 }
 
+/**
+ * The app fades every strip cell but the next prayer to 0.6, name and time
+ * together (PrayerDayCard.css) - the passed ones and the ones still to come
+ * alike. The widgets have the same rule; keeping it in one place makes the
+ * value testable and the two home-screen strips agree.
+ */
+func stripCellOpacity(isNext: Bool) -> Double { isNext ? 1 : 0.6 }
+
 /** "London · Thu 15 Jan", or whichever half is wanted, or nothing. */
 private func placeLine(_ times: PrayerEntry.Times, _ settings: WidgetSettings) -> String? {
     let parts = [
@@ -571,6 +579,7 @@ private struct MediumContent: View {
                     }
                     .lineLimit(1)
                     .foregroundStyle(next && colors.accent != nil ? colors.onAccent : colors.primary)
+                    .opacity(stripCellOpacity(isNext: next))
                     .padding(.vertical, 5)
                     .frame(maxWidth: .infinity)
                     .background {
@@ -605,6 +614,7 @@ private struct LargeContent: View {
                     }
                     .lineLimit(1)
                     .foregroundStyle(next && colors.accent != nil ? colors.onAccent : colors.primary)
+                    .opacity(stripCellOpacity(isNext: next))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background {
