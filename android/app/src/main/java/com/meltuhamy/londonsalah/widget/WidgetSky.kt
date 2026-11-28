@@ -115,7 +115,7 @@ object WidgetSky {
             top = sky.top,
             mid = sky.mid,
             horizon = sky.horizon,
-            lightText = lightTextFor(sky.top, sky.mid),
+            lightText = lightTextFor(sky),
             sun = if (sunUp) SkySun(
                 x = 0.08 + clamp(progress, -0.1, 1.1) * 0.84,
                 y = 0.9 - elevation * 0.66,
@@ -249,9 +249,38 @@ object WidgetSky {
         )
     }
 
-    private fun lightTextFor(a: String, b: String): Boolean {
-        fun worst(text: String) = min(contrastRatio(text, a), contrastRatio(text, b))
+    /** The number of gradient samples toneForSky in sky.ts checks. */
+    private const val TEXT_SAMPLES = 32
+
+    /**
+     * toneForSky in src/lib/sky.ts: the text colour that reads best across
+     * the painted sky, not just its stops. A gradient interpolates in sRGB,
+     * which is gamma-encoded, so a point between two stops can be darker
+     * than either - judging the stops left black text on the dusky sky.
+     * SkyPainter puts the middle stop at 60% of the widget.
+     */
+    private fun lightTextFor(sky: SkyColours): Boolean {
+        fun worst(text: String): Double {
+            var min = Double.MAX_VALUE
+            for (i in 0..TEXT_SAMPLES) {
+                val f = i.toDouble() / TEXT_SAMPLES
+                val mixed = if (f <= 0.6) {
+                    mixSrgb(sky.top, sky.mid, f / 0.6)
+                } else {
+                    mixSrgb(sky.mid, sky.horizon, (f - 0.6) / 0.4)
+                }
+                min = minOf(min, contrastRatio(text, mixed))
+            }
+            return min
+        }
         return worst("#ffffff") >= worst("#000000")
+    }
+
+    /** A CSS gradient's sRGB interpolation, with each channel rounded to a byte. */
+    private fun mixSrgb(a: String, b: String, f: Double): String {
+        val x = parseHex(a)
+        val y = parseHex(b)
+        return toHex(DoubleArray(3) { x[it] + (y[it] - x[it]) * f })
     }
 
     // --- Colour arithmetic, as in sky.ts --------------------------------------

@@ -161,11 +161,16 @@ export function skyAtTimes(t: number, times: ReadonlyArray<number>): Sky {
   if (t >= isha) night = Math.min(1, (t - isha) / (60 * MINUTE));
   else if (t < fajr) night = Math.min(1, (fajr - t) / (40 * MINUTE));
 
+  // One tone for the whole sky: by dusk the strip's time is as dusky as the
+  // headline, and a widget has only the one choice for all its text. The
+  // stylesheet still names both so it can tint the highlight pane, but they
+  // read the same answer here.
+  const text = toneForSky(colours);
   return {
     ...colours,
     phase,
-    text: toneFor(colours.top, colours.mid),
-    lowerText: toneFor(colours.mid, colours.horizon),
+    text,
+    lowerText: text,
     sun: sunUp
       ? {
           x: 0.08 + clamp(progress, -0.1, 1.1) * 0.84,
@@ -258,12 +263,41 @@ function blend(a: SkyColours, b: SkyColours, f: number): SkyColours {
 }
 
 /**
- * The text colour that reads best across a stretch of sky: whichever has the
- * better worst case against the two ends.
+ * How many points of a gradient the text tones are checked against. The
+ * card's and the widgets' gradients are painted in sRGB, so the middle of a
+ * stretch can be darker than either end (sRGB is gamma-encoded); checking
+ * only its two stops picked black right up to the minute it stopped reading
+ * on the dusky sky. The same number is used in the widgets' ports.
  */
-export function toneFor(a: string, b: string): TextTone {
-  const worst = (text: string) =>
-    Math.min(contrastRatio(text, a), contrastRatio(text, b));
+const TEXT_SAMPLES = 32;
+
+/**
+ * The text colour that reads best across the painted sky: whichever has the
+ * better worst case against the gradient, not just its stops. sRGB is
+ * gamma-encoded, so a point between two stops can be darker than either -
+ * which is why judging only the stops left black text on the dusky sky.
+ *
+ * One answer for the whole sky, from top to horizon, is what the card's text
+ * and both widgets use. `midStop` is where the middle colour sits in the
+ * gradient: 62% on the card (PrayerDayCard.css), 60% in the widgets
+ * (SkyPainter.kt, SkyBackground).
+ */
+export function toneForSky(
+  colours: SkyColours,
+  midStop = 0.62
+): TextTone {
+  const worst = (text: string) => {
+    let min = Infinity;
+    for (let i = 0; i <= TEXT_SAMPLES; i++) {
+      const f = i / TEXT_SAMPLES;
+      const c =
+        f <= midStop
+          ? mixSrgb(colours.top, colours.mid, f / midStop)
+          : mixSrgb(colours.mid, colours.horizon, (f - midStop) / (1 - midStop));
+      min = Math.min(min, contrastRatio(text, c));
+    }
+    return min;
+  };
   return worst(TEXT_COLOURS.light) >= worst(TEXT_COLOURS.dark) ? "light" : "dark";
 }
 
@@ -291,7 +325,7 @@ export function skyTints(sky: SkyColours, dark: boolean): SkyTints {
       surface: mixOklab(page, "#ffffff", 0.07),
       stripe: mixOklab(page, "#ffffff", 0.045),
       accent,
-      accentContrast: TEXT_COLOURS[toneFor(accent, accent)],
+      accentContrast: TEXT_COLOURS[toneForSky({ top: accent, mid: accent, horizon: accent })],
     };
   }
   const page = mixOklab("#ffffff", sky.mid, 0.07);
@@ -301,7 +335,7 @@ export function skyTints(sky: SkyColours, dark: boolean): SkyTints {
     surface: mixOklab("#ffffff", sky.mid, 0.025),
     stripe: mixOklab("#ffffff", sky.mid, 0.12),
     accent,
-    accentContrast: TEXT_COLOURS[toneFor(accent, accent)],
+    accentContrast: TEXT_COLOURS[toneForSky({ top: accent, mid: accent, horizon: accent })],
   };
 }
 
@@ -666,6 +700,18 @@ export function mixOklab(a: string, b: string, f: number): string {
   const x = toOklab(a);
   const y = toOklab(b);
   return fromOklab([0, 1, 2].map((i) => x[i] + (y[i] - x[i]) * f) as Oklab);
+}
+
+/**
+ * A fraction `f` of the way from `a` to `b` as a CSS gradient paints it:
+ * interpolated in gamma-encoded sRGB, with each channel rounded to a byte.
+ * The stop colours themselves are mixed in OKLab (above); a browser does not
+ * mix between them that way, and the text has to answer to what it paints.
+ */
+export function mixSrgb(a: string, b: string, f: number): string {
+  const x = parseHex(a);
+  const y = parseHex(b);
+  return toHex(x.map((v, i) => v + (y[i] - v) * f));
 }
 
 /** WCAG 2 relative luminance. */
