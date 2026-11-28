@@ -17,9 +17,11 @@ import java.util.Locale.ROOT
  * What each launcher tells the widgets about their size, for working out why a
  * widget is drawn the size it is on a phone nobody here has (MEL-370).
  *
- * Every redraw logs the options bundle it was given under [TAG], and keeps the
- * last [KEEP] lines per widget. A debuggable build shows them at the bottom of
- * the appearance screen, as text a tester can copy into an issue.
+ * Every redraw logs the options bundle it was given under [TAG]. A debuggable
+ * build also keeps the last [KEEP] lines per widget and shows them at the
+ * bottom of the appearance screen, as text a tester can copy into an issue.
+ * A release build keeps none: nothing would show them, and a Sky widget
+ * redraws every quarter of an hour.
  */
 object WidgetSizeLog {
     const val TAG = "PrayerWidget"
@@ -41,6 +43,7 @@ object WidgetSizeLog {
     ) {
         val line = describe(context, kind, event, options, drawn)
         Log.i(TAG, "widget $appWidgetId $line")
+        if (!shown(context)) return
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val key = key(appWidgetId)
         val stamp = SimpleDateFormat("MM-dd HH:mm:ss", Locale.US).format(Date())

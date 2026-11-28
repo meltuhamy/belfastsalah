@@ -205,8 +205,9 @@ Things that will bite:
   design box. KISS gives every widget 375 x 83dp, and the turned Pixel 4 x 1
   is 65dp tall, not 79.
 - **Every redraw logs the launcher's options** under the `PrayerWidget` tag
-  (`WidgetSizeLog`), and a debuggable build shows the last few at the bottom
-  of the appearance screen as selectable text, for a tester to copy. The sizes
+  (`WidgetSizeLog`), and a debuggable build keeps the last few and shows them
+  at the bottom of the appearance screen as selectable text, for a tester to
+  copy. A release build stores none. The sizes
   real launchers reported are in `WidgetBoxesTest` and `WidgetHarness`.
 - **The Sky highlight is a solid block, white text on it**: darker than the
   sky, or lighter at night, where darker would not show
