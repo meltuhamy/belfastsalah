@@ -47,4 +47,4 @@ scripts/timetables/data/lupt/
 fastlane/report.xml
 fastlane/Preview.html
 fastlane/test_output/
-sky-capture/
+/sky-capture/
