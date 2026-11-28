@@ -56,9 +56,17 @@ object WidgetTextScale {
     private val baseSizes = mutableMapOf<WidgetKind, List<Pair<Int, Float>>>()
 
     /** Sets every text view in `kind`'s layout to its size at `scale`. */
-    fun apply(context: Context, views: RemoteViews, kind: WidgetKind, scale: Float) {
+    fun apply(context: Context, views: RemoteViews, kind: WidgetKind, scale: Float) =
+        apply(context, views, kind) { scale }
+
+    /**
+     * Sets each text view in `kind`'s layout to its size at the scale
+     * `scaleOf` gives for its id - the timetable's heading can grow further
+     * than its row (WidgetGrowth).
+     */
+    fun apply(context: Context, views: RemoteViews, kind: WidgetKind, scaleOf: (Int) -> Float) {
         for ((id, sp) in sizesOf(context, kind)) {
-            views.setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_DIP, sp * scale)
+            views.setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_DIP, sp * scaleOf(id))
         }
     }
 

@@ -14,6 +14,7 @@ import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import com.meltuhamy.londonsalah.R
 import org.robolectric.Robolectric
+import org.robolectric.android.controller.ActivityController
 import org.robolectric.Shadows.shadowOf
 import kotlin.math.min
 
@@ -34,6 +35,30 @@ object WidgetHarness {
     const val PHONE = "w411dp-h891dp-xxhdpi"
 
     /**
+     * A phone turned on its side, for screenshots of widgets wider than
+     * [PHONE]: drawn on the upright one they ran off its edge and the picture
+     * was cropped. The layout and fit checks never were - a widget is laid out
+     * at its own size whatever the screen.
+     */
+    const val PHONE_TURNED = "w960dp-h411dp-land-xxhdpi"
+
+    /** The timetable as a 4 x 2 on a Galaxy S20 FE (One UI 5), in dp. */
+    val SAMSUNG_WIDE = 374 to 221
+
+    /** The one-row widget as a 4 x 1 on the same phone. */
+    val SAMSUNG_COMPACT = 374 to 105
+
+    /**
+     * The Pixel launcher's 4 x 2 and 4 x 1 on a Pixel 9 Pro XL (Android 16),
+     * upright and turned, as it reports them in OPTION_APPWIDGET_SIZES. Each
+     * is drawn for separately (WidgetBoxes): grown upright, not turned.
+     */
+    val PIXEL_XL_WIDE = 396 to 250
+    val PIXEL_XL_WIDE_TURNED = 706 to 140
+    val PIXEL_XL_COMPACT = 396 to 117
+    val PIXEL_XL_COMPACT_TURNED = 706 to 65
+
+    /**
      * The sizes each widget is checked at, in dp.
      *
      * Measured off the home screen the widgets were designed on, where a cell
@@ -41,12 +66,25 @@ object WidgetHarness {
      * the wide one at three cells across and four, and the tall ones as
      * placed there. Launchers decide cell sizes, so these are one real phone's
      * rather than any kind of standard.
+     *
+     * The timetable and the row are also checked in Samsung One UI's taller
+     * cells (MEL-370), where they grow (WidgetGrowth): [SAMSUNG_WIDE] and
+     * [SAMSUNG_COMPACT], measured off a Galaxy S20 FE's home screen, the
+     * timetable made a row taller and the row a row taller, and a narrower
+     * phone's 4 x 2. And in the Pixel launcher's boxes, upright and turned,
+     * the turned ones being what the first growth clipped.
      */
     val SIZES: Map<WidgetKind, List<Pair<Int, Int>>> = mapOf(
         WidgetKind.TILE to listOf(77 to 87, 170 to 190),
-        WidgetKind.COMPACT to listOf(292 to 79, 390 to 79),
+        WidgetKind.COMPACT to listOf(
+            292 to 79, 390 to 79, SAMSUNG_COMPACT, 374 to 221,
+            PIXEL_XL_COMPACT, PIXEL_XL_COMPACT_TURNED
+        ),
         WidgetKind.COLUMN to listOf(62 to 225),
-        WidgetKind.WIDE to listOf(295 to 139, 390 to 139),
+        WidgetKind.WIDE to listOf(
+            295 to 139, 390 to 139, SAMSUNG_WIDE, 374 to 330, 330 to 200,
+            PIXEL_XL_WIDE, PIXEL_XL_WIDE_TURNED
+        ),
         WidgetKind.TALL to listOf(138 to 225)
     )
 
@@ -105,6 +143,9 @@ object WidgetHarness {
         )
     )
 
+    /** The activity the last widget was drawn in, closed by the next draw. */
+    private var lastActivity: ActivityController<Activity>? = null
+
     /** Roughly a wallpaper, so a see-through widget has something behind it. */
     const val WALLPAPER = 0xFF33475B.toInt()
 
@@ -123,7 +164,15 @@ object WidgetHarness {
     ): DrawnWidget {
         WidgetStore.write(ApplicationProvider.getApplicationContext(), payload ?: "")
 
-        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        // The last draw's activity goes first. Left open, each one keeps its
+        // window and native surface, and somewhere past sixty in one test
+        // Robolectric's renderer stops answering and the test hangs - which
+        // the One UI sizes (MEL-370), larger and more of them, first reached.
+        // What the tests read off a widget is laid out already and stays.
+        lastActivity?.pause()?.stop()?.destroy()
+        val controller = Robolectric.buildActivity(Activity::class.java).setup()
+        lastActivity = controller
+        val activity = controller.get()
         val (widthDp, heightDp) = size
 
         // The tile sizes its text from the smaller side, as its provider does

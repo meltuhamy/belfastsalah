@@ -199,5 +199,16 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="28dp"
             android:text="@string/config_save" />
+
+        <!-- Debuggable builds only: what the launcher said about the size. -->
+        <TextView
+            android:id="@+id/config_size_log"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:fontFamily="monospace"
+            android:textIsSelectable="true"
+            android:textSize="11sp"
+            android:visibility="gone" />
     </LinearLayout>
 </ScrollView>

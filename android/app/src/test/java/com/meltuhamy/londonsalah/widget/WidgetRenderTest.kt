@@ -322,6 +322,76 @@ class WidgetRenderTest {
     }
 
     @Test
+    fun `the sky's highlight is a solid block with white text, darker by day, lighter at night`() {
+        // MEL-370: a frosted pane was hard to find on the gradient. A darker
+        // block shows on any sky but night's, where it would all but vanish.
+        val cases = listOf(
+            ONE_PM to R.drawable.widget_accent_sky_dark,
+            PayloadFixture.SUNSET to R.drawable.widget_accent_sky_dark,
+            PayloadFixture.LATE_NIGHT to R.drawable.widget_accent_sky_light
+        )
+        for ((now, drawable) in cases) {
+            val sky = WidgetPayload.parse(PayloadFixture.forJan15())!!.skyAt(now)!!
+            assertEquals(clock(now), drawable, this.sky.accentDrawable(null, sky))
+            for (kind in timetables) {
+                val widget = draw(kind, homeScreenSize(kind), this.sky, nowMillis = now)
+                val next = widget.highlighted(CELLS.getValue(kind)).single()
+                assertEquals(
+                    "$kind at ${clock(now)}",
+                    Color.WHITE,
+                    widget.textColor(WidgetHarness.TIME_VIEWS.getValue(kind)[next])
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `the timetable and the row grow into a taller launcher's box`() {
+        // MEL-370: One UI's 4 x 2 is 221dp tall, half as much again as the
+        // 139 the timetable was drawn for, and its text stayed small.
+        val design = draw(WidgetKind.WIDE, homeScreenSize(WidgetKind.WIDE))
+        val samsung = draw(WidgetKind.WIDE, WidgetHarness.SAMSUNG_WIDE)
+        val across = WidgetHarness.SAMSUNG_WIDE.first / 295f
+        assertEquals(
+            design.textSizeSp(R.id.prayer_time_0) * across,
+            samsung.textSizeSp(R.id.prayer_time_0),
+            0.05f
+        )
+        assertTrue(samsung.textSizeSp(R.id.widget_countdown) > design.textSizeSp(R.id.widget_countdown) * across)
+
+        val row = draw(WidgetKind.COMPACT, homeScreenSize(WidgetKind.COMPACT))
+        val tallRow = draw(WidgetKind.COMPACT, WidgetHarness.SAMSUNG_COMPACT)
+        assertTrue(tallRow.textSizeSp(R.id.compact_time_0) > row.textSizeSp(R.id.compact_time_0) * 1.2f)
+    }
+
+    @Test
+    fun `growth follows the smaller of the box's two gains, and never shrinks the text by itself`() {
+        assertEquals(WidgetGrowth.NONE, WidgetGrowth.of(WidgetKind.WIDE, 295 to 139))
+        assertEquals(WidgetGrowth.NONE, WidgetGrowth.of(WidgetKind.WIDE, null))
+        // Smaller than the design box: no growth, and the room it is short by,
+        // which lowers the font scale's cap there.
+        assertEquals(WidgetGrowth(1f, 1f, 280 / 295f), WidgetGrowth.of(WidgetKind.WIDE, 280 to 139))
+        assertEquals(
+            65 / 79f,
+            WidgetGrowth.of(WidgetKind.COMPACT, WidgetHarness.PIXEL_XL_COMPACT_TURNED).room,
+            0.001f
+        )
+        // A Pixel-style 4 x 2, wider but no taller, is left as it was.
+        assertEquals(WidgetGrowth.NONE, WidgetGrowth.of(WidgetKind.WIDE, 390 to 139))
+        // Samsung's 4 x 2: the row by the width, the heading a little further.
+        val samsung = WidgetGrowth.of(WidgetKind.WIDE, WidgetHarness.SAMSUNG_WIDE)
+        assertEquals(374 / 295f, samsung.body, 0.001f)
+        assertEquals(374 / 295f * WidgetGrowth.HEADING_ROOM, samsung.heading, 0.001f)
+        // However big, no more than MAX_GROWTH.
+        val huge = WidgetGrowth.of(WidgetKind.WIDE, 900 to 600)
+        assertEquals(WidgetGrowth.MAX_GROWTH, huge.body)
+        assertEquals(WidgetGrowth.MAX_GROWTH, huge.heading)
+        // The widgets MEL-370 left alone do not grow.
+        assertEquals(WidgetGrowth.NONE, WidgetGrowth.of(WidgetKind.COLUMN, 200 to 600))
+        assertEquals(WidgetGrowth.NONE, WidgetGrowth.of(WidgetKind.TALL, 300 to 600))
+    }
+
+    @Test
     fun `the sky follows the clock`() {
         // The picture is drawn fresh for each moment: midday and dusk differ.
         val kind = WidgetKind.WIDE

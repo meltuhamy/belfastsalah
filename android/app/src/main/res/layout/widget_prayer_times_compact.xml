@@ -46,8 +46,8 @@
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp">
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
 
             <TextView
                 android:id="@+id/compact_name_0"
@@ -90,8 +90,8 @@
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp">
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
 
             <TextView
                 android:id="@+id/compact_name_1"
@@ -135,8 +135,8 @@
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp">
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
 
             <TextView
                 android:id="@+id/compact_name_2"
@@ -179,8 +179,8 @@
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp">
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
 
             <TextView
                 android:id="@+id/compact_name_3"
@@ -223,8 +223,8 @@
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp">
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
 
             <TextView
                 android:id="@+id/compact_name_4"
@@ -267,8 +267,8 @@
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp">
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
 
             <TextView
                 android:id="@+id/compact_name_5"

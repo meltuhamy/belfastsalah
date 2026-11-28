@@ -180,6 +180,38 @@ Things that will bite:
   runner and commits them back, and that commit's images are the review of
   the change. They have to come from the runner — another machine draws
   different pixels. CI skips the comparison on the commit that asks for it.
+- **The timetable and one-row widgets grow with their box** (`WidgetGrowth`,
+  MEL-370). Samsung One UI's cells are far taller than the 295 x 139 and
+  292 x 79 the layouts were drawn for, and with fixed sizes the timetable had
+  an empty band across it. Text and padding grow together, by the smaller of
+  the box's gains across and down, so a layout that fits its design box fits
+  any bigger one; the heading may follow the height a little further than the
+  row. Padding the renderer grows is set in code (`spaceOut`), so a padding
+  change in those two layouts has to be made there too. `WidgetHarness.SIZES`
+  has One UI's sizes, measured off a Galaxy S20 FE.
+- **A widget is drawn once per box its launcher reports** (`WidgetBoxes`,
+  `WidgetRenderer.renderPlaced`), and the launcher picks as it turns or
+  folds: from `OPTION_APPWIDGET_SIZES` on Android 12 and later, as a
+  portrait/landscape pair before. Launchers work out the turned box even when
+  the home screen never turns (the Pixel launcher's 4 x 1 is 396 x 117
+  upright, 706 x 65 turned), so drawing once for the upright box clipped the
+  turned one - the 4 x 2 lost its whole row - and drawing once for the
+  smallest would cost Samsung its growth. Near-duplicate sizes fold together
+  and at most four are drawn; the Sky pictures share one budget
+  (`SkyPainter.MAX_PIXELS`), since they cross to the launcher in one
+  transaction.
+- **A box smaller than the design box lowers the font scale cap**
+  (`WidgetGrowth.room`): the caps in `WidgetTextScale` were found in the
+  design box. KISS gives every widget 375 x 83dp, and the turned Pixel 4 x 1
+  is 65dp tall, not 79.
+- **Every redraw logs the launcher's options** under the `PrayerWidget` tag
+  (`WidgetSizeLog`), and a debuggable build keeps the last few and shows them
+  at the bottom of the appearance screen as selectable text, for a tester to
+  copy. A release build stores none. The sizes
+  real launchers reported are in `WidgetBoxesTest` and `WidgetHarness`.
+- **The Sky highlight is a solid block, white text on it**: darker than the
+  sky, or lighter at night, where darker would not show
+  (`WidgetConfig.accentDrawable`).
 - **The emulator job builds `:app` only.** The root project's test APKs
   include Capacitor's own modules, and the Cordova plugins module does not
   assemble.

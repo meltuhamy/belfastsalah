@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The next prayer's highlight on the Sky palette (MEL-370): a solid, darker
+  block of the sky behind it, with white text. It replaced a frosted pane that
+  was hard to find on a busy gradient. Dark enough that white reads on it over
+  the palest sky there is - #cde8fa at the horizon, which it takes to about
+  4.8:1 - and plainly darker than the sky beside it at every hour but night,
+  which has widget_accent_sky_light instead (WidgetConfig.accentDrawable).
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#80000000" />
+    <corners android:radius="10dp" />
+</shape>

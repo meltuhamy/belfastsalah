@@ -7,10 +7,12 @@ import android.appwidget.AppWidgetProviderInfo
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
+import android.util.SizeF
 import android.util.TypedValue
 import android.view.View
 import android.widget.Button
@@ -28,6 +30,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -185,6 +188,61 @@ class HostedWidgetTest {
     }
 
     @Test
+    fun resizingTheTimetableToOneUiCellsGrowsItsText() {
+        // MEL-370: Samsung's 4 x 2 is 374 x 221dp. The timetable grows into
+        // it, by the width for its row, when the launcher says how big it is.
+        val wide = bind(PrayerTimesWidgetProvider::class.java, 295, 139)
+        waitUntil("the timetable to draw") { wide.text(R.id.prayer_time_3) == "14:01" }
+        val before = wide.textSize(R.id.prayer_time_3)
+
+        manager.updateAppWidgetOptions(wide.id, sizeOptions(374, 221))
+
+        val grown = before * 374f / 295f
+        waitUntil("the timetable to grow") { abs(wide.textSize(R.id.prayer_time_3) - grown) < 0.5f }
+        onMain {
+            wide.layOut(374, 221)
+            val problems = TextFit.problems(wide.content())
+            assertTrue(problems.joinToString("\n"), problems.isEmpty())
+        }
+    }
+
+    @Test
+    fun turningTheHomeScreenFitsTheWidgetToItsOtherBox() {
+        // The Pixel launcher on a Pixel 9 Pro XL reports the 4 x 2 as 396 x
+        // 250dp upright and 706 x 140dp turned. Drawn only for the upright box,
+        // it grew past the turned one's height and lost its row of times.
+        // Drawn for each, the host picks as it is laid out; Android 12 is
+        // where a host can pick between sizes.
+        assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+        val wide = bind(
+            PrayerTimesWidgetProvider::class.java,
+            orientedOptions(portrait = 396 to 250, landscape = 706 to 140)
+        )
+        waitUntil("the timetable to draw") { wide.text(R.id.prayer_time_3) == "14:01" }
+
+        for ((width, height) in listOf(706 to 140, 396 to 250, 706 to 140)) {
+            onMain {
+                // Twice: the first layout is where the host swaps in the
+                // views for this size, the second lays those out.
+                wide.layOut(width, height)
+                wide.layOut(width, height)
+                val problems = TextFit.problems(wide.content())
+                assertTrue(
+                    "at ${width}x$height:\n" + problems.joinToString("\n"),
+                    problems.isEmpty()
+                )
+            }
+        }
+        onMain { wide.layOut(396, 250); wide.layOut(396, 250) }
+        val upright = wide.textSize(R.id.prayer_time_3)
+        onMain { wide.layOut(706, 140); wide.layOut(706, 140) }
+        assertTrue(
+            "upright should grow past turned: $upright vs ${wide.textSize(R.id.prayer_time_3)}",
+            upright > wide.textSize(R.id.prayer_time_3) * 1.2f
+        )
+    }
+
+    @Test
     fun savingTheAppearanceScreenRedrawsTheWidget() {
         val wide = bind(PrayerTimesWidgetProvider::class.java, 390, 139)
         waitUntil("the widget to draw") { wide.text(R.id.prayer_time_3) == "14:01" }
@@ -258,13 +316,16 @@ class HostedWidgetTest {
         }
     }
 
-    private fun bind(provider: Class<*>, widthDp: Int, heightDp: Int): Hosted {
+    private fun bind(provider: Class<*>, widthDp: Int, heightDp: Int): Hosted =
+        bind(provider, sizeOptions(widthDp, heightDp))
+
+    private fun bind(provider: Class<*>, options: Bundle): Hosted {
         val id = host.allocateAppWidgetId()
         bound += id
         assertTrue(
             "could not bind ${provider.simpleName}. The grant said:\n$grantOutput",
             manager.bindAppWidgetIdIfAllowed(
-                id, ComponentName(context, provider), sizeOptions(widthDp, heightDp)
+                id, ComponentName(context, provider), options
             )
         )
         val view = onMain {
@@ -284,6 +345,24 @@ class HostedWidgetTest {
         putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, heightDp)
         putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, heightDp)
     }
+
+    /** A launcher's options for a widget it has worked out both orientations of. */
+    private fun orientedOptions(portrait: Pair<Int, Int>, landscape: Pair<Int, Int>) =
+        Bundle().apply {
+            putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, portrait.first)
+            putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, portrait.second)
+            putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, landscape.first)
+            putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, landscape.second)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                putParcelableArrayList(
+                    AppWidgetManager.OPTION_APPWIDGET_SIZES,
+                    arrayListOf(
+                        SizeF(portrait.first.toFloat(), portrait.second.toFloat()),
+                        SizeF(landscape.first.toFloat(), landscape.second.toFloat())
+                    )
+                )
+            }
+        }
 
     // --- Plumbing ------------------------------------------------------------
 
@@ -371,6 +450,38 @@ class HostedWidgetTest {
                     R.id.prayer_col_0, R.id.prayer_col_1, R.id.prayer_col_2,
                     R.id.prayer_col_3, R.id.prayer_col_4, R.id.prayer_col_5
                 )
+            ),
+            // Samsung One UI's taller cells (MEL-370), where both grow.
+            Case(
+                "wide in One UI's 4 x 2", PrayerTimesWidgetProvider::class.java, 374, 221,
+                R.id.prayer_time_3, "14:01",
+                intArrayOf(
+                    R.id.prayer_col_0, R.id.prayer_col_1, R.id.prayer_col_2,
+                    R.id.prayer_col_3, R.id.prayer_col_4, R.id.prayer_col_5
+                )
+            ),
+            Case(
+                "one row in One UI's 4 x 1", PrayerTimesCompactWidgetProvider::class.java, 374, 105,
+                R.id.compact_time_3, "14:01",
+                intArrayOf(
+                    R.id.compact_col_0, R.id.compact_col_1, R.id.compact_col_2,
+                    R.id.compact_col_3, R.id.compact_col_4, R.id.compact_col_5
+                )
+            ),
+            // The Pixel launcher's 4 x 2 and 4 x 1 on a Pixel 9 Pro XL, upright
+            // and turned (WidgetBoxes): grown in the one, not in the other.
+            Case(
+                "wide upright on a Pixel 9 Pro XL", PrayerTimesWidgetProvider::class.java,
+                396, 250, R.id.prayer_time_3, "14:01"
+            ),
+            Case(
+                "wide turned on a Pixel 9 Pro XL", PrayerTimesWidgetProvider::class.java,
+                706, 140, R.id.prayer_time_3, "14:01"
+            ),
+            Case(
+                "one row turned on a Pixel 9 Pro XL",
+                PrayerTimesCompactWidgetProvider::class.java,
+                706, 65, R.id.compact_time_3, "14:01"
             ),
             Case(
                 "tall", PrayerTimesVerticalWidgetProvider::class.java, 138, 225,

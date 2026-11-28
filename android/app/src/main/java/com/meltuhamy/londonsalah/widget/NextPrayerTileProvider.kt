@@ -19,7 +19,7 @@ class NextPrayerTileProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         for (id in appWidgetIds) {
-            redraw(context, appWidgetManager, id, appWidgetManager.getAppWidgetOptions(id))
+            redraw(context, appWidgetManager, id, appWidgetManager.getAppWidgetOptions(id), "update")
         }
         WidgetAlarms.scheduleNextBoundary(context)
     }
@@ -31,7 +31,7 @@ class NextPrayerTileProvider : AppWidgetProvider() {
         appWidgetId: Int,
         newOptions: Bundle
     ) {
-        redraw(context, appWidgetManager, appWidgetId, newOptions)
+        redraw(context, appWidgetManager, appWidgetId, newOptions, "options")
     }
 
     override fun onEnabled(context: Context) {
@@ -40,26 +40,22 @@ class NextPrayerTileProvider : AppWidgetProvider() {
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         WidgetConfig.delete(context, appWidgetIds)
+        WidgetSizeLog.delete(context, appWidgetIds)
     }
 
     private fun redraw(
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetId: Int,
-        options: Bundle?
+        options: Bundle?,
+        event: String
     ) {
-        val width = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) ?: 0
-        val height = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) ?: 0
-        val sizeDp = listOf(width, height).filter { it > 0 }.minOrNull()
-
+        val boxes = WidgetBoxes.of(options)
+        WidgetSizeLog.record(context, appWidgetId, WidgetKind.TILE, event, options, boxes.all)
         appWidgetManager.updateAppWidget(
             appWidgetId,
-            WidgetRenderer.render(
-                context,
-                WidgetKind.TILE,
-                WidgetConfig.load(context, appWidgetId),
-                sizeDp,
-                boxDp = widgetBoxDp(options)
+            WidgetRenderer.renderPlaced(
+                context, WidgetKind.TILE, WidgetConfig.load(context, appWidgetId), boxes
             )
         )
     }

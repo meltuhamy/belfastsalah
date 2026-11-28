@@ -31,7 +31,7 @@ object SkyPainter {
      * widget's picture is stretched to fit anyway - a gradient loses nothing
      * by being drawn small. About 470KB at four bytes a pixel.
      */
-    private const val MAX_PIXELS = 120_000
+    internal const val MAX_PIXELS = 120_000
 
     /** The stars, as fractions across and down, a radius in dp and a strength. */
     private val STARS = listOf(
@@ -85,7 +85,8 @@ object SkyPainter {
     /**
      * The sky at `widthDp` x `heightDp`, drawn at up to `density` pixels a dp.
      * `sunDp` is the sun's diameter: smaller on the narrow widgets, and
-     * `sunArc` where it travels.
+     * `sunArc` where it travels. `maxPixels` is less than [MAX_PIXELS] when
+     * the picture shares a transaction with others (WidgetBoxes).
      */
     fun paint(
         sky: SkyState,
@@ -93,11 +94,12 @@ object SkyPainter {
         heightDp: Int,
         density: Float,
         sunDp: Float,
-        sunArc: SunArc = SunArc.RAW
+        sunArc: SunArc = SunArc.RAW,
+        maxPixels: Int = MAX_PIXELS
     ): Bitmap {
         val w = max(widthDp, 1)
         val h = max(heightDp, 1)
-        val scale = min(density, sqrt(MAX_PIXELS.toFloat() / (w * h)))
+        val scale = min(density, sqrt(maxPixels.toFloat() / (w * h)))
         val width = max((w * scale).roundToInt(), 1)
         val height = max((h * scale).roundToInt(), 1)
 
