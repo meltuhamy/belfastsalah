@@ -7,7 +7,6 @@ import {
   formatTimeInZone,
   formatDateInZone,
   describeTimeZone,
-  zonedMidnight,
 } from "./timeZone";
 
 describe("getZonedDateParts", () => {
@@ -178,20 +177,5 @@ describe("formatDateInZone", () => {
     const instant = new Date("2026-08-05T23:30:00Z");
     expect(formatDateInZone(instant, UK_TIME_ZONE)).toEqual("Thu 6 Aug");
     expect(formatDateInZone(instant, "America/Los_Angeles")).toEqual("Wed 5 Aug");
-  });
-});
-
-describe("zonedMidnight", () => {
-  it("is the wall-clock midnight of the instant's own day in the zone", () => {
-    // 00:30 BST on 21 June is 23:30 UTC on the 20th; that day began at 23:00 UTC.
-    expect(
-      zonedMidnight(new Date("2026-06-20T23:30:00Z"), "Europe/London").toISOString()
-    ).toBe("2026-06-20T23:00:00.000Z");
-    expect(
-      zonedMidnight(new Date("2026-02-15T20:00:00Z"), "Europe/London").toISOString()
-    ).toBe("2026-02-15T00:00:00.000Z");
-    expect(
-      zonedMidnight(new Date("2026-11-28T01:00:00Z"), "Europe/Istanbul").toISOString()
-    ).toBe("2026-11-27T21:00:00.000Z");
   });
 });

@@ -94,17 +94,6 @@ export function shiftZonedDay(
   return new Date(Date.UTC(year, month - 1, day + days, 12));
 }
 
-/**
- * The instant the calendar day this one falls on began, as seen in
- * `timeZone`: its wall-clock midnight. The offset is read just after that
- * midnight, which is right for zones whose clocks change in the small hours.
- */
-export function zonedMidnight(instant: Date, timeZone: string): Date {
-  const { year, month, day } = getZonedDateParts(instant, timeZone);
-  const utc = Date.UTC(year, month - 1, day);
-  return new Date(utc - getZoneOffsetMinutes(new Date(utc), timeZone) * 60_000);
-}
-
 /** An instant inside the given calendar day, for zones near UTC. */
 export function middayOn(year: number, month: number, day: number): Date {
   return new Date(Date.UTC(year, month, day, 12));
