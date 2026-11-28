@@ -35,7 +35,7 @@ const chooseTheme = (page: Page, label: string) =>
 test.describe("with the device set to light", () => {
   test.use({ colorScheme: "light" });
 
-  test("starts a new install on Sky", async ({ page }) => {
+  test("starts a new install on Sky V2", async ({ page }) => {
     await page.goto("/");
     await page.waitForSelector("[data-testid=theme-select]");
     await expect
@@ -44,7 +44,7 @@ test.describe("with the device set to light", () => {
           .locator("[data-testid=theme-select]")
           .evaluate((s) => (s as unknown as { value: string }).value)
       )
-      .toBe("sky");
+      .toBe("skyV2");
     await expect
       .poll(() =>
         page.evaluate(() =>
@@ -121,7 +121,7 @@ test.describe("Sky's night", () => {
     const options = await page
       .locator("[data-testid=theme-select] ion-select-option")
       .allInnerTexts();
-    expect(options).toEqual(["Match device", "Light", "Dark", "Sky"]);
+    expect(options).toEqual(["Match device", "Light", "Dark", "Sky", "Sky V2"]);
   });
 
   test("goes dark after Maghrib, though the device is light", async ({

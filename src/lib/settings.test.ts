@@ -87,7 +87,11 @@ describe("migrateSettings", () => {
     expect(migrateSettings(noTheme).theme).toEqual("system");
   });
 
-  it("Should give a new install the Sky theme", () => {
-    expect(getDefaultSettings().theme).toEqual("sky");
+  it("Should give a new install the Sky V2 theme", () => {
+    expect(getDefaultSettings().theme).toEqual("skyV2");
+  });
+
+  it("Should keep the Sky theme for someone who chose it", () => {
+    expect(migrateSettings({ theme: "sky" }).theme).toEqual("sky");
   });
 });

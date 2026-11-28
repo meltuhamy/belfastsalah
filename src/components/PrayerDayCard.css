@@ -880,3 +880,58 @@
     rgba(0, 0, 0, 0.3) 100%
   );
 }
+
+/*
+  Sky V2 (RealSky.tsx, MEL-376). The sky is a canvas behind the content, so
+  the card's own background is only what shows before its first frame: the
+  night floor the shader never goes below. Every word is one colour, black
+  or white, judged from the pixels drawn (--real-sky-text); the prayers that
+  are not next fade only as far as the weakest word can spare
+  (--real-sky-dim), and the highlight's pane is the one the text was judged
+  on. Specific enough to win over the Sky theme's rules, which are on too.
+*/
+.sky-theme .PrayerDayCard.PrayerDayCard--real-sky {
+  background: #13182b;
+  color: var(--real-sky-text, #fff);
+  --pane: var(--real-sky-pane, rgba(255, 255, 255, 0.16));
+  --pane-edge: var(--real-sky-pane-edge, rgba(255, 255, 255, 0.32));
+}
+
+.sky-theme .PrayerDayCard--real-sky .PrayerDayCard__strip {
+  color: var(--real-sky-text, #fff);
+}
+
+.PrayerDayCard--real-sky .PrayerDayCard__label,
+.PrayerDayCard--real-sky .PrayerDayCard__remaining,
+.PrayerDayCard--real-sky .PrayerDayCard__since,
+.PrayerDayCard--real-sky .PrayerDayCard__meta p,
+.PrayerDayCard--real-sky .PrayerDayCard__cell {
+  transition: color 0.5s ease, text-shadow 0.5s ease;
+}
+
+.PrayerDayCard.PrayerDayCard--real-sky .PrayerDayCard__label,
+.PrayerDayCard.PrayerDayCard--real-sky .PrayerDayCard__since,
+.PrayerDayCard.PrayerDayCard--real-sky .PrayerDayCard__meta,
+.PrayerDayCard--real-sky .PrayerDayCard__cell-name {
+  opacity: 1;
+}
+
+.PrayerDayCard--real-sky .PrayerDayCard__cell:not([data-next="true"]) {
+  opacity: var(--real-sky-dim, 0.72);
+}
+
+/* The pane is frosted glass over the drawn sky, as the text was judged on. */
+.PrayerDayCard--real-sky .PrayerDayCard__pane {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .PrayerDayCard--real-sky .PrayerDayCard__label,
+  .PrayerDayCard--real-sky .PrayerDayCard__remaining,
+  .PrayerDayCard--real-sky .PrayerDayCard__since,
+  .PrayerDayCard--real-sky .PrayerDayCard__meta p,
+  .PrayerDayCard--real-sky .PrayerDayCard__cell {
+    transition: none;
+  }
+}

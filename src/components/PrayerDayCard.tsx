@@ -26,6 +26,9 @@ import StarField from "./StarField";
 import AdhanIcon from "./AdhanIcon";
 import { ADHAN_WINDOW_MS, prayerNow, upcomingPrayer } from "../lib/adhanMoment";
 import LensFlare from "./LensFlare";
+import RealSky from "./RealSky";
+import { SKY_PLACES } from "../lib/realSky";
+import { useSkyTimes } from "../lib/useSkyTimes";
 import { RAY_LAYERS, rayStrength } from "../lib/sunRays";
 import { useMeasured } from "../lib/useMeasured";
 import "./PrayerDayCard.css";
@@ -218,6 +221,18 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
   const timeZone = useDisplayTimeZone();
   const [settings] = useSettings();
   const uses24 = useUses24Hour(settings);
+  // Sky V2 draws the real sky (RealSky.tsx) with three.js, which loads after
+  // the card first shows. Until it has drawn, and wherever it cannot be - no
+  // WebGL 2 - the card shows the Sky theme's painted sky, which the rest of
+  // the app is tinted from either way.
+  const [realSkyState, setRealSkyState] = useState<
+    "loading" | "ready" | "failed"
+  >("loading");
+  const skyV2 = settings?.theme === "skyV2";
+  const skyTimes = useSkyTimes(skyV2 ? today : null);
+  const realSky = skyV2 && realSkyState === "ready";
+  const paintedSky =
+    settings?.theme === "sky" || (skyV2 && realSkyState !== "ready");
   // For five minutes after a prayer comes in its adhan is being called: the
   // card says "It's time for Asr" and keeps Asr highlighted (adhanMoment.ts).
   // That prayer also decides what the strip shows, so Isha's five minutes stay
@@ -349,7 +364,7 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
         color="primary"
         className={`PrayerDayCard${twoRows ? " PrayerDayCard--rows" : ""}${
           phase?.kind === "fajr" ? " PrayerDayCard--fajr" : ""
-        }`}
+        }${realSky ? " PrayerDayCard--real-sky" : ""}`}
       >
         {/*
         The Sky theme's sun, dawn, Fajr's thread, stars and daytime lens
@@ -357,7 +372,21 @@ const PrayerDayCard: React.FC<Props> = ({ today, next, prev, now }) => {
         stars and the flare listen to the phone's tilt and run a frame loop,
         which would be wasted work behind a card that hides them.
       */}
-        {settings?.theme === "sky" && (
+        {skyV2 &&
+          realSkyState !== "failed" &&
+          skyTimes != null &&
+          settings?.location != null && (
+          <RealSky
+            times={skyTimes}
+            place={SKY_PLACES[settings.location]}
+            now={now}
+            rays={rays}
+            contentKey={`${current?.prayer ?? "-"}|${upcoming?.prayer ?? "-"}|${nextIndex}|${offset}|${twoRows}|${metaOutside}|${uses24}|${strip == null}`}
+            onReady={() => setRealSkyState("ready")}
+            onFail={() => setRealSkyState("failed")}
+          />
+        )}
+        {paintedSky && (
           <span className="PrayerDayCard__sky" aria-hidden="true">
             <span className="PrayerDayCard__stars">
               <StarField />

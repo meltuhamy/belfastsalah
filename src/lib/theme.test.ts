@@ -1,4 +1,4 @@
-import { isDark, THEMES, themeLabels } from "./theme";
+import { isDark, isSkyTheme, THEMES, themeLabels } from "./theme";
 import { Prayer } from "./PrayerTimes";
 
 const DAY = { prefersDark: false, nextPrayer: Prayer.Asr };
@@ -18,6 +18,24 @@ describe("isDark", () => {
   it("Should follow the device when set to system", () => {
     expect(isDark("system", { ...DAY, prefersDark: true })).toBe(true);
     expect(isDark("system", { ...NIGHT, prefersDark: false })).toBe(false);
+  });
+});
+
+describe("Sky V2", () => {
+  it("is dark and light on Sky's rule", () => {
+    for (const nextPrayer of [Prayer.Fajr, Prayer.Duhr, Prayer.Isha, null]) {
+      for (const prefersDark of [false, true]) {
+        expect(isDark("skyV2", { prefersDark, nextPrayer })).toBe(
+          isDark("sky", { prefersDark, nextPrayer })
+        );
+      }
+    }
+  });
+
+  it("tints the app from the sky, as Sky does", () => {
+    expect(isSkyTheme("skyV2")).toBe(true);
+    expect(isSkyTheme("sky")).toBe(true);
+    expect(isSkyTheme("dark")).toBe(false);
   });
 });
 
@@ -42,7 +60,7 @@ describe("sky", () => {
 
 describe("theme options", () => {
   it("Should offer the standard three first, then this app's own", () => {
-    expect(THEMES).toEqual(["system", "light", "dark", "sky"]);
+    expect(THEMES).toEqual(["system", "light", "dark", "sky", "skyV2"]);
   });
 
   it("Should label every option it offers", () => {

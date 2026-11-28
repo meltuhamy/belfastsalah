@@ -10,19 +10,35 @@
 
 import { Prayer } from "./PrayerTimes";
 
-export type Theme = "system" | "light" | "dark" | "sky";
+export type Theme = "system" | "light" | "dark" | "sky" | "skyV2";
 
 // Also the order they appear in the picker: the standard three first, then
 // this app's own. There was a "Dark after Maghrib" between them; Sky goes dark
 // at Maghrib too, and settings that had it now have Sky (migrateSettings).
-export const THEMES: ReadonlyArray<Theme> = ["system", "light", "dark", "sky"];
+export const THEMES: ReadonlyArray<Theme> = [
+  "system",
+  "light",
+  "dark",
+  "sky",
+  "skyV2",
+];
 
 export const themeLabels: Record<Theme, string> = {
   system: "Match device",
   light: "Light",
   dark: "Dark",
   sky: "Sky",
+  skyV2: "Sky V2",
 };
+
+/**
+ * Whether a theme tints the app from the day's sky (sky.ts): Sky, and Sky V2,
+ * which draws the real sky on the day card (realSky.ts) and is Sky everywhere
+ * else.
+ */
+export function isSkyTheme(theme: Theme | null | undefined): boolean {
+  return theme === "sky" || theme === "skyV2";
+}
 
 /**
  * Put on <html> alongside the palette class while the Sky theme is on, so its
@@ -62,6 +78,7 @@ export function isDark(theme: Theme, conditions: Conditions): boolean {
       return true;
     // Dark from Maghrib to sunrise, so its night agrees with the timetable's.
     case "sky":
+    case "skyV2":
       // Falling back to the device's setting rather than to light: it is the
       // better guess for the moment before the timetable arrives, and someone
       // who picked this mode wants dark at night, which is when a device is

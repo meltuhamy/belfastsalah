@@ -31,9 +31,15 @@ export default defineConfig({
         // CI installs its own browsers, so Playwright resolves them itself.
         // Set CHROMIUM_PATH to reuse a Chromium that is already on the machine
         // instead (handy in sandboxes that ship one at a fixed location).
-        ...(process.env.CHROMIUM_PATH
-          ? { launchOptions: { executablePath: process.env.CHROMIUM_PATH } }
-          : {}),
+        launchOptions: {
+          // Sky V2 draws with WebGL. Headless Chrome has no GPU, and newer
+          // versions only fall back to SwiftShader's software WebGL when
+          // asked.
+          args: ["--enable-unsafe-swiftshader"],
+          ...(process.env.CHROMIUM_PATH
+            ? { executablePath: process.env.CHROMIUM_PATH }
+            : {}),
+        },
       },
     },
   ],

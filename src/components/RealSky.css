@@ -1,0 +1,62 @@
+/*
+  Sky V2 (RealSky.tsx): the canvas fills the card behind its content, and
+  the layers over it - stars, lens flare, Duhr's rays - are positioned from
+  custom properties the component sets each second: --sun-left/--sun-top,
+  the disc as drawn, in px; --sky-sun-on, how much of it shows;
+  --real-sky-stars and --real-sky-horizon.
+*/
+.RealSky {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Hidden until three.js has loaded and drawn: the Sky theme's sky shows till then. */
+.RealSky:not(.RealSky--ready) {
+  visibility: hidden;
+}
+
+.RealSky__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.RealSky__over {
+  position: absolute;
+  inset: 0;
+}
+
+/* The stars stop at the horizon: there is sea below it. */
+.RealSky__stars {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: var(--real-sky-horizon, 0px);
+  overflow: hidden;
+  opacity: var(--real-sky-stars, 0);
+  transition: opacity 1s linear;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 70%, rgba(0, 0, 0, 0.35) 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 70%, rgba(0, 0, 0, 0.35) 100%);
+}
+
+/* Duhr's rays, turning about the disc: PrayerDayCard.css has the rays themselves. */
+.RealSky__rays {
+  position: absolute;
+  left: var(--sun-left);
+  top: var(--sun-top);
+  width: 0;
+  height: 0;
+  mix-blend-mode: screen;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .RealSky__stars {
+    transition: none;
+  }
+}

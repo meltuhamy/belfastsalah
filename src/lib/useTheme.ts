@@ -13,6 +13,7 @@ import {
   SKY_THEME_CLASS,
   Theme,
   isDark,
+  isSkyTheme,
   systemPrefersDark,
 } from "./theme";
 import { UK_TIME_ZONE, getZonedDateParts } from "./timeZone";
@@ -99,7 +100,7 @@ export function useTheme(
 ): void {
   const prefersDark = useSystemPrefersDark();
   const now = new Date();
-  const sky = theme === "sky";
+  const sky = isSkyTheme(theme);
   const skyDay = useSkyDay(sky, today, now);
   // London's zone goes with London's stand-in day.
   const skyZone = today === null ? UK_TIME_ZONE : timeZone;

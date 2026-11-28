@@ -356,6 +356,17 @@ const SettingsList: React.FC<Props> = ({
           ))}
         </IonSelect>
       </IonItem>
+      {settings.theme === "skyV2" && (
+        <IonItem className="settings-list__note-item">
+          <IonLabel className="ion-text-wrap settings-list__sky">
+            <p>
+              The real sky over your timetable's city, kept to its prayer
+              times: dawn's white thread at Fajr, the sun on the horizon at
+              Shuruq and Maghrib, the red twilight gone at Isha.
+            </p>
+          </IonLabel>
+        </IonItem>
+      )}
       {settings.theme === "sky" && (
         <IonItem className="settings-list__note-item">
           <IonLabel className="ion-text-wrap settings-list__sky">

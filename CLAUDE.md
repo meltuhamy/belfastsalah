@@ -631,10 +631,11 @@ and there is the test day (`/settings/notifications/test`).
 
 ## Theming
 
-One setting, `theme`, with four values: `system`, `light`, `dark`, `sky`.
-`sky` is a new install's default (`getDefaultSettings`); settings saved
-without a theme migrate to `system`, which was the default when they were
-written, so an upgrade does not change the look. There used to be a `maghrib`
+One setting, `theme`, with five values: `system`, `light`, `dark`, `sky`,
+`skyV2`. `skyV2` is a new install's default (`getDefaultSettings`); someone
+who chose `sky` keeps it, and settings saved without a theme migrate to
+`system`, which was the default when they were written, so an upgrade does
+not change the look. There used to be a `maghrib`
 ("Dark after Maghrib"); Sky goes dark at Maghrib too, and `migrateSettings`
 moves it there. `src/lib/theme.ts` decides; `useTheme` in `App.tsx` is the only
 thing that touches the palette class, and it puts Ionic's `.ion-palette-dark`
@@ -731,6 +732,70 @@ the one calculation the native side does itself:
   pictures - a widget cannot animate, so the card's breathing line is just
   a line there - with the haze shallower on short widgets. The screenshot
   tests have a Sky frame before Fajr and one before sunrise.
+
+### Sky V2
+
+Sky V2 (MEL-376, from the "Real sky" prototype of MEL-375) is Sky everywhere
+but the day card: the same tints and dark rule (`isSkyTheme`), and on the
+card the real sky, drawn by a physical atmosphere - single scattering,
+Rayleigh, Mie and ozone - lit by the real sun over the timetable's place
+(`SKY_PLACES`), with a sea below the horizon.
+
+- **`src/lib/realSky.ts` decides; the shader draws.** The sun's position,
+  how it is kept to the timetable, the view's bearing, exposure, the dawn's
+  and dusk's timing, the text-colour rule and the give-way mask are plain
+  TypeScript; `realSkyShader.ts` is GLSL that only draws what it is told. The
+  widgets will port realSky.ts (MEL-377), and are checked against
+  `fixtures/real-sky/*.json`, written by `realSky.fixture.test.ts`
+  (`UPDATE_FIXTURES=1 npx vitest run realSky.fixture`).
+- **The sun is kept to the timetable.** Its height is the real one plus an
+  offset that runs straight between anchors: -18 at Fajr, the disc's upper
+  edge on the horizon at Shuruq and Maghrib, -17 at Isha (`shownSun`), with
+  the night's ends from the neighbouring days (`useSkyTimes`). For Istanbul,
+  whose Diyanet table uses those angles, the offset is under a degree. For
+  London and Belfast in summer it reaches about 8: their twilight never gets
+  to 18 degrees, so the sky is the timetable's night, not the sky's. At
+  Shuruq the disc alone lifts clear of the line for the hour after
+  (`shuruqLift`). The view turns so the sun stands over each prayer's dot at
+  its time (`viewBearing`); only its direction changes, never its scale.
+- **The horizon is measured**: the middle of the timeline's row, or the top
+  of the times when two rows of three hide the timeline. The card writes it
+  to `data-real-sky-horizon`.
+- **Text is one colour**, black or white, judged from the pixels drawn
+  (`chooseTone`): each word against the worst 5% under it, kept until the
+  other colour is clearly better. Then the sky gives way behind the words
+  (`giveWayMask`, read by the shader), and only what is still short gets a
+  halo. The card writes `data-real-sky-tone` and `data-real-sky-contrast`.
+- **Drawn with three.js**, loaded as its own chunk once the card mounts
+  (`realSkyRenderer.ts` is the only module that imports three); until then,
+  and where WebGL 2 is missing or the shader will not build, the card is the
+  Sky theme's painted card. The atmosphere goes into a half-resolution
+  render target, redrawn only when `skyClock` moves on - once a minute, every
+  five seconds around Fajr. The water is a cheap pass, drawn only while the
+  card is on screen and the page visible, at most 30 times a second, and
+  less if it makes the page's frames late (`nextWaterPace`) - in headless
+  Chrome's software WebGL it starved the keep-awake pill's animation. Reduce
+  motion keeps it still. three counts vertices from an attribute named
+  `position`: a full-screen triangle with any other name draws nothing,
+  silently.
+- **The once-a-second render** hands RealSky a new `now`; the water's loop
+  and the rays' CSS animations do not restart. Halos are put back on words
+  React redrew, each second.
+- e2e: `e2e/sky-v2.spec.ts`. `playwright.config.ts` launches Chrome with
+  `--enable-unsafe-swiftshader`, without which newer headless Chrome has no
+  WebGL.
+
+### Watching a day: `scripts/sky-capture/capture.mjs`
+
+For reviewing a change to how the sky looks: for one place and date it
+writes a one-minute time-lapse of the whole day, and for each prayer a still
+a minute before, a clip from 2 s before to 7 s after in real time, and a
+still a minute after its adhan moment. Playwright's clock, settings planted
+rather than set up, ffmpeg for the videos; it starts Vite on 5174 unless
+given `--base-url`. Output goes to `sky-capture/` (ignored) unless `--out`
+says otherwise. In this sandbox, with `CHROMIUM_PATH` as for e2e, the
+time-lapse takes about 15 minutes: software WebGL redraws the atmosphere
+every frame.
 
 ## Prayer data
 

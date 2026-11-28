@@ -43,10 +43,11 @@ export function getDefaultSettings(): AppSettings {
     // reminders always were. An adhan is opt-in.
     reminders: defaultReminders(),
     asrMethod: AsrMethod.Shafi,
-    // Sky is the default for a new install: the app's own look, and dark
-    // or light by the day's prayer times rather than the device. Settings
-    // saved before it keep whatever theme they had.
-    theme: "sky",
+    // Sky V2 is the default for a new install: the real sky on the day
+    // card, and dark or light by the day's prayer times rather than the
+    // device. Settings saved before it keep whatever theme they had, Sky
+    // included.
+    theme: "skyV2",
     timeFormat: "system",
     location: null,
     showTimesInDeviceZone: false,
