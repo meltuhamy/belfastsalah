@@ -33,8 +33,11 @@ export async function openSetup(page: Page) {
 }
 
 /** Loads the app and completes setup, landing on the home screen. */
-export async function completeSetup(page: Page) {
+export async function completeSetup(page: Page, options: { theme?: string } = {}) {
   await openSetup(page);
+  if (options.theme != null) {
+    await chooseFromSelect(page, "[data-testid=theme-select]", options.theme);
+  }
   await page.getByRole("button", { name: "Done" }).click();
   await expect(page.getByRole("button", { name: "Done" })).toHaveCount(0);
   await expect(page.locator(PRAYER_STRIP)).toBeVisible();

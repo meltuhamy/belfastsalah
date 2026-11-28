@@ -64,7 +64,10 @@ async function waitForAnimation(page: Page) {
 test.beforeEach(async ({ page }) => {
   await pinDate(page, NOON_ISH);
   await stubWakeLock(page);
-  await completeSetup(page);
+  // The painted Sky, not Sky V2: these sample the pill's animation frame by
+  // frame, and on CI's runner Sky V2's water, drawn by software WebGL on the
+  // same two cores, starves it of frames. A phone draws it on its GPU.
+  await completeSetup(page, { theme: "Sky" });
   await waitForAnimation(page);
 });
 
