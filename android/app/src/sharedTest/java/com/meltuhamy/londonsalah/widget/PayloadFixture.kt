@@ -41,6 +41,20 @@ object PayloadFixture {
     const val TOMORROW_DATE = "Fri 16 Jan"
 
     /**
+     * The row the app writes between the 15th's Isha and the 16th's Fajr: the
+     * evening's passed prayers, with the Fajr being waited for last. The date
+     * stays the evening's; the widget only highlights the last cell.
+     */
+    val NIGHT_TIMES =
+        listOf(TIMES[1], TIMES[2], TIMES[3], TIMES[4], TIMES[5], TOMORROW_TIMES[FAJR])
+    val NIGHT_NAMES =
+        listOf(NAMES[1], NAMES[2], NAMES[3], NAMES[4], NAMES[5], NAMES[FAJR])
+
+    /** The same row on a 12-hour clock. */
+    val NIGHT_TIMES_12 =
+        listOf(TIMES_12[1], TIMES_12[2], TIMES_12[3], TIMES_12[4], TIMES_12[5], TOMORROW_TIMES_12[FAJR])
+
+    /**
      * The sky points' colours, as src/lib/sky.ts sends them - copied from
      * fixtures/widget-payload, which TypeScript writes.
      */
@@ -83,9 +97,14 @@ object PayloadFixture {
     private val SKY_16TH = skyTimes(instants(JAN_16, TOMORROW_TIMES))
 
     /** The instant a "HH:mm" clock string names on the 15th. */
-    fun on15th(clock: String): Long {
+    fun on15th(clock: String): Long = instant(JAN_15, clock)
+
+    /** The instant a "HH:mm" clock string names on the 16th. */
+    fun on16th(clock: String): Long = instant(JAN_16, clock)
+
+    private fun instant(midnight: Long, clock: String): Long {
         val (h, m) = clock.split(":").map { it.toInt() }
-        return JAN_15 + h * HOUR + m * MINUTE
+        return midnight + h * HOUR + m * MINUTE
     }
 
     /**
@@ -124,13 +143,27 @@ object PayloadFixture {
     /** 21:00 - full night, with the stars out: the Sky highlight's lighter block. */
     val LATE_NIGHT = on15th("21:00") - SPARE
 
-    /** The payload for the 15th, with tomorrow's Fajr as the last upcoming prayer. */
+    /**
+     * The payload for the 15th, with tomorrow's Fajr as the last upcoming
+     * prayer. As the app writes it, that Fajr points at a display row: the
+     * evening's five passed times with the Fajr last, dated the 15th.
+     */
     fun forJan15(): String {
         val upcoming = NAMES.indices.map { i ->
             Upcoming(NAMES[i], on15th(TIMES[i]), TIMES[i], day = 0)
-        } + Upcoming("Fajr", JAN_16_FAJR, TOMORROW_TIMES[FAJR], day = 1)
+        } + listOf(
+            Upcoming("Fajr", JAN_16_FAJR, TOMORROW_TIMES[FAJR], day = 2),
+            // The 16th's ordinary row, which takes over once its Fajr comes in.
+            *(1 until NAMES.size).map { i ->
+                Upcoming(NAMES[i], on16th(TOMORROW_TIMES[i]), TOMORROW_TIMES[i], day = 1)
+            }.toTypedArray()
+        )
         return json(
-            listOf(Day(DATE, TIMES, SKY_15TH), Day(TOMORROW_DATE, TOMORROW_TIMES, SKY_16TH)),
+            listOf(
+                Day(DATE, NAMES, TIMES, SKY_15TH),
+                Day(TOMORROW_DATE, NAMES, TOMORROW_TIMES, SKY_16TH),
+                Day(DATE, NIGHT_NAMES, NIGHT_TIMES, SKY_16TH)
+            ),
             upcoming
         )
     }
@@ -146,11 +179,17 @@ object PayloadFixture {
     fun forJan15TwelveHour(): String {
         val upcoming = NAMES.indices.map { i ->
             Upcoming(NAMES[i], on15th(TIMES[i]), TIMES_12[i], day = 0)
-        } + Upcoming("Fajr", JAN_16_FAJR, TOMORROW_TIMES_12[FAJR], day = 1)
+        } + listOf(
+            Upcoming("Fajr", JAN_16_FAJR, TOMORROW_TIMES_12[FAJR], day = 2),
+            *(1 until NAMES.size).map { i ->
+                Upcoming(NAMES[i], on16th(TOMORROW_TIMES[i]), TOMORROW_TIMES_12[i], day = 1)
+            }.toTypedArray()
+        )
         return json(
             listOf(
-                Day(DATE, TIMES_12, SKY_15TH),
-                Day(TOMORROW_DATE, TOMORROW_TIMES_12, SKY_16TH)
+                Day(DATE, NAMES, TIMES_12, SKY_15TH),
+                Day(TOMORROW_DATE, NAMES, TOMORROW_TIMES_12, SKY_16TH),
+                Day(DATE, NIGHT_NAMES, NIGHT_TIMES_12, SKY_16TH)
             ),
             upcoming
         )
@@ -161,17 +200,22 @@ object PayloadFixture {
         val upcoming = (next until NAMES.size).map { i ->
             Upcoming(NAMES[i], instants[i], TIMES[i], day = 0)
         }
-        return json(listOf(Day(DATE, TIMES, skyTimes(instants))), upcoming)
+        return json(listOf(Day(DATE, NAMES, TIMES, skyTimes(instants))), upcoming)
     }
 
     private data class Upcoming(val name: String, val at: Long, val time: String, val day: Int)
 
-    private data class Day(val date: String, val times: List<String>, val sky: List<Long>)
+    private data class Day(
+        val date: String,
+        val names: List<String>,
+        val times: List<String>,
+        val sky: List<Long>
+    )
 
     private fun json(days: List<Day>, upcoming: List<Upcoming>): String {
-        val dayJson = days.joinToString(",") { (date, times, sky) ->
-            val prayers = NAMES.indices.joinToString(",") { i ->
-                """{"name":"${NAMES[i]}","time":"${times[i]}"}"""
+        val dayJson = days.joinToString(",") { (date, names, times, sky) ->
+            val prayers = names.indices.joinToString(",") { i ->
+                """{"name":"${names[i]}","time":"${times[i]}"}"""
             }
             """{"dateLabel":"$date","prayers":[$prayers],"sky":[${sky.joinToString(",")}]}"""
         }

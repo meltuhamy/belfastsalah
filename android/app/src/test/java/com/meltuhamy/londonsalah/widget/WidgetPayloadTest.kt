@@ -173,7 +173,31 @@ class WidgetPayloadTest {
         val tomorrow = payload.nextAfter(PayloadFixture.AFTER_ISHA)!!
         assertEquals("Fajr", tomorrow.name)
         assertEquals("06:19", tomorrow.time)
-        assertEquals(PayloadFixture.TOMORROW_DATE, payload.dayOf(tomorrow)!!.dateLabel)
+    }
+
+    @Test
+    fun `reads the night's display row the app writes for Fajr`() {
+        val payload = WidgetPayload.parse(PayloadFixture.forJan15())!!
+
+        // Between the 15th's Isha and the 16th's Fajr, and after midnight too,
+        // the row keeps the evening's date and times with Fajr last. This is
+        // what the app writes for the widget to bind; no native arithmetic.
+        for (now in listOf(
+            PayloadFixture.AFTER_ISHA,
+            PayloadFixture.on15th("02:00") + 24 * 60 * 60 * 1000
+        )) {
+            val next = payload.nextAfter(now)!!
+            val row = payload.dayOf(next)!!
+            assertEquals("Fajr", next.name)
+            assertEquals(PayloadFixture.DATE, row.dateLabel)
+            assertEquals(PayloadFixture.NIGHT_TIMES, row.prayers.map { it.time })
+        }
+
+        // At Fajr the row is the new day's ordinary one again, with no stale
+        // state from the night.
+        val atFajr = payload.nextAfter(PayloadFixture.on15th("06:19") + 24 * 60 * 60 * 1000)!!
+        assertEquals("Shuruq", atFajr.name)
+        assertEquals(PayloadFixture.TOMORROW_TIMES, payload.dayOf(atFajr)!!.prayers.map { it.time })
     }
 
     @Test

@@ -5,8 +5,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.meltuhamy.londonsalah.R
 import com.meltuhamy.londonsalah.widget.PayloadFixture.AFTER_ISHA
 import com.meltuhamy.londonsalah.widget.PayloadFixture.ASR
-import com.meltuhamy.londonsalah.widget.PayloadFixture.FAJR
 import com.meltuhamy.londonsalah.widget.PayloadFixture.MAGHRIB
+import com.meltuhamy.londonsalah.widget.PayloadFixture.NIGHT_TIMES
 import com.meltuhamy.londonsalah.widget.PayloadFixture.ONE_PM
 import com.meltuhamy.londonsalah.widget.PayloadFixture.THREE_PM
 import com.meltuhamy.londonsalah.widget.WidgetHarness.CELLS
@@ -61,18 +61,18 @@ class WidgetRenderTest {
     }
 
     @Test
-    fun `after Isha the timetables show tomorrow`() {
-        // The day shown is the one the countdown is heading into. Before this,
-        // it was whichever day the app was last opened on: a widget left alone
-        // kept that date, and times up to a few minutes out, indefinitely.
+    fun `after Isha the timetables show the evening with Fajr last`() {
+        // As the app's strip does between Isha and Fajr: the evening's passed
+        // times, then the Fajr being waited for on the end, highlighted. The
+        // date stays the evening's. The countdown still heads into tomorrow.
         for (kind in timetables) {
             val widget = draw(kind, homeScreenSize(kind), nowMillis = AFTER_ISHA)
             val times = WidgetHarness.TIME_VIEWS.getValue(kind).map { widget.text(it) }
-            assertEquals("$kind times", PayloadFixture.TOMORROW_TIMES, times)
+            assertEquals("$kind times", PayloadFixture.NIGHT_TIMES, times)
         }
         for (kind in listOf(WidgetKind.WIDE, WidgetKind.TALL)) {
             val widget = draw(kind, homeScreenSize(kind), nowMillis = AFTER_ISHA)
-            assertEquals("$kind date", PayloadFixture.TOMORROW_DATE, widget.text(R.id.widget_date))
+            assertEquals("$kind date", PayloadFixture.DATE, widget.text(R.id.widget_date))
         }
     }
 
@@ -80,7 +80,10 @@ class WidgetRenderTest {
     fun `timetables highlight the next prayer, and only it`() {
         // Three different cells, including the first: a highlight stuck on the
         // one the layout's sample text marks would pass any one of these.
-        val cases = listOf(ONE_PM to ASR, THREE_PM to MAGHRIB, AFTER_ISHA to FAJR)
+        // After Isha the coming Fajr is last in the night row, not first.
+        val cases = listOf(
+            ONE_PM to ASR, THREE_PM to MAGHRIB, AFTER_ISHA to NIGHT_TIMES.lastIndex
+        )
         for (kind in timetables) {
             for ((now, expected) in cases) {
                 val widget = draw(kind, homeScreenSize(kind), nowMillis = now)

@@ -42,8 +42,22 @@ final class WidgetPayloadTests: XCTestCase {
             ["06:50", "08:20", "13:18", "15:45", "18:07", "19:31"]
         )
         // The countdown runs on the instant: 06:50 in Istanbul is 03:50 UTC.
-        let fajr = payload.upcoming.first { $0.name == "Fajr" && $0.day == 0 }!
+        // The fixture is written at 03:00 Istanbul, so this Fajr is next and
+        // points at the night row borrowed from the previous evening.
+        let fajr = payload.upcoming.first { $0.name == "Fajr" }!
         XCTAssertEqual(fajr.date, Fixture.on15th("03:50"))
+        XCTAssertEqual(payload.days[fajr.day].dateLabel, "Wed 14 Jan")
+    }
+
+    func testWritesTheNightRowTheTimelineReads() {
+        let payload = Fixture.payload()
+        let fajr = payload.upcoming.first { $0.name == "Fajr" && $0.time == "06:19" }!
+        let row = payload.days[fajr.day]
+        XCTAssertEqual(row.dateLabel, Fixture.date)
+        XCTAssertEqual(row.prayers.map(\.time), Fixture.nightTimes)
+        // The display row borrows the coming day's sky, so adding it cannot
+        // change what a Sky widget paints.
+        XCTAssertEqual(row.sky, payload.days[1].sky)
     }
 
     func testFindsTheNextPrayer() {
@@ -51,7 +65,7 @@ final class WidgetPayloadTests: XCTestCase {
         XCTAssertEqual(payload.nextAfter(Fixture.onePM)?.name, "Asr")
         let afterIsha = payload.nextAfter(Fixture.afterIsha)
         XCTAssertEqual(afterIsha?.name, "Fajr")
-        XCTAssertEqual(afterIsha?.day, 1)
+        XCTAssertEqual(payload.days[afterIsha!.day].dateLabel, Fixture.date)
     }
 
     func testStillReadsThePayloadTheVersionBeforeTheSkyWrote() throws {

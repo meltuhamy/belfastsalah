@@ -16,14 +16,20 @@
 import {
   createPrayerTimes,
   Prayer,
+  PrayerDayTimes,
   PrayerTimes,
   prayerToString,
 } from "./PrayerTimes";
 import { locationNames, locationTimeZones } from "./PrayerTimeData";
 import { AppSettings } from "./settings";
 import { resolveDisplayTimeZone } from "./displayZone";
-import { formatDateInZone, getZonedDateParts } from "./timeZone";
+import {
+  formatDateInZone,
+  getZonedDateParts,
+  shiftZonedDay,
+} from "./timeZone";
 import { formatClockTime, uses24Hour } from "./timeFormat";
+import { stripCells, stripOffset } from "./prayerStrip";
 import { SkyColours, skyColourTable, skyPoints } from "./sky";
 
 /** Bump when the shape changes, so an old widget ignores a payload it cannot read. */
@@ -69,12 +75,15 @@ export type WidgetPayload = {
   generatedAt: number;
   locationLabel: string;
   /**
-   * Today and every day after it that `upcoming` reaches into.
+   * Today and every day after it that `upcoming` reaches into, in order.
    *
    * A widget shows the day of the prayer it is counting down to, so it moves
-   * on by itself at each prayer boundary - after Isha to tomorrow, just as the
-   * app's strip does - rather than showing whichever day the app was last
-   * opened on.
+   * on by itself at each prayer boundary rather than showing whichever day the
+   * app was last opened on. Each Fajr then has a display row *after* the
+   * calendar days: between Isha and Fajr the app's strip keeps the evening's
+   * passed prayers and puts the coming Fajr last (src/lib/prayerStrip.ts), and
+   * that Fajr's `day` points at the row. A display row carries the coming
+   * day's sky points, so the extra rows make no difference to the sky.
    */
   days: Array<WidgetDay>;
   /** Every prayer still to come within the horizon, earliest first. */
@@ -88,6 +97,52 @@ function prayerTimesFor(settings: AppSettings): PrayerTimes | null {
     return null;
   }
   return createPrayerTimes(settings.location, settings.asrMethod);
+}
+
+/** One day's row, in the clock the user reads times in. */
+function widgetDay(
+  dayTimes: PrayerDayTimes,
+  displayZone: string,
+  twentyFourHour: boolean
+): WidgetDay {
+  return {
+    // Dated by its midday prayer: the instant least likely to fall on a
+    // different date in the zone the user reads times in.
+    dateLabel: formatDateInZone(dayTimes[Prayer.Duhr].time, displayZone),
+    prayers: dayTimes.map((p) => ({
+      name: prayerToString(p.prayer),
+      time: formatClockTime(p.time, displayZone, twentyFourHour),
+    })),
+    sky: skyPoints(dayTimes).map((p) => p.at),
+  };
+}
+
+/**
+ * The app's night strip (prayerStrip.ts), written as a row the widget can
+ * bind: the evening's Shuruq to Isha, then the Fajr being waited for on the
+ * end. Taking the six on show from `stripCells` and `stripOffset` keeps the
+ * order here the same one the day card uses.
+ */
+function nightRow(
+  evening: PrayerDayTimes,
+  coming: PrayerDayTimes,
+  displayZone: string,
+  twentyFourHour: boolean
+): WidgetDay {
+  const offset = stripOffset({ kind: "night", fajr: coming[Prayer.Fajr] });
+  return {
+    // The evening's date, as on the day card between Isha and Fajr.
+    dateLabel: formatDateInZone(evening[Prayer.Duhr].time, displayZone),
+    prayers: stripCells({ days: [evening, coming], offset })
+      .slice(offset, offset + 6)
+      .map((p) => ({
+        name: prayerToString(p.prayer),
+        time: formatClockTime(p.time, displayZone, twentyFourHour),
+      })),
+    // The row borrows the coming day's sky points, so a Sky widget paints
+    // exactly what it did when Fajr pointed at that day's ordinary row.
+    sky: skyPoints(coming).map((p) => p.at),
+  };
 }
 
 /**
@@ -124,6 +179,8 @@ export async function buildWidgetPayload(
 
   const upcoming: Array<WidgetUpcoming> = [];
   const days: Array<WidgetDay> = [];
+  // The timetable rows behind `days`, for the strip's own helpers below.
+  const calendarDays: Array<PrayerDayTimes> = [];
   let reachedToday = false;
 
   // Walk whole months from today's. getMonth already takes its day count from
@@ -163,16 +220,8 @@ export async function buildWidgetPayload(
       }
 
       const index = days.length;
-      days.push({
-        // Dated by its midday prayer: the instant least likely to fall on a
-        // different date in the zone the user reads times in.
-        dateLabel: formatDateInZone(dayTimes[Prayer.Duhr].time, displayZone),
-        prayers: dayTimes.map((p) => ({
-          name: prayerToString(p.prayer),
-          time: formatClockTime(p.time, displayZone, twentyFourHour),
-        })),
-        sky: skyPoints(dayTimes).map((p) => p.at),
-      });
+      days.push(widgetDay(dayTimes, displayZone, twentyFourHour));
+      calendarDays.push(dayTimes);
       for (const prayerTime of ahead) {
         upcoming.push({
           name: prayerToString(prayerTime.prayer),
@@ -188,6 +237,27 @@ export async function buildWidgetPayload(
       month = 0;
       year += 1;
     }
+  }
+
+  // Overnight the strip is not either day on its own: it is the evening's
+  // Shuruq to Isha, then the Fajr being waited for last and highlighted. The
+  // native side already shows `days[next.day]`, so writing that row here and
+  // pointing Fajr at it needs no date arithmetic - or a new reader - on either
+  // phone. The shape is unchanged: no WIDGET_PAYLOAD_VERSION bump is needed.
+  let yesterday: PrayerDayTimes | null = null;
+  for (const entry of upcoming) {
+    if (entry.name !== prayerToString(Prayer.Fajr)) continue;
+    const coming = calendarDays[entry.day];
+    // `days` starts from today in the timetable's zone. After midnight the
+    // evening is yesterday, which is not in it; fetch that one day only.
+    const evening =
+      entry.day > 0
+        ? calendarDays[entry.day - 1]
+        : (yesterday ??= await prayerTimes.getDay(
+            shiftZonedDay(new Date(entry.at), timetableZone, -1)
+          ));
+    entry.day =
+      days.push(nightRow(evening, coming, displayZone, twentyFourHour)) - 1;
   }
 
   return {

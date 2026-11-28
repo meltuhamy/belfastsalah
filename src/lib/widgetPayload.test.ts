@@ -163,26 +163,95 @@ describe("the days", () => {
       const day = payload.days[u.day];
       expect(day.prayers.find((p) => p.name === u.name)!.time).toEqual(u.time);
     }
-    // 10:00, so today's Duhr is next, and tomorrow's Fajr is on the next day.
+    // 10:00, so today's Duhr is next. Fajr points at the night's display row,
+    // not at its own calendar day: see the cases below.
     expect(payload.upcoming[0].day).toEqual(0);
-    const fajr = payload.upcoming.find((u) => u.name === "Fajr")!;
-    expect(fajr.day).toEqual(1);
   });
 
-  it("Should put tomorrow's Fajr on tomorrow once today's prayers are done", async () => {
+  it("Should keep the evening's calendar days before the display rows", async () => {
     const lateEvening = new Date("2026-02-15T20:00:00Z");
     const payload = (await buildWidgetPayload(settingsWith(), lateEvening))!;
 
-    // Today is still carried, but nothing ahead belongs to it.
+    // Today is still carried by the calendar days, even though nothing ahead
+    // belongs to it; the row the Fajr points at is today's date again.
     expect(payload.days[0].dateLabel).toEqual("Sun 15 Feb");
-    expect(payload.upcoming[0].day).toEqual(1);
     expect(payload.days[1].dateLabel).toEqual("Mon 16 Feb");
+    expect(payload.upcoming[0].day).toBeGreaterThanOrEqual(2);
   });
 
   it("Should not carry days past the horizon", async () => {
     const payload = (await buildWidgetPayload(settingsWith(), MORNING, 7))!;
     const last = payload.upcoming[payload.upcoming.length - 1];
-    expect(last.day).toEqual(payload.days.length - 1);
+    const calendarDays =
+      payload.days.length - payload.upcoming.filter((u) => u.name === "Fajr").length;
+    // The last prayer of the horizon is on a calendar day, not on a night row.
+    expect(last.day).toBeLessThan(calendarDays);
+    expect(
+      payload.upcoming
+        .filter((u) => u.name === "Fajr")
+        .every((u) => u.day >= calendarDays)
+    ).toBe(true);
+  });
+});
+
+describe("between Isha and Fajr", () => {
+  // The app's strip holds the evening's Shuruq to Isha and puts the coming
+  // Fajr last, highlighted (src/lib/prayerStrip.ts). The widget reads the row
+  // `upcoming[0].day` points at, so this is what it has to be given.
+
+  const rowFor = (payload: Awaited<ReturnType<typeof buildWidgetPayload>>, at: number) => {
+    const next = payload!.upcoming.find((u) => u.at > at)!;
+    return { next, row: payload!.days[next.day] };
+  };
+
+  it("Should show the evening's five passed times with Fajr last, before midnight", async () => {
+    const at = Date.parse("2026-02-15T20:00:00Z");
+    const { next, row } = rowFor(await buildWidgetPayload(settingsWith(), new Date(at)), at);
+
+    expect(next.name).toEqual("Fajr");
+    expect(row.dateLabel).toEqual("Sun 15 Feb");
+    expect(row.prayers.map((p) => p.name)).toEqual([
+      "Shuruq", "Duhr", "Asr", "Maghrib", "Isha", "Fajr",
+    ]);
+    expect(row.prayers.map((p) => p.time)).toEqual([
+      "07:12", "12:20", "14:46", "17:19", "18:49", "05:33",
+    ]);
+    // london-2026.json, 16 February: the Fajr on the end comes from tomorrow.
+    expect(row.prayers[5].time).toEqual(next.time);
+  });
+
+  it("Should use yesterday's evening after midnight, still with Fajr last", async () => {
+    const at = Date.parse("2026-02-16T02:00:00Z");
+    const { next, row } = rowFor(await buildWidgetPayload(settingsWith(), new Date(at)), at);
+
+    expect(next.name).toEqual("Fajr");
+    expect(row.dateLabel).toEqual("Sun 15 Feb");
+    expect(row.prayers.map((p) => p.time)).toEqual([
+      "07:12", "12:20", "14:46", "17:19", "18:49", "05:33",
+    ]);
+  });
+
+  it("Should go back to the new day at Fajr", async () => {
+    const at = Date.parse("2026-02-16T05:33:00Z");
+    const { next, row } = rowFor(await buildWidgetPayload(settingsWith(), new Date(at)), at);
+
+    // The instant itself counts as passed, as the native nextAfter does.
+    expect(next.name).toEqual("Shuruq");
+    expect(row.dateLabel).toEqual("Mon 16 Feb");
+    expect(row.prayers.map((p) => p.name)).toEqual([
+      "Fajr", "Shuruq", "Duhr", "Asr", "Maghrib", "Isha",
+    ]);
+    expect(row.prayers.map((p) => p.time)).toEqual([
+      "05:33", "07:10", "12:20", "14:47", "17:21", "18:51",
+    ]);
+  });
+
+  it("Should leave the daytime strip unchanged", async () => {
+    const { next, row } = rowFor(await buildWidgetPayload(settingsWith(), MORNING), MORNING.getTime());
+
+    expect(next.name).toEqual("Duhr");
+    expect(row.dateLabel).toEqual("Sun 15 Feb");
+    expect(row.prayers.map((p) => p.time)).toEqual(LONDON_15_FEB);
   });
 });
 

@@ -42,14 +42,26 @@ final class PrayerTimelineTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(times(entries[2])).nextName, "Isha")
     }
 
-    func testShowsTomorrowOnceIshaHasGone() throws {
-        // As the app's strip does: the day shown is the next prayer's.
-        let (entries, _) = build(at: Fixture.afterIsha)
+    func testShowsTheEveningWithFajrLastBetweenIshaAndFajr() throws {
+        // The same row before and after midnight: the evening's passed times,
+        // the coming Fajr last and highlighted, and the evening's date.
+        for now in [Fixture.afterIsha, Fixture.afterMidnight] {
+            let (entries, _) = build(at: now)
+            let first = try XCTUnwrap(times(entries[0]))
+            XCTAssertEqual(first.nextName, "Fajr")
+            XCTAssertEqual(first.dateLabel, Fixture.date)
+            XCTAssertEqual(first.prayers.map(\.time), Fixture.nightTimes)
+            XCTAssertEqual(first.nextIndex, 5)
+        }
+    }
+
+    func testShowsTheNewDayAtFajr() throws {
+        let (entries, _) = build(at: Fixture.on16thFajr)
         let first = try XCTUnwrap(times(entries[0]))
-        XCTAssertEqual(first.nextName, "Fajr")
+        XCTAssertEqual(first.nextName, "Shuruq")
         XCTAssertEqual(first.dateLabel, Fixture.tomorrowDate)
         XCTAssertEqual(first.prayers.map(\.time), Fixture.tomorrowTimes)
-        XCTAssertEqual(first.nextIndex, 0)
+        XCTAssertEqual(first.nextIndex, 1)
     }
 
     func testAsksToBeOpenedWhenTheWrittenTimesRunOut() {

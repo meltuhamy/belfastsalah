@@ -16,6 +16,8 @@ enum Fixture {
     static let names = ["Fajr", "Shuruq", "Duhr", "Asr", "Maghrib", "Isha"]
     static let times = ["06:20", "07:57", "12:15", "14:02", "16:24", "18:01"]
     static let tomorrowTimes = ["06:19", "07:56", "12:15", "14:03", "16:26", "18:03"]
+    /** The 15th's passed prayers, then the 16th's Fajr, as the night's row. */
+    static let nightTimes = ["07:57", "12:15", "14:02", "16:24", "18:01", "06:19"]
     static let date = "Thu 15 Jan"
     static let tomorrowDate = "Fri 16 Jan"
 
@@ -52,6 +54,8 @@ enum Fixture {
     static let onePM = on15th("13:00", seconds: -0.5) // Asr next, 1:02:00 away
     static let threePM = on15th("15:00", seconds: -0.5) // Maghrib: the longest name
     static let afterIsha = on15th("18:02", seconds: -0.5) // tomorrow's Fajr
+    static let afterMidnight = on15th("02:00", seconds: -0.5).addingTimeInterval(24 * 3600)
+    static let on16thFajr = on15th("06:19").addingTimeInterval(24 * 3600)
     static let sunset = on15th("16:30", seconds: -0.5) // just after Maghrib, 16:24
 
     /** The first entry at `now`, for drawing. */
